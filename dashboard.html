@@ -494,11 +494,13 @@
 
     <!-- CORS notice (shown if APIs unreachable) -->
     <div class="cors-notice" id="cors-notice">
-      ⚠ <strong>Cannot reach Polymarket APIs.</strong> This usually means the page is being
-      served from the filesystem (<code>file://</code>). Run a local server instead:<br><br>
-      <code>python3 -m http.server 8080</code> then open <code>http://localhost:8080/dashboard.html</code><br><br>
-      If you're already on a server, Polymarket's CORS policy may block direct browser requests —
-      in that case run the Python script (<code>polymarket_wallet_analysis.py</code>) which bypasses CORS.
+      ⚠ <strong>Cannot reach Polymarket APIs.</strong>
+      Both CORS proxies failed — this can happen if the proxy services are temporarily down
+      or your network blocks them.<br><br>
+      <strong>Try these in order:</strong><br>
+      1. Hard-refresh the page (<code>Ctrl+Shift+R</code> / <code>Cmd+Shift+R</code>)<br>
+      2. Open in a different browser or disable browser extensions<br>
+      3. Run the Python script locally instead: <code>python3 polymarket_wallet_analysis.py</code>
     </div>
 
     <!-- ── Markets ── -->
@@ -621,6 +623,18 @@
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════════════
+// Public CORS proxy — routes browser requests through a proxy that adds
+// Access-Control-Allow-Origin headers. Falls back to a second proxy if the
+// first one fails.
+const CORS_PROXIES = [
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+]
+let _proxyIdx = 0
+function proxyUrl(url) {
+  return CORS_PROXIES[_proxyIdx] + encodeURIComponent(url)
+}
+
 const GAMMA_API  = 'https://gamma-api.polymarket.com'
 const CLOB_API   = 'https://clob.polymarket.com'
 const SUBGRAPH   = 'https://api.thegraph.com/subgraphs/name/polymarket/matic-markets-5'
@@ -711,9 +725,25 @@ function copyAddr(addr) {
 }
 
 async function apiFetch(url, opts={}) {
-  const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(15000) })
-  if (!r.ok) throw new Error(`HTTP ${r.status}`)
-  return r.json()
+  // For POST (subgraph GraphQL) we can't easily proxy via URL param — try direct first
+  const isPost = opts.method === 'POST'
+  const attempts = isPost
+    ? [url, proxyUrl(url)]           // direct first, then proxy
+    : [proxyUrl(url), url]           // proxy first, then direct
+
+  let lastErr
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const r = await fetch(attempts[i], { ...opts, signal: AbortSignal.timeout(15000) })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return await r.json()
+    } catch(e) {
+      lastErr = e
+      // If the primary proxy failed, silently switch to the fallback proxy index
+      if (i === 0 && !isPost && _proxyIdx < CORS_PROXIES.length - 1) _proxyIdx++
+    }
+  }
+  throw lastErr
 }
 
 function setStatus(state, text) {
