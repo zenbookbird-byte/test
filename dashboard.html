@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Polymarket War Wallet Tracker</title>
+<style>
+  :root {
+    --bg:       #0a0c10;
+    --surface:  #111418;
+    --border:   #1e2530;
+    --border2:  #2a3340;
+    --text:     #e2e8f0;
+    --muted:    #6b7280;
+    --green:    #22c55e;
+    --red:      #ef4444;
+    --yellow:   #eab308;
+    --blue:     #3b82f6;
+    --purple:   #a855f7;
+    --accent:   #0ea5e9;
+    --gold:     #f59e0b;
+    --glow:     rgba(14,165,233,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 18px; }
+  .logo {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+  .logo span { color: var(--text); }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+    display: inline-block;
+  }
+  .status-dot.loading { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .status-dot.error   { background: var(--red);    box-shadow: 0 0 6px var(--red);    animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  #clock    { color: var(--muted); font-size: 12px; }
+  #refresh-timer { color: var(--muted); font-size: 12px; }
+  .btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    transition: all .15s;
+  }
+  .btn:hover { background: var(--glow); border-color: var(--accent); }
+
+  /* ── Layout ── */
+  .app { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 53px); }
+
+  /* ── Sidebar ── */
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: sticky;
+    top: 53px;
+    height: calc(100vh - 53px);
+    overflow-y: auto;
+  }
+  .stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .stat-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 700; color: var(--text); }
+  .stat-sub   { color: var(--muted); font-size: 11px; margin-top: 3px; }
+
+  .filter-group { display: flex; flex-direction: column; gap: 8px; }
+  .filter-label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  .filter-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    width: 100%;
+  }
+  .filter-input:focus { outline: none; border-color: var(--accent); }
+
+  .legend { display: flex; flex-direction: column; gap: 6px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .03em;
+  }
+  .badge-mar { background: rgba(14,165,233,.2);  color: var(--accent); border: 1px solid rgba(14,165,233,.3); }
+  .badge-feb { background: rgba(168,85,247,.2);  color: var(--purple); border: 1px solid rgba(168,85,247,.3); }
+  .badge-jun { background: rgba(245,158,11,.2);  color: var(--gold);   border: 1px solid rgba(245,158,11,.3); }
+  .badge-star{ background: rgba(34,197,94,.15);  color: var(--green);  border: 1px solid rgba(34,197,94,.3);  }
+
+  /* ── Main content ── */
+  main { padding: 20px 24px; display: flex; flex-direction: column; gap: 28px; overflow-x: hidden; }
+
+  /* ── Section ── */
+  .section {}
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .icon { font-size: 15px; }
+  .section-count {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--border);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  /* ── Tables ── */
+  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--text); }
+  th.sorted-asc::after  { content: " ▲"; color: var(--accent); }
+  th.sorted-desc::after { content: " ▼"; color: var(--accent); }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  .addr {
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .addr:hover { text-decoration: underline; }
+  .copy-icon { color: var(--muted); font-size: 11px; opacity: .6; }
+  .addr:hover .copy-icon { opacity: 1; }
+
+  .pnl-pos { color: var(--green); font-weight: 600; }
+  .pnl-neg { color: var(--red);   font-weight: 600; }
+  .pnl-zero{ color: var(--muted); }
+
+  .winrate-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bar-track {
+    width: 60px;
+    height: 5px;
+    background: var(--border2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width .3s;
+  }
+
+  .period-badges { display: flex; gap: 4px; flex-wrap: nowrap; }
+
+  .star-badge { color: var(--gold); font-size: 14px; }
+
+  /* ── Markets grid ── */
+  .markets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+  .market-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color .15s;
+  }
+  .market-card:hover { border-color: var(--border2); }
+  .market-card.open-card { border-left: 3px solid var(--green); }
+  .market-card.closed-card { border-left: 3px solid var(--muted); opacity: .7; }
+  .market-title { font-size: 12px; color: var(--text); line-height: 1.5; margin-bottom: 10px; }
+  .market-meta { display: flex; justify-content: space-between; align-items: center; }
+  .yes-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .yes-pill.low  { background: rgba(34,197,94,.15);  color: var(--green); }
+  .yes-pill.mid  { background: rgba(234,179,8,.15);   color: var(--yellow);}
+  .yes-pill.high { background: rgba(239,68,68,.15);   color: var(--red);   }
+  .vol-text { color: var(--muted); font-size: 11px; }
+  .closed-tag { color: var(--muted); font-size: 11px; font-style: italic; }
+
+  .prob-bar {
+    height: 3px;
+    background: var(--border2);
+    border-radius: 2px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .prob-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--green), var(--yellow)); }
+
+  /* ── Copy signals ── */
+  .signal-cards { display: flex; flex-direction: column; gap: 14px; }
+  .signal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .signal-card.primary-signal { border-color: rgba(34,197,94,.4); box-shadow: 0 0 12px rgba(34,197,94,.06); }
+  .signal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .signal-title { font-size: 13px; color: var(--text); line-height: 1.4; max-width: 60%; }
+  .signal-ev {
+    text-align: right;
+  }
+  .ev-value { font-size: 20px; font-weight: 700; color: var(--green); }
+  .ev-label { font-size: 11px; color: var(--muted); }
+  .signal-stats { display: flex; gap: 20px; margin-bottom: 14px; flex-wrap: wrap; }
+  .sig-stat { display: flex; flex-direction: column; gap: 2px; }
+  .sig-stat-label { font-size: 11px; color: var(--muted); }
+  .sig-stat-value { font-size: 13px; font-weight: 600; color: var(--text); }
+  .allocation-box {
+    background: rgba(14,165,233,.08);
+    border: 1px solid rgba(14,165,233,.2);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .alloc-item { display: flex; flex-direction: column; gap: 2px; }
+  .alloc-label { font-size: 11px; color: var(--muted); }
+  .alloc-value { font-size: 14px; font-weight: 700; color: var(--accent); }
+  .alloc-win   { color: var(--green); }
+  .alloc-lose  { color: var(--red);   }
+
+  /* ── Loading / empty ── */
+  .loading-row td {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+  }
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+  }
+  .empty-state .emoji { font-size: 32px; margin-bottom: 12px; }
+  .empty-state p { font-size: 12px; line-height: 1.7; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--green);
+    opacity: 0;
+    transition: opacity .2s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  #toast.show { opacity: 1; }
+
+  /* ── CORS notice ── */
+  .cors-notice {
+    background: rgba(245,158,11,.08);
+    border: 1px solid rgba(245,158,11,.3);
+    border-radius: 8px;
+    padding: 14px 18px;
+    color: var(--yellow);
+    font-size: 12px;
+    line-height: 1.7;
+    display: none;
+  }
+  .cors-notice.visible { display: block; }
+  .cors-notice code {
+    background: rgba(245,158,11,.15);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font: inherit;
+    font-size: 11px;
+  }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-bottom: 14px; }
+  .tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    transition: all .15s;
+  }
+  .tab.active { background: var(--glow); border-color: var(--accent); color: var(--accent); }
+  .tab:hover:not(.active) { border-color: var(--border2); color: var(--text); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Tooltip ── */
+  [data-tip] { position: relative; cursor: help; }
+  [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e2530;
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-size: 11px;
+    padding: 5px 9px;
+    border-radius: 5px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s;
+    z-index: 50;
+  }
+  [data-tip]:hover::after { opacity: 1; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="header-left">
+    <div class="logo">POLY<span>TRACK</span></div>
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text" style="color:var(--muted);font-size:12px;">Initialising…</span>
+  </div>
+  <div class="header-right">
+    <span id="clock"></span>
+    <span id="refresh-timer"></span>
+    <button class="btn" onclick="loadAll()">↺ Refresh Now</button>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- ── Sidebar ── -->
+  <aside>
+    <div class="stat-card">
+      <div class="stat-label">Open War Markets</div>
+      <div class="stat-value" id="stat-open">—</div>
+      <div class="stat-sub">live on Polymarket</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Wallets Tracked</div>
+      <div class="stat-value" id="stat-wallets">—</div>
+      <div class="stat-sub">min 5 trades</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Multi-Period ★</div>
+      <div class="stat-value" id="stat-mp">—</div>
+      <div class="stat-sub">Mar'26 + Feb'26 active</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Copy Signals</div>
+      <div class="stat-value" id="stat-signals">—</div>
+      <div class="stat-sub">positive EV only</div>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label">Search wallet</div>
+      <input class="filter-input" id="wallet-search" placeholder="0x…" oninput="filterWallets()"/>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label">Min P&amp;L ($)</div>
+      <input class="filter-input" id="min-pnl" type="number" value="0" oninput="filterWallets()"/>
+    </div>
+
+    <div class="legend">
+      <div class="filter-label">Period badges</div>
+      <div class="legend-item"><span class="badge badge-mar">Mar'26</span> current month</div>
+      <div class="legend-item"><span class="badge badge-feb">Feb'26</span> last month</div>
+      <div class="legend-item"><span class="badge badge-jun">Jun'25</span> June 2025 bonus</div>
+      <div class="legend-item"><span class="badge badge-star">★ 3-period</span> all windows</div>
+    </div>
+
+    <div style="color:var(--muted);font-size:11px;line-height:1.6;margin-top:auto">
+      Data: Polymarket Gamma API + CLOB<br>
+      Auto-refresh every 90 seconds<br>
+      EV assumes 85% copy-trade success
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main>
+
+    <!-- CORS notice (shown if APIs unreachable) -->
+    <div class="cors-notice" id="cors-notice">
+      ⚠ <strong>Cannot reach Polymarket APIs.</strong> This usually means the page is being
+      served from the filesystem (<code>file://</code>). Run a local server instead:<br><br>
+      <code>python3 -m http.server 8080</code> then open <code>http://localhost:8080/dashboard.html</code><br><br>
+      If you're already on a server, Polymarket's CORS policy may block direct browser requests —
+      in that case run the Python script (<code>polymarket_wallet_analysis.py</code>) which bypasses CORS.
+    </div>
+
+    <!-- ── Markets ── -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon">🌍</span>
+          Iran / US / Israel War Markets
+          <span class="section-count" id="markets-count">loading…</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="tab active" onclick="toggleMarkets('open')"  id="tab-open">Open</button>
+          <button class="tab"        onclick="toggleMarkets('all')"   id="tab-all">All</button>
+        </div>
+      </div>
+      <div class="markets-grid" id="markets-grid">
+        <div class="empty-state"><div class="emoji">⏳</div><p>Fetching markets…</p></div>
+      </div>
+    </section>
+
+    <!-- ── Wallets ── -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon">💼</span>
+          Wallet Rankings
+        </div>
+        <div class="tabs">
+          <button class="tab active" onclick="showWalletTab('mp')"    id="wtab-mp">★ Multi-Period</button>
+          <button class="tab"        onclick="showWalletTab('top50')" id="wtab-top50">Top 50 Profit</button>
+          <button class="tab"        onclick="showWalletTab('winrate')"id="wtab-winrate">Win Rate</button>
+        </div>
+      </div>
+
+      <!-- Multi-period table -->
+      <div class="tab-panel active" id="panel-mp">
+        <div class="table-wrap">
+          <table id="table-mp">
+            <thead><tr>
+              <th>★</th>
+              <th onclick="sortTable('table-mp',1)">Address</th>
+              <th onclick="sortTable('table-mp',2)">Periods</th>
+              <th onclick="sortTable('table-mp',3)">Net P&amp;L</th>
+              <th onclick="sortTable('table-mp',4)">Win %</th>
+              <th onclick="sortTable('table-mp',5)">Trades</th>
+              <th onclick="sortTable('table-mp',6)">ROI %</th>
+              <th onclick="sortTable('table-mp',7)">Mar'26 P&amp;L</th>
+              <th onclick="sortTable('table-mp',8)">Feb'26 P&amp;L</th>
+              <th onclick="sortTable('table-mp',9)">Jun'25 P&amp;L</th>
+              <th>Last Trade</th>
+            </tr></thead>
+            <tbody id="tbody-mp"><tr class="loading-row"><td colspan="11"><span class="spinner"></span>Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Top-50 profit table -->
+      <div class="tab-panel" id="panel-top50">
+        <div class="table-wrap">
+          <table id="table-top50">
+            <thead><tr>
+              <th onclick="sortTable('table-top50',0)">#</th>
+              <th onclick="sortTable('table-top50',1)">Address</th>
+              <th onclick="sortTable('table-top50',2)">Net P&amp;L</th>
+              <th onclick="sortTable('table-top50',3)">Win %</th>
+              <th onclick="sortTable('table-top50',4)">Trades</th>
+              <th onclick="sortTable('table-top50',5)">ROI %</th>
+              <th onclick="sortTable('table-top50',6)">Periods</th>
+              <th onclick="sortTable('table-top50',7)">Last Trade</th>
+            </tr></thead>
+            <tbody id="tbody-top50"><tr class="loading-row"><td colspan="8"><span class="spinner"></span>Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Win-rate table -->
+      <div class="tab-panel" id="panel-winrate">
+        <div class="table-wrap">
+          <table id="table-winrate">
+            <thead><tr>
+              <th onclick="sortTable('table-winrate',0)">#</th>
+              <th onclick="sortTable('table-winrate',1)">Address</th>
+              <th onclick="sortTable('table-winrate',2)">Win %</th>
+              <th onclick="sortTable('table-winrate',3)">W / L</th>
+              <th onclick="sortTable('table-winrate',4)">Net P&amp;L</th>
+              <th onclick="sortTable('table-winrate',5)">Trades</th>
+              <th onclick="sortTable('table-winrate',6)">T/day</th>
+              <th onclick="sortTable('table-winrate',7)">Active days</th>
+              <th>Periods</th>
+            </tr></thead>
+            <tbody id="tbody-winrate"><tr class="loading-row"><td colspan="9"><span class="spinner"></span>Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Copy Signals ── -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon">📡</span>
+          Copy-Trade Signals
+          <span class="section-count" id="signals-count">loading…</span>
+        </div>
+        <span style="font-size:11px;color:var(--muted)" data-tip="EV = 0.85×(1−price) − 0.15×price">
+          85% success rate assumed · EV &gt; 0 only · ?
+        </span>
+      </div>
+      <div class="signal-cards" id="signal-cards">
+        <div class="empty-state"><div class="emoji">⏳</div><p>Awaiting wallet data…</p></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast">✓ Copied!</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════
+const GAMMA_API  = 'https://gamma-api.polymarket.com'
+const CLOB_API   = 'https://clob.polymarket.com'
+const SUBGRAPH   = 'https://api.thegraph.com/subgraphs/name/polymarket/matic-markets-5'
+
+const MIN_TRADES         = 5
+const TOP_PROFITABLE     = 50
+const ACTIVE_WINDOW_DAYS = 60
+const MIN_SIGNAL_WALLETS = 2
+const COPY_SUCCESS_RATE  = 0.85
+const COPY_BUDGET        = 100.0
+const REFRESH_SECS       = 90
+
+const WAR_KEYWORDS = [
+  'iran','israel','hamas','hezbollah','war','strike','attack',
+  'nuclear','missile','idf','irgc','us-iran','us iran','israel iran',
+  'middle east','gaza','lebanon','tehran','netanyahu','khamenei'
+]
+
+// Period windows (Unix seconds, UTC)
+const PERIODS = {
+  jun_2025: [1748736000, 1751327999],
+  feb_2026: [1769904000, 1772323199],
+  mar_2026: [1772323200, 1775001599],
+}
+const PERIOD_LABEL = { jun_2025:"Jun'25", feb_2026:"Feb'26", mar_2026:"Mar'26" }
+const REQUIRED_PERIODS = new Set(['feb_2026','mar_2026'])
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let allMarkets  = []
+let allRows     = []
+let mpWallets   = []
+let top50       = []
+let openEnriched= []
+let mpSignals   = []
+let t50Signals  = []
+let marketView  = 'open'
+let refreshTimer= REFRESH_SECS
+let refreshInterval, clockInterval, timerInterval
+
+// ═══════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════
+function ts_period(ts) {
+  for (const [name,[s,e]] of Object.entries(PERIODS))
+    if (ts >= s && ts <= e) return name
+  return null
+}
+
+function periodBadges(flags) {
+  const order = ['mar_2026','feb_2026','jun_2025']
+  return order.filter(p => flags.has(p)).map(p => {
+    const cls = p === 'mar_2026' ? 'badge-mar' : p === 'feb_2026' ? 'badge-feb' : 'badge-jun'
+    return `<span class="badge ${cls}">${PERIOD_LABEL[p]}</span>`
+  }).join(' ')
+}
+
+function pnlHtml(v) {
+  if (v > 0)  return `<span class="pnl-pos">+$${v.toFixed(2)}</span>`
+  if (v < 0)  return `<span class="pnl-neg">-$${Math.abs(v).toFixed(2)}</span>`
+  return `<span class="pnl-zero">$0.00</span>`
+}
+
+function winBar(rate) {
+  const colour = rate >= 65 ? 'var(--green)' : rate >= 50 ? 'var(--yellow)' : 'var(--red)'
+  return `<div class="winrate-bar">
+    <div class="bar-track"><div class="bar-fill" style="width:${rate}%;background:${colour}"></div></div>
+    <span style="color:${colour};font-weight:700">${rate.toFixed(1)}%</span>
+  </div>`
+}
+
+function addrHtml(addr) {
+  const short = addr.slice(0,6) + '…' + addr.slice(-4)
+  const url   = `https://polymarket.com/profile/${addr}`
+  return `<span class="addr" onclick="copyAddr('${addr}')" title="${addr}">
+    <a href="${url}" target="_blank" style="color:inherit;text-decoration:none">${short}</a>
+    <span class="copy-icon">⎘</span>
+  </span>`
+}
+
+function copyAddr(addr) {
+  navigator.clipboard.writeText(addr).catch(()=>{})
+  const t = document.getElementById('toast')
+  t.textContent = '✓ Copied ' + addr.slice(0,10) + '…'
+  t.classList.add('show')
+  setTimeout(() => t.classList.remove('show'), 2000)
+}
+
+async function apiFetch(url, opts={}) {
+  const r = await fetch(url, { ...opts, signal: AbortSignal.timeout(15000) })
+  if (!r.ok) throw new Error(`HTTP ${r.status}`)
+  return r.json()
+}
+
+function setStatus(state, text) {
+  const dot = document.getElementById('status-dot')
+  dot.className = 'status-dot' + (state === 'loading' ? ' loading' : state === 'error' ? ' error' : '')
+  document.getElementById('status-text').textContent = text
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  1. FETCH MARKETS
+// ═══════════════════════════════════════════════════════════════
+async function fetchWarMarkets() {
+  const terms   = ['iran israel','iran war','israel attack','us iran','middle east war']
+  const seen    = new Set()
+  const markets = []
+
+  for (const term of terms) {
+    for (const closed of ['false','true']) {
+      try {
+        let page = 0
+        while (true) {
+          const data = await apiFetch(
+            `${GAMMA_API}/markets?q=${encodeURIComponent(term)}&closed=${closed}&limit=100&offset=${page*100}`
+          )
+          const batch = Array.isArray(data) ? data : (data.markets || [])
+          if (!batch.length) break
+          for (const m of batch) {
+            const id    = m.conditionId || m.id
+            const title = (m.question || m.title || '').toLowerCase()
+            const slug  = (m.slug || '').toLowerCase()
+            if (!id || seen.has(id)) continue
+            if (WAR_KEYWORDS.some(kw => title.includes(kw) || slug.includes(kw))) {
+              markets.push(m); seen.add(id)
+            }
+          }
+          page++
+          if (batch.length < 100) break
+        }
+      } catch(e) { /* term failed — continue */ }
+    }
+  }
+  return markets
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  2. FETCH TRADES
+// ═══════════════════════════════════════════════════════════════
+async function fetchTradesSubgraph(conditionIds) {
+  const GQL = `query T($conds:[String!]!,$skip:Int!){fpmmTrades(first:1000 skip:$skip where:{fpmm_in:$conds} orderBy:creationTimestamp orderDirection:desc){id type creator{id} fpmm{id} outcomeTokensTraded collateralAmount creationTimestamp}}`
+  let all = [], skip = 0
+  while (true) {
+    const res = await apiFetch(SUBGRAPH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: GQL, variables: { conds: conditionIds, skip } })
+    })
+    const trades = res?.data?.fpmmTrades || []
+    all.push(...trades)
+    if (trades.length < 1000) break
+    skip += 1000
+  }
+  return all
+}
+
+async function fetchTradesCLOB(marketIds) {
+  let all = []
+  for (const mid of marketIds.slice(0, 30)) {
+    try {
+      let cursor = ''
+      while (true) {
+        const url = `${CLOB_API}/trades?market=${mid}&limit=500${cursor ? '&cursor='+cursor : ''}`
+        const data = await apiFetch(url)
+        const trades = Array.isArray(data) ? data : (data.data || [])
+        if (!trades.length) break
+        trades.forEach(t => t._market = mid)
+        all.push(...trades)
+        cursor = (typeof data === 'object' && data.next_cursor) ? data.next_cursor : ''
+        if (!cursor) break
+      }
+    } catch(e) { /* skip this market */ }
+  }
+  return all
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  3. AGGREGATE WALLETS
+// ═══════════════════════════════════════════════════════════════
+function newWallet() {
+  return {
+    trades:0, buys:0, sells:0,
+    grossIn:0, grossOut:0,
+    tokensBought:0, tokensSold:0,
+    profitableExits:0, unprofitableExits:0,
+    firstTrade:null, lastTrade:null,
+    periodFlags: new Set(),
+    periodPnl: {},
+    positions: {},
+  }
+}
+
+function tagPeriod(w, ts, collateral, isBuy) {
+  const p = ts_period(ts)
+  if (!p) return
+  w.periodFlags.add(p)
+  if (!w.periodPnl[p]) w.periodPnl[p] = { grossIn:0, grossOut:0 }
+  if (isBuy) w.periodPnl[p].grossIn  += collateral
+  else        w.periodPnl[p].grossOut += collateral
+}
+
+function updatePosition(w, mktId, tokens, cost, isBuy) {
+  if (!mktId) return
+  if (!w.positions[mktId]) w.positions[mktId] = { netTokens:0, totalCost:0 }
+  const pos = w.positions[mktId]
+  if (isBuy) {
+    pos.netTokens += tokens
+    pos.totalCost += cost
+  } else {
+    if (pos.netTokens > 0) {
+      const ratio = Math.min(tokens / pos.netTokens, 1)
+      pos.totalCost -= pos.totalCost * ratio
+    }
+    pos.netTokens = Math.max(0, pos.netTokens - tokens)
+  }
+}
+
+function aggregateSubgraph(trades) {
+  const wallets = {}
+  for (const t of trades) {
+    const addr = t.creator?.id?.toLowerCase()
+    if (!addr) continue
+    if (!wallets[addr]) wallets[addr] = newWallet()
+    const w = wallets[addr]
+    w.trades++
+    const ts         = parseInt(t.creationTimestamp || 0)
+    const collateral = parseInt(t.collateralAmount || 0) / 1e6
+    const tokens     = parseInt(t.outcomeTokensTraded || 0) / 1e6
+    const mktId      = t.fpmm?.id || ''
+    const type       = (t.type || '').toUpperCase()
+    if (!w.firstTrade || ts < w.firstTrade) w.firstTrade = ts
+    if (!w.lastTrade  || ts > w.lastTrade)  w.lastTrade  = ts
+    if (type === 'BUY') {
+      w.buys++;  w.grossIn += collateral; w.tokensBought += tokens
+      tagPeriod(w, ts, collateral, true)
+      updatePosition(w, mktId, tokens, collateral, true)
+    } else if (type === 'SELL') {
+      w.sells++; w.grossOut += collateral; w.tokensSold += tokens
+      tagPeriod(w, ts, collateral, false)
+      updatePosition(w, mktId, tokens, collateral, false)
+      if (tokens > 0) {
+        const price = collateral / tokens
+        if (price >= 0.5) w.profitableExits++; else w.unprofitableExits++
+      }
+    }
+  }
+  return wallets
+}
+
+function aggregateCLOB(trades) {
+  const wallets = {}
+  for (const t of trades) {
+    for (const [af, sf] of [['maker_address','maker_side'],['taker_address','taker_side']]) {
+      const addr = (t[af] || '').toLowerCase()
+      if (!addr || addr === '0x' + '0'.repeat(40)) continue
+      if (!wallets[addr]) wallets[addr] = newWallet()
+      const w     = wallets[addr]
+      w.trades++
+      const ts_raw = t.timestamp || t.created_at || 0
+      const ts     = parseInt(ts_raw) || 0
+      const price  = parseFloat(t.price || 0)
+      const size   = parseFloat(t.size  || 0)
+      const side   = (t[sf] || t.side || '').toUpperCase()
+      const cost   = price * size
+      const mktId  = t._market || ''
+      if (ts) {
+        if (!w.firstTrade || ts < w.firstTrade) w.firstTrade = ts
+        if (!w.lastTrade  || ts > w.lastTrade)  w.lastTrade  = ts
+      }
+      if (side === 'BUY') {
+        w.buys++; w.grossIn += cost; w.tokensBought += size
+        tagPeriod(w, ts, cost, true)
+        updatePosition(w, mktId, size, cost, true)
+      } else if (side === 'SELL') {
+        w.sells++; w.grossOut += cost; w.tokensSold += size
+        tagPeriod(w, ts, cost, false)
+        updatePosition(w, mktId, size, cost, false)
+        if (price >= 0.5) w.profitableExits++; else w.unprofitableExits++
+      }
+    }
+  }
+  return wallets
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  4. SCORE WALLETS
+// ═══════════════════════════════════════════════════════════════
+function scoreWallets(wallets) {
+  const now = Math.floor(Date.now() / 1000)
+  const rows = []
+  for (const [addr, w] of Object.entries(wallets)) {
+    if (w.trades < MIN_TRADES) continue
+    const exits   = w.profitableExits + w.unprofitableExits
+    const winRate = exits > 0 ? (w.profitableExits / exits * 100) : 0
+    const netPnl  = w.grossOut - w.grossIn
+    const span    = (w.firstTrade && w.lastTrade) ? (w.lastTrade - w.firstTrade) : 0
+    const activeDays = Math.max(1, Math.floor(span / 86400))
+    const lastAgo    = w.lastTrade ? Math.floor((now - w.lastTrade) / 86400) : 9999
+    const isActive   = lastAgo <= ACTIVE_WINDOW_DAYS
+
+    const pPnl = {}
+    for (const [p, pp] of Object.entries(w.periodPnl))
+      pPnl[p] = pp.grossOut - pp.grossIn
+
+    rows.push({
+      address: addr,
+      trades: w.trades, buys: w.buys, sells: w.sells,
+      winRate: Math.round(winRate * 10) / 10,
+      profitableExits: w.profitableExits, totalExits: exits,
+      netPnl: Math.round(netPnl * 100) / 100,
+      grossIn: Math.round(w.grossIn * 100) / 100,
+      grossOut: Math.round(w.grossOut * 100) / 100,
+      tradesPerDay: Math.round(w.trades / activeDays * 10) / 10,
+      activeDays, lastAgo, isActive,
+      periodFlags: w.periodFlags,
+      periodScore: w.periodFlags.size,
+      periodPnl: pPnl,
+      positions: w.positions,
+    })
+  }
+  return rows.sort((a,b) => b.winRate - a.winRate || b.netPnl - a.netPnl)
+}
+
+function getMultiPeriod(rows) {
+  return rows
+    .filter(r => REQUIRED_PERIODS.isSubsetOf
+      ? REQUIRED_PERIODS.isSubsetOf(r.periodFlags)  // future JS
+      : [...REQUIRED_PERIODS].every(p => r.periodFlags.has(p)))
+    .filter(r => r.netPnl > 0)
+    .sort((a,b) => b.periodScore - a.periodScore || b.netPnl - a.netPnl)
+}
+
+function getTop50(rows) {
+  return rows.filter(r => r.isActive && r.netPnl > 0)
+    .sort((a,b) => b.netPnl - a.netPnl)
+    .slice(0, TOP_PROFITABLE)
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  5. LIVE ODDS
+// ═══════════════════════════════════════════════════════════════
+async function enrichWithOdds(markets) {
+  const open = markets.filter(m => !m.closed && !m.resolved)
+  const out  = []
+  for (const m of open) {
+    let yesPrice = null
+    const pricesRaw = m.outcomePrices || []
+    if (pricesRaw.length) {
+      const v = parseFloat(pricesRaw[0])
+      if (!isNaN(v)) yesPrice = v
+    }
+    if (yesPrice === null) {
+      const tokenIds = (m.tokens || []).map(t => t.token_id || t.tokenId).filter(Boolean)
+      if (tokenIds.length) {
+        try {
+          const book = await apiFetch(`${CLOB_API}/book?token_id=${tokenIds[0]}`)
+          const bids = book?.bids || []
+          if (bids.length) yesPrice = parseFloat(bids[0].price)
+        } catch(e) {}
+      }
+    }
+    out.push({
+      title:     m.question || m.title || m.slug || 'Unknown',
+      yesPrice,
+      volume:    parseFloat(m.volume || m.volumeNum || 0),
+      marketId:  m.conditionId || m.id || '',
+    })
+  }
+  return out
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  6. COPY SIGNALS
+// ═══════════════════════════════════════════════════════════════
+function buildSignals(sourceWallets, openMkts, label) {
+  const signals = []
+  for (const mkt of openMkts) {
+    if (!mkt.marketId || mkt.yesPrice === null) continue
+    const holders = []
+    for (const w of sourceWallets) {
+      const pos = w.positions[mkt.marketId]
+      if (!pos || pos.netTokens <= 0.5) continue
+      const avgEntry = pos.netTokens > 0 ? pos.totalCost / pos.netTokens : mkt.yesPrice
+      holders.push({
+        address:     w.address,
+        netTokens:   Math.round(pos.netTokens * 100) / 100,
+        avgEntry:    Math.round(avgEntry * 10000) / 10000,
+        netPnl:      w.netPnl,
+        winRate:     w.winRate,
+        periodScore: w.periodScore,
+        periods:     w.periodFlags,
+      })
+    }
+    if (holders.length < MIN_SIGNAL_WALLETS) continue
+    const totalTokens = holders.reduce((s,h) => s + h.netTokens, 0)
+    const totalCost   = holders.reduce((s,h) => s + h.avgEntry * h.netTokens, 0)
+    const avgEntry    = totalTokens > 0 ? totalCost / totalTokens : mkt.yesPrice
+    const avgPScore   = holders.reduce((s,h) => s + h.periodScore, 0) / holders.length
+    const p  = mkt.yesPrice
+    const ev = COPY_SUCCESS_RATE * (1 - p) - (1 - COPY_SUCCESS_RATE) * p
+    signals.push({
+      source: label, marketTitle: mkt.title,
+      yesPrice: p, volume: mkt.volume,
+      walletCount: holders.length, avgEntryPrice: avgEntry,
+      avgPeriodScore: avgPScore, ev,
+      wallets: holders.sort((a,b) => b.netPnl - a.netPnl),
+    })
+  }
+  return signals.sort((a,b) =>
+    b.avgPeriodScore - a.avgPeriodScore || b.walletCount - a.walletCount || b.ev - a.ev
+  )
+}
+
+function allocateBudget(signals) {
+  const pos = signals.filter(s => s.ev > 0)
+  if (!pos.length) return []
+  const weights = pos.map(s => (1 + s.avgPeriodScore * 0.5) * s.walletCount * s.ev)
+  const total   = weights.reduce((a,b) => a+b, 0)
+  pos.forEach((s, i) => {
+    s.allocation = Math.round(COPY_BUDGET * (weights[i] / total) * 100) / 100
+    s.shares     = s.yesPrice > 0 ? Math.round(s.allocation / s.yesPrice * 10) / 10 : 0
+    s.winPayout  = Math.round(s.shares * 100) / 100
+    s.netProfit  = Math.round((s.winPayout - s.allocation) * 100) / 100
+  })
+  return pos
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  7. RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderMarkets(markets) {
+  const grid = document.getElementById('markets-grid')
+  const show = marketView === 'open'
+    ? markets.filter(m => !m.closed && !m.resolved)
+    : markets
+  document.getElementById('markets-count').textContent = `${show.length} shown`
+  document.getElementById('stat-open').textContent =
+    markets.filter(m => !m.closed && !m.resolved).length
+
+  if (!show.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="emoji">🔍</div><p>No markets found.<br>Check the CORS notice above.</p></div>`
+    return
+  }
+
+  grid.innerHTML = show.map(m => {
+    const title   = m.question || m.title || m.slug || 'Unknown'
+    const volume  = parseFloat(m.volume || m.volumeNum || 0)
+    const closed  = m.closed || m.resolved
+    const prices  = m.outcomePrices || []
+    let yesPrice  = prices.length ? parseFloat(prices[0]) : null
+
+    const cardCls = closed ? 'closed-card' : 'open-card'
+    let priceHtml = ''
+    let barHtml   = ''
+    if (yesPrice !== null && !isNaN(yesPrice)) {
+      const pct  = Math.round(yesPrice * 100)
+      const cls  = pct < 30 ? 'low' : pct < 60 ? 'mid' : 'high'
+      priceHtml  = `<div class="yes-pill ${cls}">YES ${pct}%</div>`
+      barHtml    = `<div class="prob-bar"><div class="prob-fill" style="width:${pct}%"></div></div>`
+    } else if (closed) {
+      priceHtml  = `<span class="closed-tag">Resolved</span>`
+    } else {
+      priceHtml  = `<span class="closed-tag">Price N/A</span>`
+    }
+
+    return `<div class="market-card ${cardCls}">
+      <div class="market-title">${title}</div>
+      <div class="market-meta">
+        ${priceHtml}
+        <div class="vol-text">Vol $${volume >= 1e6 ? (volume/1e6).toFixed(1)+'M' : volume >= 1000 ? (volume/1000).toFixed(0)+'K' : volume.toFixed(0)}</div>
+      </div>
+      ${barHtml}
+    </div>`
+  }).join('')
+}
+
+function renderMultiPeriodTable(rows) {
+  const tbody = document.getElementById('tbody-mp')
+  document.getElementById('stat-mp').textContent = rows.length
+
+  const search  = document.getElementById('wallet-search').value.toLowerCase()
+  const minPnl  = parseFloat(document.getElementById('min-pnl').value) || 0
+  const filtered = rows.filter(r =>
+    (!search || r.address.toLowerCase().includes(search)) && r.netPnl >= minPnl
+  )
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="11">
+      <div class="empty-state"><div class="emoji">📭</div>
+      <p>No multi-period wallets yet.<br>Markets may be new or subgraph not indexed.</p></div>
+    </td></tr>`
+    return
+  }
+
+  tbody.innerHTML = filtered.map((r, i) => {
+    const star   = r.periodScore === 3 ? '<span class="star-badge">★</span>' : ''
+    const pp     = r.periodPnl
+    const marPnl = pp.mar_2026 !== undefined ? pnlHtml(pp.mar_2026) : '<span style="color:var(--muted)">—</span>'
+    const febPnl = pp.feb_2026 !== undefined ? pnlHtml(pp.feb_2026) : '<span style="color:var(--muted)">—</span>'
+    const junPnl = pp.jun_2025 !== undefined ? pnlHtml(pp.jun_2025) : '<span style="color:var(--muted)">—</span>'
+    return `<tr>
+      <td>${star}</td>
+      <td>${addrHtml(r.address)}</td>
+      <td><div class="period-badges">${periodBadges(r.periodFlags)}</div></td>
+      <td>${pnlHtml(r.netPnl)}</td>
+      <td>${winBar(r.winRate)}</td>
+      <td>${r.trades}</td>
+      <td>${r.grossIn > 0 ? '<span class="pnl-pos">+' + (r.netPnl/r.grossIn*100).toFixed(1) + '%</span>' : '—'}</td>
+      <td>${marPnl}</td>
+      <td>${febPnl}</td>
+      <td>${junPnl}</td>
+      <td style="color:var(--muted)">${r.lastAgo}d ago</td>
+    </tr>`
+  }).join('')
+}
+
+function renderTop50Table(rows) {
+  const tbody = document.getElementById('tbody-top50')
+  const search = document.getElementById('wallet-search').value.toLowerCase()
+  const minPnl = parseFloat(document.getElementById('min-pnl').value) || 0
+  const filtered = rows.filter(r =>
+    (!search || r.address.toLowerCase().includes(search)) && r.netPnl >= minPnl
+  )
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="emoji">📭</div><p>No data yet.</p></div></td></tr>`
+    return
+  }
+  tbody.innerHTML = filtered.map((r, i) => {
+    const roi = r.grossIn > 0 ? (r.netPnl/r.grossIn*100).toFixed(1) : 0
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td>${addrHtml(r.address)}</td>
+      <td>${pnlHtml(r.netPnl)}</td>
+      <td>${winBar(r.winRate)}</td>
+      <td>${r.trades}</td>
+      <td><span class="pnl-pos">+${roi}%</span></td>
+      <td><div class="period-badges">${periodBadges(r.periodFlags)}</div></td>
+      <td style="color:var(--muted)">${r.lastAgo}d ago</td>
+    </tr>`
+  }).join('')
+}
+
+function renderWinRateTable(rows) {
+  const tbody = document.getElementById('tbody-winrate')
+  const search = document.getElementById('wallet-search').value.toLowerCase()
+  const minPnl = parseFloat(document.getElementById('min-pnl').value) || 0
+  const filtered = rows.filter(r =>
+    (!search || r.address.toLowerCase().includes(search)) && r.netPnl >= minPnl
+  ).slice(0, 100)
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="emoji">📭</div><p>No data yet.</p></div></td></tr>`
+    return
+  }
+  tbody.innerHTML = filtered.map((r, i) => `<tr>
+    <td style="color:var(--muted)">${i+1}</td>
+    <td>${addrHtml(r.address)}</td>
+    <td>${winBar(r.winRate)}</td>
+    <td style="color:var(--muted)">${r.profitableExits}/${r.totalExits}</td>
+    <td>${pnlHtml(r.netPnl)}</td>
+    <td>${r.trades}</td>
+    <td style="color:var(--muted)">${r.tradesPerDay}</td>
+    <td style="color:var(--muted)">${r.activeDays}d</td>
+    <td><div class="period-badges">${periodBadges(r.periodFlags)}</div></td>
+  </tr>`).join('')
+}
+
+function renderSignals(mpSigs, t50Sigs) {
+  const container = document.getElementById('signal-cards')
+  const allSigs   = [...mpSigs, ...t50Sigs.filter(s => !mpSigs.find(m => m.marketTitle === s.marketTitle))]
+  document.getElementById('stat-signals').textContent = allSigs.length
+  document.getElementById('signals-count').textContent = `${allSigs.length} signals`
+
+  if (!allSigs.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="emoji">📡</div>
+      <p>No copy signals yet.<br>Either no wallets have open positions on active war markets,<br>or data hasn't been indexed yet. Signals appear automatically after reload.</p>
+    </div>`
+    return
+  }
+
+  container.innerHTML = allSigs.map((s, i) => {
+    const isPrimary = s.source === 'multi_period'
+    const evPct     = (s.ev * 100).toFixed(1)
+    const evColour  = s.ev >= 0.3 ? 'var(--green)' : s.ev >= 0.1 ? 'var(--yellow)' : 'var(--muted)'
+    const srcTag    = isPrimary
+      ? '<span class="badge badge-star">★ MULTI-PERIOD</span>'
+      : '<span class="badge" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3)">TOP-50</span>'
+
+    const holderRows = s.wallets.map(h => `
+      <tr>
+        <td>${addrHtml(h.address)}</td>
+        <td style="color:var(--muted)">${h.netTokens.toFixed(1)}</td>
+        <td style="color:var(--muted)">$${h.avgEntry.toFixed(4)}</td>
+        <td>${pnlHtml(h.netPnl)}</td>
+        <td>${winBar(h.winRate)}</td>
+        <td><div class="period-badges">${periodBadges(h.periods)}</div></td>
+      </tr>`).join('')
+
+    const allocBlock = s.allocation !== undefined ? `
+      <div class="allocation-box">
+        <div class="alloc-item">
+          <div class="alloc-label">Deploy</div>
+          <div class="alloc-value">$${s.allocation.toFixed(2)}</div>
+        </div>
+        <div class="alloc-item">
+          <div class="alloc-label">Buy</div>
+          <div class="alloc-value">${s.shares} YES shares</div>
+        </div>
+        <div class="alloc-item">
+          <div class="alloc-label">If YES wins</div>
+          <div class="alloc-value alloc-win">+$${s.netProfit.toFixed(2)}</div>
+        </div>
+        <div class="alloc-item">
+          <div class="alloc-label">If NO wins</div>
+          <div class="alloc-value alloc-lose">-$${s.allocation.toFixed(2)}</div>
+        </div>
+      </div>` : ''
+
+    return `<div class="signal-card ${isPrimary ? 'primary-signal' : ''}">
+      <div class="signal-header">
+        <div>
+          <div style="margin-bottom:6px;display:flex;gap:8px;align-items:center">
+            ${srcTag}
+            <span style="color:var(--muted);font-size:11px">avg period score ${s.avgPeriodScore.toFixed(1)}/3  ·  ${s.walletCount} wallets</span>
+          </div>
+          <div class="signal-title">${s.marketTitle}</div>
+        </div>
+        <div class="signal-ev">
+          <div class="ev-value" style="color:${evColour}">+${evPct}¢</div>
+          <div class="ev-label">EV per $1 @ 85%</div>
+        </div>
+      </div>
+
+      <div class="signal-stats">
+        <div class="sig-stat">
+          <div class="sig-stat-label">YES price</div>
+          <div class="sig-stat-value">$${s.yesPrice.toFixed(3)}</div>
+        </div>
+        <div class="sig-stat">
+          <div class="sig-stat-label">Implied prob</div>
+          <div class="sig-stat-value">${(s.yesPrice*100).toFixed(1)}%</div>
+        </div>
+        <div class="sig-stat">
+          <div class="sig-stat-label">Wallets' avg entry</div>
+          <div class="sig-stat-value">$${s.avgEntryPrice.toFixed(4)}</div>
+        </div>
+        <div class="sig-stat">
+          <div class="sig-stat-label">Market volume</div>
+          <div class="sig-stat-value">$${s.volume >= 1e6 ? (s.volume/1e6).toFixed(1)+'M' : (s.volume/1000).toFixed(0)+'K'}</div>
+        </div>
+      </div>
+
+      ${allocBlock}
+
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;color:var(--muted);font-size:12px;list-style:none">
+          ▶ Show ${s.wallets.length} holder wallets
+        </summary>
+        <div class="table-wrap" style="margin-top:10px">
+          <table>
+            <thead><tr>
+              <th>Address</th><th>Tokens</th><th>Avg entry</th>
+              <th>Net P&L</th><th>Win %</th><th>Periods</th>
+            </tr></thead>
+            <tbody>${holderRows}</tbody>
+          </table>
+        </div>
+      </details>
+    </div>`
+  }).join('')
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  8. MAIN LOAD
+// ═══════════════════════════════════════════════════════════════
+async function loadAll() {
+  setStatus('loading', 'Fetching markets…')
+  refreshTimer = REFRESH_SECS
+
+  try {
+    // Markets
+    allMarkets = await fetchWarMarkets()
+    if (!allMarkets.length) {
+      document.getElementById('cors-notice').classList.add('visible')
+      setStatus('error', 'API unreachable — see notice above')
+      return
+    }
+    document.getElementById('cors-notice').classList.remove('visible')
+    renderMarkets(allMarkets)
+
+    // Trades
+    setStatus('loading', 'Fetching trades…')
+    const conditionIds = [...new Set(allMarkets.map(m => m.conditionId || m.id).filter(Boolean))]
+    let trades = []
+    try {
+      trades = await fetchTradesSubgraph(conditionIds)
+    } catch(e) {}
+    if (!trades.length) {
+      const marketIds = allMarkets.map(m => m.id || m.conditionId).filter(Boolean)
+      try { trades = await fetchTradesCLOB(marketIds) } catch(e) {}
+    }
+
+    // Aggregate
+    setStatus('loading', 'Aggregating wallets…')
+    const raw = trades.length && trades[0]?.creator
+      ? aggregateSubgraph(trades)
+      : aggregateCLOB(trades)
+
+    allRows    = scoreWallets(raw)
+    mpWallets  = getMultiPeriod(allRows)
+    top50      = getTop50(allRows)
+
+    document.getElementById('stat-wallets').textContent = allRows.length
+
+    renderMultiPeriodTable(mpWallets)
+    renderTop50Table(top50)
+    renderWinRateTable(allRows)
+
+    // Odds
+    setStatus('loading', 'Fetching live prices…')
+    openEnriched = await enrichWithOdds(allMarkets)
+
+    // Signals
+    mpSignals  = allocateBudget(buildSignals(mpWallets, openEnriched, 'multi_period'))
+    t50Signals = allocateBudget(buildSignals(top50,     openEnriched, 'top50'))
+    renderSignals(mpSignals, t50Signals)
+
+    setStatus('live', `Updated ${new Date().toLocaleTimeString()}`)
+
+  } catch(err) {
+    setStatus('error', 'Load failed — ' + err.message)
+    console.error(err)
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════════════════════
+function toggleMarkets(view) {
+  marketView = view
+  document.getElementById('tab-open').classList.toggle('active', view === 'open')
+  document.getElementById('tab-all').classList.toggle('active', view === 'all')
+  renderMarkets(allMarkets)
+}
+
+function showWalletTab(tab) {
+  ['mp','top50','winrate'].forEach(t => {
+    document.getElementById(`panel-${t}`).classList.toggle('active', t === tab)
+    document.getElementById(`wtab-${t}`).classList.toggle('active', t === tab)
+  })
+}
+
+function filterWallets() {
+  renderMultiPeriodTable(mpWallets)
+  renderTop50Table(top50)
+  renderWinRateTable(allRows)
+}
+
+function sortTable(tableId, colIdx) {
+  const table  = document.getElementById(tableId)
+  const tbody  = table.querySelector('tbody')
+  const rows   = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('loading-row'))
+  const ths    = table.querySelectorAll('th')
+  const th     = ths[colIdx]
+  const asc    = !th.classList.contains('sorted-asc')
+  ths.forEach(h => h.classList.remove('sorted-asc','sorted-desc'))
+  th.classList.add(asc ? 'sorted-asc' : 'sorted-desc')
+  rows.sort((a,b) => {
+    const av = a.cells[colIdx]?.textContent.replace(/[$+%,★]/g,'').trim() || ''
+    const bv = b.cells[colIdx]?.textContent.replace(/[$+%,★]/g,'').trim() || ''
+    const an = parseFloat(av), bn = parseFloat(bv)
+    const cmp = isNaN(an)||isNaN(bn) ? av.localeCompare(bv) : an - bn
+    return asc ? cmp : -cmp
+  })
+  rows.forEach(r => tbody.appendChild(r))
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CLOCK + AUTO-REFRESH
+// ═══════════════════════════════════════════════════════════════
+function startClock() {
+  clockInterval = setInterval(() => {
+    document.getElementById('clock').textContent =
+      new Date().toUTCString().slice(17, 25) + ' UTC'
+  }, 1000)
+}
+
+function startRefreshTimer() {
+  timerInterval = setInterval(() => {
+    refreshTimer--
+    document.getElementById('refresh-timer').textContent = `Next refresh in ${refreshTimer}s`
+    if (refreshTimer <= 0) { loadAll(); refreshTimer = REFRESH_SECS }
+  }, 1000)
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+startClock()
+startRefreshTimer()
+loadAll()
+</script>
+</body>
+</html>
