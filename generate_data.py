@@ -129,7 +129,8 @@ def new_wallet():
     return dict(trades=0,buys=0,sells=0,gross_in=0.0,gross_out=0.0,
                 profitable_exits=0,unprofitable_exits=0,
                 first_trade=None,last_trade=None,
-                period_flags=set(),period_pnl={},positions={})
+                period_flags=set(),period_pnl={},positions={},
+                closed_positions=[])
 
 def tag_period(w, ts, cost, is_buy):
     p = ts_period(ts)
@@ -141,14 +142,31 @@ def tag_period(w, ts, cost, is_buy):
 
 def update_pos(w, mid, tokens, cost, is_buy):
     if not mid: return
-    pos = w["positions"].setdefault(mid, {"net_tokens":0.0,"total_cost":0.0})
+    pos = w["positions"].setdefault(mid, {
+        "net_tokens":0.0,"total_cost":0.0,
+        "_buy_total":0.0,"_sell_total":0.0,"_recorded":False,
+    })
     if is_buy:
         pos["net_tokens"] += tokens; pos["total_cost"] += cost
+        pos["_buy_total"] += cost
     else:
         if pos["net_tokens"] > 0:
             ratio = min(tokens/pos["net_tokens"], 1.0)
             pos["total_cost"] -= pos["total_cost"] * ratio
         pos["net_tokens"] = max(0.0, pos["net_tokens"] - tokens)
+        pos["_sell_total"] += cost
+        # Detect fully-closed position and record if PNL >= 80%
+        if pos["net_tokens"] <= 0.1 and pos["_buy_total"] > 0 and not pos["_recorded"]:
+            pnl_pct = (pos["_sell_total"] - pos["_buy_total"]) / pos["_buy_total"] * 100
+            if pnl_pct >= 80.0:
+                w["closed_positions"].append({
+                    "market_id":    mid,
+                    "buy_cost":     round(pos["_buy_total"], 2),
+                    "proceeds":     round(pos["_sell_total"], 2),
+                    "pnl_pct":      round(pnl_pct, 1),
+                    "market_title": "",  # enriched later
+                })
+            pos["_recorded"] = True
 
 def aggregate_subgraph(trades):
     wallets = defaultdict(new_wallet)
@@ -238,6 +256,7 @@ def score_wallets(wallets):
             "positions":  {mid:{"net_tokens":round(p["net_tokens"],4),
                                 "total_cost": round(p["total_cost"],4)}
                            for mid,p in w["positions"].items() if p["net_tokens"]>0.5},
+            "closed_positions_80": w["closed_positions"],
         })
     rows.sort(key=lambda r:(-r["win_rate"],-r["net_pnl"]))
     return rows
@@ -380,6 +399,17 @@ def main():
     print(f"  {len(raw)} unique wallets")
 
     all_rows = score_wallets(raw)
+
+    # Enrich closed positions with market titles
+    mid_to_title = {}
+    for m in markets:
+        mid   = m.get("conditionId") or m.get("id","")
+        title = m.get("question") or m.get("title") or m.get("slug","")
+        if mid: mid_to_title[mid] = title
+    for row in all_rows:
+        for cp in row.get("closed_positions_80", []):
+            cp["market_title"] = mid_to_title.get(cp["market_id"], cp["market_id"][:20]+"…")
+
     mp       = get_mp(all_rows)
     top50    = get_top50(all_rows)
     print(f"  {len(mp)} multi-period  |  {len(top50)} top-50")

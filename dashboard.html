@@ -421,6 +421,57 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── BET NOW section ── */
+  .betnow-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .betnow-card {
+    background: linear-gradient(135deg, #0d1520 0%, #0a1018 100%);
+    border: 1px solid rgba(34,197,94,.35);
+    border-left: 3px solid var(--green);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .betnow-card:hover { border-color: var(--green); box-shadow: 0 0 12px rgba(34,197,94,.15); }
+  .betnow-title { font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--text); }
+  .betnow-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .betnow-price { font-size: 26px; font-weight: 800; letter-spacing: -1px; }
+  .betnow-vol { font-size: 11px; color: var(--muted); }
+  .bet-btn {
+    background: var(--green); color: #000;
+    font-weight: 700; font-size: 12px; letter-spacing: .5px;
+    padding: 7px 16px; border-radius: 6px;
+    text-decoration: none; white-space: nowrap;
+    transition: opacity .15s;
+  }
+  .bet-btn:hover { opacity: .82; }
+  .betnow-prob { height: 3px; background: var(--border2); border-radius: 2px; margin-top: 2px; }
+  .betnow-prob-fill { height: 100%; border-radius: 2px; background: var(--green); }
+
+  /* ── Closed positions 80%+ detail rows ── */
+  tr.wallet-row { cursor: pointer; }
+  tr.wallet-row:hover td { background: rgba(14,165,233,.05); }
+  tr.detail-row { display: none; }
+  tr.detail-row.open { display: table-row; }
+  .detail-cell { padding: 8px 14px 12px 14px !important; background: rgba(34,197,94,.04) !important; border-bottom: 1px solid var(--border) !important; }
+  .cp-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .cp-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.25);
+    border-radius: 5px; padding: 4px 10px; font-size: 11px;
+  }
+  .cp-pnl { color: var(--green); font-weight: 700; }
+  .cp-cost { color: var(--muted); }
+  .no-wins { color: var(--muted); font-style: italic; font-size: 11px; }
+  .wins-badge { color: var(--green); font-weight: 700; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -499,6 +550,19 @@
       to trigger it now, then hard-refresh this page once it completes (~2 min).
     </div>
 
+    <!-- ── BET NOW ── -->
+    <section class="section" id="betnow-section" style="display:none">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon">🔥</span>
+          Bet Now — Open Iran / US / Israel Markets
+          <span class="section-count" id="betnow-count"></span>
+        </div>
+        <span style="font-size:11px;color:var(--muted)">Live on Polymarket · Click BET NOW to open a position</span>
+      </div>
+      <div class="betnow-grid" id="betnow-grid"></div>
+    </section>
+
     <!-- ── Markets ── -->
     <section class="section">
       <div class="section-header">
@@ -547,8 +611,9 @@
               <th onclick="sortTable('table-mp',8)">Feb'26 P&amp;L</th>
               <th onclick="sortTable('table-mp',9)">Jun'25 P&amp;L</th>
               <th>Last Trade</th>
+              <th>Closed ≥80%</th>
             </tr></thead>
-            <tbody id="tbody-mp"><tr class="loading-row"><td colspan="11"><span class="spinner"></span>Loading…</td></tr></tbody>
+            <tbody id="tbody-mp"><tr class="loading-row"><td colspan="12"><span class="spinner"></span>Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -566,8 +631,9 @@
               <th onclick="sortTable('table-top50',5)">ROI %</th>
               <th onclick="sortTable('table-top50',6)">Periods</th>
               <th onclick="sortTable('table-top50',7)">Last Trade</th>
+              <th>Closed ≥80%</th>
             </tr></thead>
-            <tbody id="tbody-top50"><tr class="loading-row"><td colspan="8"><span class="spinner"></span>Loading…</td></tr></tbody>
+            <tbody id="tbody-top50"><tr class="loading-row"><td colspan="9"><span class="spinner"></span>Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -586,8 +652,9 @@
               <th onclick="sortTable('table-winrate',6)">T/day</th>
               <th onclick="sortTable('table-winrate',7)">Active days</th>
               <th>Periods</th>
+              <th>Closed ≥80%</th>
             </tr></thead>
-            <tbody id="tbody-winrate"><tr class="loading-row"><td colspan="9"><span class="spinner"></span>Loading…</td></tr></tbody>
+            <tbody id="tbody-winrate"><tr class="loading-row"><td colspan="10"><span class="spinner"></span>Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1074,6 +1141,68 @@ function allocateBudget(signals) {
 // ═══════════════════════════════════════════════════════════════
 //  7. RENDER
 // ═══════════════════════════════════════════════════════════════
+
+function renderBetNow(markets) {
+  const section = document.getElementById('betnow-section')
+  const grid    = document.getElementById('betnow-grid')
+  const open = (markets || [])
+    .filter(m => !m.closed && !m.resolved)
+    .sort((a,b) => parseFloat(b.volume||b.volumeNum||0) - parseFloat(a.volume||a.volumeNum||0))
+  document.getElementById('betnow-count').textContent = `${open.length} open`
+  if (!open.length) { section.style.display = 'none'; return }
+  section.style.display = ''
+  grid.innerHTML = open.map(m => {
+    const title  = m.question || m.title || m.slug || 'Unknown'
+    const prices = m.outcomePrices || []
+    const yes    = prices.length ? parseFloat(prices[0]) : null
+    const vol    = parseFloat(m.volume || m.volumeNum || 0)
+    const slug   = m.slug || ''
+    const url    = slug ? `https://polymarket.com/event/${slug}` : `https://polymarket.com/markets`
+    const pct    = yes !== null && !isNaN(yes) ? Math.round(yes * 100) : null
+    const colour = pct === null ? 'var(--muted)' : pct < 25 ? 'var(--red)' : pct < 55 ? 'var(--yellow)' : 'var(--green)'
+    const priceHtml = pct !== null
+      ? `<div class="betnow-price" style="color:${colour}">${pct}%</div>`
+      : `<div class="betnow-price" style="color:var(--muted)">—</div>`
+    const barWidth = pct !== null ? pct : 0
+    return `<div class="betnow-card">
+      <div class="betnow-title">${title}</div>
+      <div class="betnow-row">
+        <div>
+          ${priceHtml}
+          <div class="betnow-prob"><div class="betnow-prob-fill" style="width:${barWidth}%;background:${colour}"></div></div>
+        </div>
+        <a href="${url}" target="_blank" rel="noopener" class="bet-btn">BET NOW →</a>
+      </div>
+      <div class="betnow-vol">Vol $${vol >= 1e6 ? (vol/1e6).toFixed(1)+'M' : vol >= 1000 ? (vol/1000).toFixed(0)+'K' : vol.toFixed(0)}</div>
+    </div>`
+  }).join('')
+}
+
+function closedWinsHtml(cps, rowId) {
+  if (!cps || !cps.length) return '<span class="no-wins">—</span>'
+  return `<span class="wins-badge" onclick="toggleDetail('${rowId}');event.stopPropagation()">🏆 ${cps.length}</span>`
+}
+
+function closedWinsDetail(cps, colspan) {
+  if (!cps || !cps.length) {
+    return `<td class="detail-cell" colspan="${colspan}"><span class="no-wins">No closed positions with ≥80% return found.</span></td>`
+  }
+  const badges = cps.map(c => `<div class="cp-badge">
+    <span>${c.market_title || c.market_id || 'Market'}</span>
+    <span class="cp-pnl">+${c.pnl_pct}%</span>
+    <span class="cp-cost">($${c.buy_cost} → $${c.proceeds})</span>
+  </div>`).join('')
+  return `<td class="detail-cell" colspan="${colspan}">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Closed positions with ≥80% return:</div>
+    <div class="cp-grid">${badges}</div>
+  </td>`
+}
+
+function toggleDetail(rowId) {
+  const el = document.getElementById(rowId)
+  if (el) el.classList.toggle('open')
+}
+
 function renderMarkets(markets) {
   const grid = document.getElementById('markets-grid')
   const show = marketView === 'open'
@@ -1131,7 +1260,7 @@ function renderMultiPeriodTable(rows) {
   )
 
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="11">
+    tbody.innerHTML = `<tr><td colspan="12">
       <div class="empty-state"><div class="emoji">📭</div>
       <p>No multi-period wallets yet.<br>Markets may be new or subgraph not indexed.</p></div>
     </td></tr>`
@@ -1140,23 +1269,27 @@ function renderMultiPeriodTable(rows) {
 
   tbody.innerHTML = filtered.map((r, i) => {
     const star   = r.periodScore === 3 ? '<span class="star-badge">★</span>' : ''
-    const pp     = r.periodPnl
+    const pp     = r.periodPnl || r.period_pnl || {}
     const marPnl = pp.mar_2026 !== undefined ? pnlHtml(pp.mar_2026) : '<span style="color:var(--muted)">—</span>'
     const febPnl = pp.feb_2026 !== undefined ? pnlHtml(pp.feb_2026) : '<span style="color:var(--muted)">—</span>'
     const junPnl = pp.jun_2025 !== undefined ? pnlHtml(pp.jun_2025) : '<span style="color:var(--muted)">—</span>'
-    return `<tr>
+    const cps    = r.closed_positions_80 || []
+    const detId  = `detail-mp-${i}`
+    return `<tr class="wallet-row" onclick="toggleDetail('${detId}')">
       <td>${star}</td>
       <td>${addrHtml(r.address)}</td>
-      <td><div class="period-badges">${periodBadges(r.periodFlags)}</div></td>
-      <td>${pnlHtml(r.netPnl)}</td>
-      <td>${winBar(r.winRate)}</td>
+      <td><div class="period-badges">${periodBadges(r.periodFlags || r.period_flags)}</div></td>
+      <td>${pnlHtml(r.netPnl ?? r.net_pnl)}</td>
+      <td>${winBar(r.winRate ?? r.win_rate)}</td>
       <td>${r.trades}</td>
-      <td>${r.grossIn > 0 ? '<span class="pnl-pos">+' + (r.netPnl/r.grossIn*100).toFixed(1) + '%</span>' : '—'}</td>
+      <td>${(r.grossIn||r.gross_in) > 0 ? '<span class="pnl-pos">+' + ((r.netPnl??r.net_pnl)/(r.grossIn||r.gross_in)*100).toFixed(1) + '%</span>' : '—'}</td>
       <td>${marPnl}</td>
       <td>${febPnl}</td>
       <td>${junPnl}</td>
-      <td style="color:var(--muted)">${r.lastAgo}d ago</td>
-    </tr>`
+      <td style="color:var(--muted)">${r.lastAgo ?? r.last_ago}d ago</td>
+      <td>${closedWinsHtml(cps, detId)}</td>
+    </tr>
+    <tr class="detail-row" id="${detId}">${closedWinsDetail(cps, 12)}</tr>`
   }).join('')
 }
 
@@ -1168,21 +1301,30 @@ function renderTop50Table(rows) {
     (!search || r.address.toLowerCase().includes(search)) && r.netPnl >= minPnl
   )
   if (!filtered.length) {
-    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="emoji">📭</div><p>No data yet.</p></div></td></tr>`
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="emoji">📭</div><p>No data yet.</p></div></td></tr>`
     return
   }
   tbody.innerHTML = filtered.map((r, i) => {
-    const roi = r.grossIn > 0 ? (r.netPnl/r.grossIn*100).toFixed(1) : 0
-    return `<tr>
+    const netPnl = r.netPnl ?? r.net_pnl ?? 0
+    const grossIn = r.grossIn || r.gross_in || 0
+    const winRate = r.winRate ?? r.win_rate ?? 0
+    const lastAgo = r.lastAgo ?? r.last_ago ?? 0
+    const flags   = r.periodFlags || r.period_flags
+    const roi = grossIn > 0 ? (netPnl/grossIn*100).toFixed(1) : 0
+    const cps = r.closed_positions_80 || []
+    const detId = `detail-t50-${i}`
+    return `<tr class="wallet-row" onclick="toggleDetail('${detId}')">
       <td style="color:var(--muted)">${i+1}</td>
       <td>${addrHtml(r.address)}</td>
-      <td>${pnlHtml(r.netPnl)}</td>
-      <td>${winBar(r.winRate)}</td>
+      <td>${pnlHtml(netPnl)}</td>
+      <td>${winBar(winRate)}</td>
       <td>${r.trades}</td>
       <td><span class="pnl-pos">+${roi}%</span></td>
-      <td><div class="period-badges">${periodBadges(r.periodFlags)}</div></td>
-      <td style="color:var(--muted)">${r.lastAgo}d ago</td>
-    </tr>`
+      <td><div class="period-badges">${periodBadges(flags)}</div></td>
+      <td style="color:var(--muted)">${lastAgo}d ago</td>
+      <td>${closedWinsHtml(cps, detId)}</td>
+    </tr>
+    <tr class="detail-row" id="${detId}">${closedWinsDetail(cps, 9)}</tr>`
   }).join('')
 }
 
@@ -1197,17 +1339,30 @@ function renderWinRateTable(rows) {
     tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="emoji">📭</div><p>No data yet.</p></div></td></tr>`
     return
   }
-  tbody.innerHTML = filtered.map((r, i) => `<tr>
-    <td style="color:var(--muted)">${i+1}</td>
-    <td>${addrHtml(r.address)}</td>
-    <td>${winBar(r.winRate)}</td>
-    <td style="color:var(--muted)">${r.profitableExits}/${r.totalExits}</td>
-    <td>${pnlHtml(r.netPnl)}</td>
-    <td>${r.trades}</td>
-    <td style="color:var(--muted)">${r.tradesPerDay}</td>
-    <td style="color:var(--muted)">${r.activeDays}d</td>
-    <td><div class="period-badges">${periodBadges(r.periodFlags)}</div></td>
-  </tr>`).join('')
+  tbody.innerHTML = filtered.map((r, i) => {
+    const winRate = r.winRate ?? r.win_rate ?? 0
+    const netPnl  = r.netPnl ?? r.net_pnl ?? 0
+    const profEx  = r.profitableExits ?? r.profitable_exits ?? 0
+    const totEx   = r.totalExits ?? r.total_exits ?? 0
+    const tpd     = r.tradesPerDay ?? r.trades_per_day ?? 0
+    const actD    = r.activeDays ?? r.active_days ?? 0
+    const flags   = r.periodFlags || r.period_flags
+    const cps     = r.closed_positions_80 || []
+    const detId   = `detail-wr-${i}`
+    return `<tr class="wallet-row" onclick="toggleDetail('${detId}')">
+      <td style="color:var(--muted)">${i+1}</td>
+      <td>${addrHtml(r.address)}</td>
+      <td>${winBar(winRate)}</td>
+      <td style="color:var(--muted)">${profEx}/${totEx}</td>
+      <td>${pnlHtml(netPnl)}</td>
+      <td>${r.trades}</td>
+      <td style="color:var(--muted)">${tpd}</td>
+      <td style="color:var(--muted)">${actD}d</td>
+      <td><div class="period-badges">${periodBadges(flags)}</div></td>
+      <td>${closedWinsHtml(cps, detId)}</td>
+    </tr>
+    <tr class="detail-row" id="${detId}">${closedWinsDetail(cps, 10)}</tr>`
+  }).join('')
 }
 
 function renderSignals(mpSigs, t50Sigs) {
@@ -1333,6 +1488,7 @@ function loadFromStatic(d) {
     volume: m.volume, closed: m.closed, resolved: m.closed,
     outcomePrices: m.yes_price !== null ? [m.yes_price] : [],
   }))
+  renderBetNow(allMarkets)
   renderMarkets(allMarkets)
   document.getElementById('stat-open').textContent =
     allMarkets.filter(m => !m.closed).length
@@ -1415,6 +1571,7 @@ async function loadAll() {
       return
     }
     document.getElementById('cors-notice').classList.remove('visible')
+    renderBetNow(allMarkets)
     renderMarkets(allMarkets)
     document.getElementById('stat-open').textContent =
       allMarkets.filter(m => !m.closed && !m.resolved).length
