@@ -472,6 +472,33 @@
   .cp-cost { color: var(--muted); }
   .no-wins { color: var(--muted); font-style: italic; font-size: 11px; }
   .wins-badge { color: var(--green); font-weight: 700; cursor: pointer; }
+
+  /* ── Iran War Top Traders ── */
+  .bet-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .bet-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(14,165,233,.12); border: 1px solid rgba(14,165,233,.3);
+    border-radius: 4px; padding: 2px 8px; font-size: 11px; white-space: nowrap;
+  }
+  .bet-chip-pnl-pos { color: var(--green); font-weight: 700; }
+  .bet-chip-pnl-neg { color: var(--red); font-weight: 700; }
+  .bet-detail-grid { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
+  .bet-detail-card {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    background: rgba(14,165,233,.07); border: 1px solid rgba(14,165,233,.2);
+    border-radius: 6px; padding: 8px 12px; font-size: 12px;
+  }
+  .bet-detail-title { flex: 1 1 100%; font-size: 12px; color: var(--text); margin-bottom: 4px; font-weight: 600; }
+  .bet-detail-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 70px; }
+  .bet-detail-stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .bet-detail-stat-value { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .bet-detail-unrealized-pos { color: var(--green); }
+  .bet-detail-unrealized-neg { color: var(--red); }
+  .top-trader-detail-cell {
+    padding: 10px 16px 14px 16px !important;
+    background: rgba(14,165,233,.04) !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
 </style>
 </head>
 <body>
@@ -578,6 +605,36 @@
       </div>
       <div class="markets-grid" id="markets-grid">
         <div class="empty-state"><div class="emoji">⏳</div><p>Fetching markets…</p></div>
+      </div>
+    </section>
+
+    <!-- ── Iran War Top Traders ── -->
+    <section class="section" id="top-traders-section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon">🏆</span>
+          Iran War Top Traders
+          <span class="section-count" id="top-traders-count"></span>
+        </div>
+        <span style="font-size:11px;color:var(--muted)">Ranked by net P&amp;L · Click row to see latest bets</span>
+      </div>
+      <div class="table-wrap">
+        <table id="table-top-traders">
+          <thead><tr>
+            <th>#</th>
+            <th>Address</th>
+            <th>Net P&amp;L</th>
+            <th>Win %</th>
+            <th>Trades</th>
+            <th>ROI %</th>
+            <th>Periods</th>
+            <th>Last Trade</th>
+            <th>Latest Bets</th>
+          </tr></thead>
+          <tbody id="tbody-top-traders">
+            <tr class="loading-row"><td colspan="9"><span class="spinner"></span>Loading…</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -1472,6 +1529,108 @@ function renderSignals(mpSigs, t50Sigs) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  7b. RENDER IRAN WAR TOP TRADERS
+// ═══════════════════════════════════════════════════════════════
+
+function latestBetsChips(bets) {
+  if (!bets || !bets.length) return '<span style="color:var(--muted);font-size:11px">No open positions</span>'
+  return bets.map(b => {
+    const pct = b.current_price !== null ? Math.round(b.current_price * 100) : null
+    const upnl = b.unrealized_pnl
+    const upnlHtml = upnl === null ? '' :
+      upnl >= 0
+        ? `<span class="bet-chip-pnl-pos">+$${upnl.toFixed(0)}</span>`
+        : `<span class="bet-chip-pnl-neg">-$${Math.abs(upnl).toFixed(0)}</span>`
+    const label = b.market_title.length > 38 ? b.market_title.slice(0, 36) + '…' : b.market_title
+    return `<span class="bet-chip" title="${b.market_title}">YES ${pct !== null ? pct+'%' : '?'} · ${Math.round(b.tokens)} tkns ${upnlHtml}</span>`
+  }).join('')
+}
+
+function latestBetsDetailHtml(bets, colspan) {
+  if (!bets || !bets.length) {
+    return `<td class="top-trader-detail-cell" colspan="${colspan}"><span style="color:var(--muted)">No open positions.</span></td>`
+  }
+  const cards = bets.map(b => {
+    const pct = b.current_price !== null ? (b.current_price * 100).toFixed(1) + '%' : '—'
+    const upnl = b.unrealized_pnl
+    const upnlCls = upnl === null ? '' : upnl >= 0 ? 'bet-detail-unrealized-pos' : 'bet-detail-unrealized-neg'
+    const upnlStr = upnl === null ? '—' : (upnl >= 0 ? `+$${upnl.toFixed(2)}` : `-$${Math.abs(upnl).toFixed(2)}`)
+    const dateStr = b.date || ''
+    return `<div class="bet-detail-card">
+      <div class="bet-detail-title">${b.market_title}</div>
+      <div class="bet-detail-stat">
+        <div class="bet-detail-stat-label">Side</div>
+        <div class="bet-detail-stat-value" style="color:var(--green)">YES</div>
+      </div>
+      <div class="bet-detail-stat">
+        <div class="bet-detail-stat-label">Tokens</div>
+        <div class="bet-detail-stat-value">${b.tokens.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+      </div>
+      <div class="bet-detail-stat">
+        <div class="bet-detail-stat-label">Avg Entry</div>
+        <div class="bet-detail-stat-value">$${b.avg_price.toFixed(3)}</div>
+      </div>
+      <div class="bet-detail-stat">
+        <div class="bet-detail-stat-label">Cost</div>
+        <div class="bet-detail-stat-value">$${b.cost.toFixed(2)}</div>
+      </div>
+      <div class="bet-detail-stat">
+        <div class="bet-detail-stat-label">Now</div>
+        <div class="bet-detail-stat-value">${pct}</div>
+      </div>
+      <div class="bet-detail-stat">
+        <div class="bet-detail-stat-label">Unrealized</div>
+        <div class="bet-detail-stat-value ${upnlCls}">${upnlStr}</div>
+      </div>
+      ${dateStr ? `<div class="bet-detail-stat"><div class="bet-detail-stat-label">Date</div><div class="bet-detail-stat-value" style="color:var(--muted);font-size:11px">${dateStr}</div></div>` : ''}
+    </div>`
+  }).join('')
+  return `<td class="top-trader-detail-cell" colspan="${colspan}">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Latest active bets (open positions):</div>
+    <div class="bet-detail-grid">${cards}</div>
+  </td>`
+}
+
+function renderTopTraders(rows) {
+  const section = document.getElementById('top-traders-section')
+  const tbody   = document.getElementById('tbody-top-traders')
+  const countEl = document.getElementById('top-traders-count')
+
+  const top = (rows || [])
+    .filter(r => (r.net_pnl ?? r.netPnl ?? 0) > 0 && (r.is_active ?? r.isActive ?? false))
+    .sort((a, b) => (b.net_pnl ?? b.netPnl ?? 0) - (a.net_pnl ?? a.netPnl ?? 0))
+    .slice(0, 10)
+
+  countEl.textContent = `top ${top.length}`
+  section.style.display = top.length ? '' : 'none'
+  if (!top.length) return
+
+  tbody.innerHTML = top.map((r, i) => {
+    const netPnl  = r.net_pnl  ?? r.netPnl  ?? 0
+    const grossIn = r.gross_in || r.grossIn  || 0
+    const winRate = r.win_rate ?? r.winRate  ?? 0
+    const lastAgo = r.last_ago ?? r.lastAgo  ?? 0
+    const flags   = r.period_flags instanceof Set ? r.period_flags : new Set(r.period_flags || [])
+    const roi     = grossIn > 0 ? (netPnl / grossIn * 100).toFixed(1) : 0
+    const bets    = r.latest_bets || []
+    const detId   = `detail-tt-${i}`
+
+    return `<tr class="wallet-row" onclick="toggleDetail('${detId}')">
+      <td style="color:var(--gold);font-weight:700">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i+1}</td>
+      <td>${addrHtml(r.address)}</td>
+      <td>${pnlHtml(netPnl)}</td>
+      <td>${winBar(winRate)}</td>
+      <td>${r.trades}</td>
+      <td><span class="pnl-pos">+${roi}%</span></td>
+      <td><div class="period-badges">${periodBadges(flags)}</div></td>
+      <td style="color:var(--muted)">${lastAgo}d ago</td>
+      <td><div class="bet-chips">${latestBetsChips(bets)}</div></td>
+    </tr>
+    <tr class="detail-row" id="${detId}">${latestBetsDetailHtml(bets, 9)}</tr>`
+  }).join('')
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  8. LOAD FROM STATIC JSON (primary — no CORS needed)
 // ═══════════════════════════════════════════════════════════════
 function DATA_URL() {
@@ -1505,6 +1664,7 @@ function loadFromStatic(d) {
   document.getElementById('stat-wallets').textContent = allRows.length
   document.getElementById('stat-mp').textContent      = mpWallets.length
 
+  renderTopTraders(allRows)
   renderMultiPeriodTable(mpWallets)
   renderTop50Table(top50)
   renderWinRateTable(allRows)
@@ -1515,7 +1675,7 @@ function loadFromStatic(d) {
 
   // Re-attach period_flags Sets on wallet holders inside signals
   ;[...mpSignals, ...t50Signals].forEach(s =>
-    (s.wallets || []).forEach(h => h.periods = new Set(h.period_flags || []))
+    (s.wallets || []).forEach(h => h.periods = new Set(h.period_flags || h.period_flag || []))
   )
 
   renderSignals(mpSignals, t50Signals)
@@ -1594,6 +1754,7 @@ async function loadAll() {
 
     document.getElementById('stat-wallets').textContent = allRows.length
     document.getElementById('stat-mp').textContent      = mpWallets.length
+    renderTopTraders(allRows)
     renderMultiPeriodTable(mpWallets)
     renderTop50Table(top50)
     renderWinRateTable(allRows)

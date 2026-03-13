@@ -235,6 +235,10 @@ def score_wallets(wallets):
         last_ago = (now - (w["last_trade"] or 0))//86400 if w["last_trade"] else 9999
         flags    = w["period_flags"]
         pnl_by_p = {p: round(pp["gross_out"]-pp["gross_in"],2) for p,pp in w["period_pnl"].items()}
+        open_positions = {
+            mid: {"net_tokens": round(p["net_tokens"],4), "total_cost": round(p["total_cost"],4)}
+            for mid, p in w["positions"].items() if p["net_tokens"] > 0.5
+        }
         rows.append({
             "address":    addr,
             "trades":     w["trades"],
@@ -253,13 +257,38 @@ def score_wallets(wallets):
             "period_flags":   list(flags),
             "period_score":   len(flags),
             "period_pnl":     pnl_by_p,
-            "positions":  {mid:{"net_tokens":round(p["net_tokens"],4),
-                                "total_cost": round(p["total_cost"],4)}
-                           for mid,p in w["positions"].items() if p["net_tokens"]>0.5},
+            "positions":      open_positions,
             "closed_positions_80": w["closed_positions"],
+            "latest_bets":    [],  # enriched after enrich_odds() runs
         })
     rows.sort(key=lambda r:(-r["win_rate"],-r["net_pnl"]))
     return rows
+
+
+def enrich_latest_bets(rows, open_enriched):
+    """Fill in latest_bets for each row using their open positions + live prices."""
+    mid_to_mkt = {m["market_id"]: m for m in open_enriched}
+    for row in rows:
+        bets = []
+        for mid, pos in row.get("positions", {}).items():
+            mkt = mid_to_mkt.get(mid)
+            if not mkt:
+                continue
+            net_tokens = pos["net_tokens"]
+            total_cost = pos["total_cost"]
+            avg_price  = round(total_cost / net_tokens, 4) if net_tokens > 0 else 0
+            cur_price  = mkt.get("yes_price")
+            unrealized = round((cur_price - avg_price) * net_tokens, 2) if cur_price is not None else None
+            bets.append({
+                "market_id":      mid,
+                "market_title":   mkt["title"],
+                "tokens":         round(net_tokens, 2),
+                "avg_price":      avg_price,
+                "cost":           round(total_cost, 2),
+                "current_price":  cur_price,
+                "unrealized_pnl": unrealized,
+            })
+        row["latest_bets"] = sorted(bets, key=lambda b: b["tokens"], reverse=True)
 
 def get_mp(rows):
     q = [r for r in rows
@@ -314,43 +343,43 @@ def build_signals(source, open_mkts, label):
             if not pos or pos["net_tokens"] <= 0.5: continue
             avg_entry = pos["total_cost"]/pos["net_tokens"] if pos["net_tokens"]>0 else mkt["yes_price"]
             holders.append({
-                "address":    w["address"],
-                "net_tokens": round(pos["net_tokens"],2),
-                "avg_entry":  round(avg_entry,4),
-                "net_pnl":    w["net_pnl"],
-                "win_rate":   w["win_rate"],
-                "period_score": w["period_score"],
+                "address":     w["address"],
+                "netTokens":   round(pos["net_tokens"],2),
+                "avgEntry":    round(avg_entry,4),
+                "netPnl":      w["net_pnl"],
+                "winRate":     w["win_rate"],
+                "periodScore": w["period_score"],
                 "period_flags": w["period_flags"],
             })
         if len(holders) < MIN_WALLETS_SIGNAL: continue
-        total_tok = sum(h["net_tokens"] for h in holders)
-        total_cost= sum(h["avg_entry"]*h["net_tokens"] for h in holders)
+        total_tok = sum(h["netTokens"] for h in holders)
+        total_cost= sum(h["avgEntry"]*h["netTokens"] for h in holders)
         avg_entry = total_cost/total_tok if total_tok>0 else mkt["yes_price"]
-        avg_ps    = sum(h["period_score"] for h in holders)/len(holders)
+        avg_ps    = sum(h["periodScore"] for h in holders)/len(holders)
         p  = mkt["yes_price"]
         ev = COPY_SUCCESS_RATE*(1-p) - (1-COPY_SUCCESS_RATE)*p
         signals.append({
-            "source": label, "market_title": mkt["title"],
-            "yes_price": p, "volume": mkt["volume"],
-            "wallet_count": len(holders),
-            "avg_entry_price": round(avg_entry,4),
-            "avg_period_score": round(avg_ps,1),
+            "source": label, "marketTitle": mkt["title"],
+            "yesPrice": p, "volume": mkt["volume"],
+            "walletCount": len(holders),
+            "avgEntryPrice": round(avg_entry,4),
+            "avgPeriodScore": round(avg_ps,1),
             "ev": round(ev,4),
-            "wallets": sorted(holders, key=lambda h:-h["net_pnl"]),
+            "wallets": sorted(holders, key=lambda h:-h["netPnl"]),
         })
-    signals.sort(key=lambda s:(-s["avg_period_score"],-s["wallet_count"],-s["ev"]))
+    signals.sort(key=lambda s:(-s["avgPeriodScore"],-s["walletCount"],-s["ev"]))
     return signals
 
 def allocate(signals):
     pos = [s for s in signals if s["ev"]>0]
     if not pos: return []
-    weights = [(1+s["avg_period_score"]*0.5)*s["wallet_count"]*s["ev"] for s in pos]
+    weights = [(1+s["avgPeriodScore"]*0.5)*s["walletCount"]*s["ev"] for s in pos]
     total_w = sum(weights)
     for s,w in zip(pos,weights):
-        s["allocation"]  = round(COPY_BUDGET*(w/total_w),2)
-        s["shares"]      = round(s["allocation"]/s["yes_price"],1) if s["yes_price"]>0 else 0
-        s["win_payout"]  = round(s["shares"],2)
-        s["net_profit"]  = round(s["win_payout"]-s["allocation"],2)
+        s["allocation"] = round(COPY_BUDGET*(w/total_w),2)
+        s["shares"]     = round(s["allocation"]/s["yesPrice"],1) if s["yesPrice"]>0 else 0
+        s["winPayout"]  = round(s["shares"],2)
+        s["netProfit"]  = round(s["winPayout"]-s["allocation"],2)
     return pos
 
 
@@ -416,6 +445,9 @@ def main():
 
     print("Fetching live prices…")
     open_enriched = enrich_odds(markets)
+
+    print("Enriching latest bets…")
+    enrich_latest_bets(all_rows, open_enriched)
 
     mp_signals  = allocate(build_signals(mp,    open_enriched, "multi_period"))
     t50_signals = allocate(build_signals(top50, open_enriched, "top50"))
