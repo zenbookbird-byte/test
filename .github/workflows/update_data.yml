@@ -1,0 +1,46 @@
+name: Update War Market Data
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'   # every 2 hours
+  workflow_dispatch:          # manual trigger from GitHub Actions tab
+  push:
+    branches:
+      - 'claude/polymarket-war-analysis-0MUfz'
+    paths:
+      - 'generate_data.py'
+      - '.github/workflows/update_data.yml'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: claude/polymarket-war-analysis-0MUfz
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Generate data
+        run: python3 generate_data.py
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/war_data.json
+          git diff --staged --quiet && echo "No changes" || (
+            git commit -m "chore: update war market data $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push origin claude/polymarket-war-analysis-0MUfz
+          )
