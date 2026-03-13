@@ -734,7 +734,7 @@ async function apiFetch(url, opts={}) {
   let lastErr
   for (let i = 0; i < attempts.length; i++) {
     try {
-      const r = await fetch(attempts[i], { ...opts, signal: AbortSignal.timeout(15000) })
+      const r = await fetch(attempts[i], { ...opts, signal: AbortSignal.timeout(8000) })
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       return await r.json()
     } catch(e) {
@@ -756,33 +756,28 @@ function setStatus(state, text) {
 //  1. FETCH MARKETS
 // ═══════════════════════════════════════════════════════════════
 async function fetchWarMarkets() {
-  const terms   = ['iran israel','iran war','israel attack','us iran','middle east war']
-  const seen    = new Set()
-  const markets = []
+  const terms  = ['iran israel','iran war','israel attack','us iran','middle east war']
+  const seen   = new Set()
+  const markets= []
 
-  for (const term of terms) {
-    for (const closed of ['false','true']) {
-      try {
-        let page = 0
-        while (true) {
-          const data = await apiFetch(
-            `${GAMMA_API}/markets?q=${encodeURIComponent(term)}&closed=${closed}&limit=100&offset=${page*100}`
-          )
-          const batch = Array.isArray(data) ? data : (data.markets || [])
-          if (!batch.length) break
-          for (const m of batch) {
-            const id    = m.conditionId || m.id
-            const title = (m.question || m.title || '').toLowerCase()
-            const slug  = (m.slug || '').toLowerCase()
-            if (!id || seen.has(id)) continue
-            if (WAR_KEYWORDS.some(kw => title.includes(kw) || slug.includes(kw))) {
-              markets.push(m); seen.add(id)
-            }
-          }
-          page++
-          if (batch.length < 100) break
-        }
-      } catch(e) { /* term failed — continue */ }
+  // Fire all (term × open/closed) requests in parallel
+  const tasks = []
+  for (const term of terms)
+    for (const closed of ['false','true'])
+      tasks.push(apiFetch(`${GAMMA_API}/markets?q=${encodeURIComponent(term)}&closed=${closed}&limit=100`).catch(()=>null))
+
+  const results = await Promise.allSettled(tasks)
+  for (const r of results) {
+    if (r.status !== 'fulfilled' || !r.value) continue
+    const batch = Array.isArray(r.value) ? r.value : (r.value.markets || [])
+    for (const m of batch) {
+      const id    = m.conditionId || m.id
+      const title = (m.question || m.title || '').toLowerCase()
+      const slug  = (m.slug || '').toLowerCase()
+      if (!id || seen.has(id)) continue
+      if (WAR_KEYWORDS.some(kw => title.includes(kw) || slug.includes(kw))) {
+        markets.push(m); seen.add(id)
+      }
     }
   }
   return markets
@@ -810,20 +805,19 @@ async function fetchTradesSubgraph(conditionIds) {
 
 async function fetchTradesCLOB(marketIds) {
   let all = []
-  for (const mid of marketIds.slice(0, 30)) {
-    try {
-      let cursor = ''
-      while (true) {
-        const url = `${CLOB_API}/trades?market=${mid}&limit=500${cursor ? '&cursor='+cursor : ''}`
-        const data = await apiFetch(url)
-        const trades = Array.isArray(data) ? data : (data.data || [])
-        if (!trades.length) break
-        trades.forEach(t => t._market = mid)
-        all.push(...trades)
-        cursor = (typeof data === 'object' && data.next_cursor) ? data.next_cursor : ''
-        if (!cursor) break
-      }
-    } catch(e) { /* skip this market */ }
+  const ids = marketIds.slice(0, 30)
+  // Fetch up to 6 markets in parallel
+  for (let i = 0; i < ids.length; i += 6) {
+    const batch = ids.slice(i, i + 6)
+    const results = await Promise.allSettled(batch.map(async mid => {
+      const url = `${CLOB_API}/trades?market=${mid}&limit=500`
+      const data = await apiFetch(url)
+      const trades = Array.isArray(data) ? data : (data.data || [])
+      trades.forEach(t => t._market = mid)
+      return trades
+    }))
+    for (const r of results)
+      if (r.status === 'fulfilled') all.push(...r.value)
   }
   return all
 }
@@ -995,8 +989,9 @@ function getTop50(rows) {
 // ═══════════════════════════════════════════════════════════════
 async function enrichWithOdds(markets) {
   const open = markets.filter(m => !m.closed && !m.resolved)
-  const out  = []
-  for (const m of open) {
+
+  // Fetch all prices in parallel
+  const results = await Promise.allSettled(open.map(async m => {
     let yesPrice = null
     const pricesRaw = m.outcomePrices || []
     if (pricesRaw.length) {
@@ -1013,14 +1008,15 @@ async function enrichWithOdds(markets) {
         } catch(e) {}
       }
     }
-    out.push({
-      title:     m.question || m.title || m.slug || 'Unknown',
+    return {
+      title:    m.question || m.title || m.slug || 'Unknown',
       yesPrice,
-      volume:    parseFloat(m.volume || m.volumeNum || 0),
-      marketId:  m.conditionId || m.id || '',
-    })
-  }
-  return out
+      volume:   parseFloat(m.volume || m.volumeNum || 0),
+      marketId: m.conditionId || m.id || '',
+    }
+  }))
+
+  return results.filter(r => r.status === 'fulfilled').map(r => r.value)
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1342,8 +1338,7 @@ async function loadAll() {
     document.getElementById('cors-notice').classList.remove('visible')
     renderMarkets(allMarkets)
 
-    // Trades
-    setStatus('loading', 'Fetching trades…')
+    setStatus('loading', `Found ${allMarkets.length} markets — fetching trades…`)
     const conditionIds = [...new Set(allMarkets.map(m => m.conditionId || m.id).filter(Boolean))]
     let trades = []
     try {
