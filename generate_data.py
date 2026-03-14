@@ -335,6 +335,7 @@ def enrich_odds(markets):
             "yes_price": yes_price,
             "volume":    float(m.get("volume") or m.get("volumeNum") or 0),
             "market_id": m.get("conditionId") or m.get("id") or "",
+            "slug":      m.get("slug") or "",
         })
         time.sleep(RATE_DELAY)
     return out
@@ -367,28 +368,44 @@ def build_signals(source, open_mkts, label):
         avg_ps    = sum(h["periodScore"] for h in holders)/len(holders)
         p  = mkt["yes_price"]
         ev = COPY_SUCCESS_RATE*(1-p) - (1-COPY_SUCCESS_RATE)*p
+        drift_pct = round((p / avg_entry - 1) * 100, 1) if avg_entry > 0 else 0.0
         signals.append({
             "source": label, "marketTitle": mkt["title"],
+            "marketSlug": mkt.get("slug", ""),
             "yesPrice": p, "volume": mkt["volume"],
             "walletCount": len(holders),
             "avgEntryPrice": round(avg_entry,4),
             "avgPeriodScore": round(avg_ps,1),
             "ev": round(ev,4),
+            "driftPct": drift_pct,
             "wallets": sorted(holders, key=lambda h:-h["netPnl"]),
         })
     signals.sort(key=lambda s:(-s["avgPeriodScore"],-s["walletCount"],-s["ev"]))
     return signals
 
 def allocate(signals):
-    pos = [s for s in signals if s["ev"]>0]
+    """Kelly Criterion sizing (25% fractional Kelly), capped to COPY_BUDGET total."""
+    pos = [s for s in signals if s["ev"] > 0]
     if not pos: return []
-    weights = [(1+s["avgPeriodScore"]*0.5)*s["walletCount"]*s["ev"] for s in pos]
-    total_w = sum(weights)
-    for s,w in zip(pos,weights):
-        s["allocation"] = round(COPY_BUDGET*(w/total_w),2)
-        s["shares"]     = round(s["allocation"]/s["yesPrice"],1) if s["yesPrice"]>0 else 0
-        s["winPayout"]  = round(s["shares"],2)
-        s["netProfit"]  = round(s["winPayout"]-s["allocation"],2)
+
+    for s in pos:
+        p = s["yesPrice"]
+        b = (1.0 / p - 1.0) if p > 0 else 0.0   # net odds: win (1-p) per p staked
+        if b > 0:
+            k = (b * COPY_SUCCESS_RATE - (1.0 - COPY_SUCCESS_RATE)) / b
+            s["kellyFraction"] = round(max(0.0, k * 0.25), 4)  # 25% fractional Kelly
+        else:
+            s["kellyFraction"] = 0.0
+
+    total_kelly = sum(s["kellyFraction"] for s in pos)
+    # Scale down if total Kelly would exceed 100% of budget
+    scale = min(1.0, 1.0 / total_kelly) if total_kelly > 0 else 1.0
+
+    for s in pos:
+        s["allocation"] = round(COPY_BUDGET * s["kellyFraction"] * scale, 2)
+        s["shares"]     = round(s["allocation"] / s["yesPrice"], 1) if s["yesPrice"] > 0 else 0
+        s["winPayout"]  = round(s["shares"], 2)
+        s["netProfit"]  = round(s["winPayout"] - s["allocation"], 2)
     return pos
 
 
