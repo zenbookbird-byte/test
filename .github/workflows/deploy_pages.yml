@@ -9,40 +9,51 @@ on:
       - 'data/war_data.json'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: claude/polymarket-war-analysis-0MUfz
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
 
-      - name: Deploy to gh-pages
+      - name: Build self-contained index.html
         run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Inject fresh war_data.json as window.__EMBEDDED__ so index.html is self-contained
+          mkdir _site
           python3 - <<'PYEOF'
-import json, re
-with open('data/war_data.json') as f:
-    data = json.load(f)
-with open('dashboard.html') as f:
-    html = f.read()
-injected = f'window.__EMBEDDED__ = {json.dumps(data, separators=(",", ":"))};'
-html = re.sub(r'window\.__EMBEDDED__\s*=\s*\{.*?\};', injected, html, flags=re.DOTALL)
-with open('/tmp/index.html', 'w') as f:
-    f.write(html)
-PYEOF
-          git checkout gh-pages || git checkout --orphan gh-pages
-          cp /tmp/index.html index.html
-          git add index.html
-          git diff --staged --quiet && echo "No changes" || (
-            git commit -m "chore: deploy dashboard to gh-pages $(date -u '+%Y-%m-%d %H:%M UTC')"
-            git push origin gh-pages
-          )
+          import json, re
+          with open('data/war_data.json') as f:
+              data = json.load(f)
+          with open('dashboard.html') as f:
+              html = f.read()
+          injected = f'window.__EMBEDDED__ = {json.dumps(data, separators=(",", ":"))};'
+          html = re.sub(r'window\.__EMBEDDED__\s*=\s*\{.*?\};', injected, html, flags=re.DOTALL)
+          with open('_site/index.html', 'w') as f:
+              f.write(html)
+          PYEOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
