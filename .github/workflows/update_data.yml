@@ -1,4 +1,4 @@
-name: Update War Market Data
+name: Update Market Data
 
 on:
   schedule:
@@ -9,6 +9,7 @@ on:
       - 'claude/polymarket-war-analysis-0MUfz'
     paths:
       - 'generate_data.py'
+      - 'generate_crypto_data.py'
       - '.github/workflows/update_data.yml'
 
 jobs:
@@ -32,15 +33,18 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Generate data
+      - name: Generate war data
         run: python3 generate_data.py
+
+      - name: Generate crypto data
+        run: python3 generate_crypto_data.py
 
       - name: Commit and push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/war_data.json
+          git add data/war_data.json data/crypto_data.json
           git diff --staged --quiet && echo "No changes" || (
-            git commit -m "chore: update war market data $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git commit -m "chore: update market data $(date -u '+%Y-%m-%d %H:%M UTC')"
             git push origin claude/polymarket-war-analysis-0MUfz
           )

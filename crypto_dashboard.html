@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Polymarket Crypto Wallet Tracker — BTC · ETH · SOL</title>
+<style>
+  :root {
+    --bg:      #080b10;
+    --surface: #0f1318;
+    --border:  #1a2235;
+    --border2: #243048;
+    --text:    #e2e8f0;
+    --muted:   #64748b;
+    --green:   #22c55e;
+    --red:     #ef4444;
+    --yellow:  #eab308;
+    --blue:    #3b82f6;
+    --purple:  #a855f7;
+    --accent:  #0ea5e9;
+    --glow:    rgba(14,165,233,.12);
+    --btc:     #f7931a;
+    --eth:     #627eea;
+    --sol:     #9945ff;
+    --btc-glow: rgba(247,147,26,.15);
+    --eth-glow: rgba(98,126,234,.15);
+    --sol-glow: rgba(153,69,255,.15);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'SF Mono','Fira Code','Cascadia Code',monospace;
+    font-size:13px;
+    min-height:100vh;
+  }
+
+  /* ── Header ── */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 24px;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:100;
+  }
+  .header-left{ display:flex; align-items:center; gap:16px; }
+  .logo{ font-size:15px; font-weight:700; letter-spacing:-.5px; }
+  .logo .btc{ color:var(--btc); }
+  .logo .eth{ color:var(--eth); }
+  .logo .sol{ color:var(--sol); }
+  .logo .dot{ color:var(--muted); }
+  .status-dot{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--green); box-shadow:0 0 6px var(--green);
+    animation:pulse 2s infinite; display:inline-block;
+  }
+  .status-dot.loading{ background:var(--yellow); box-shadow:0 0 6px var(--yellow); }
+  .status-dot.error  { background:var(--red);    box-shadow:0 0 6px var(--red); animation:none; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.4} }
+  .header-right{ display:flex; align-items:center; gap:16px; }
+  #clock,#refresh-timer{ color:var(--muted); font-size:11px; }
+  .btn{
+    padding:5px 12px; border-radius:6px;
+    border:1px solid var(--border2); background:transparent;
+    color:var(--accent); cursor:pointer; font:inherit; font-size:11px;
+    transition:all .15s;
+  }
+  .btn:hover{ background:var(--glow); border-color:var(--accent); }
+
+  /* ── Coin tabs ── */
+  .coin-tabs{
+    display:flex; gap:0;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    padding:0 24px;
+  }
+  .coin-tab{
+    padding:10px 20px; cursor:pointer; font:inherit; font-size:13px;
+    border:none; background:transparent; color:var(--muted);
+    border-bottom:2px solid transparent;
+    transition:all .15s; display:flex; align-items:center; gap:8px;
+  }
+  .coin-tab .tab-icon{ font-size:15px; font-weight:700; }
+  .coin-tab:hover{ color:var(--text); }
+  .coin-tab.active-btc{ color:var(--btc); border-bottom-color:var(--btc); }
+  .coin-tab.active-eth{ color:var(--eth); border-bottom-color:var(--eth); }
+  .coin-tab.active-sol{ color:var(--sol); border-bottom-color:var(--sol); }
+  .coin-tab .tab-count{
+    font-size:10px; padding:1px 5px;
+    border-radius:10px; background:var(--border2); color:var(--muted);
+  }
+
+  /* ── Layout ── */
+  .app{ display:grid; grid-template-columns:240px 1fr; min-height:calc(100vh - 95px); }
+
+  /* ── Sidebar ── */
+  aside{
+    background:var(--surface); border-right:1px solid var(--border);
+    padding:14px; display:flex; flex-direction:column; gap:16px;
+    position:sticky; top:95px; height:calc(100vh - 95px); overflow-y:auto;
+  }
+  .stat-card{
+    background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; padding:12px;
+  }
+  .stat-card h4{ font-size:10px; color:var(--muted); text-transform:uppercase;
+                 letter-spacing:.5px; margin-bottom:8px; }
+  .stat-row{ display:flex; justify-content:space-between; align-items:center;
+             margin-bottom:5px; }
+  .stat-label{ color:var(--muted); font-size:11px; }
+  .stat-val{ font-size:12px; font-weight:600; }
+  .green{ color:var(--green); }
+  .red  { color:var(--red);   }
+  .yellow{ color:var(--yellow); }
+  .blue { color:var(--blue);  }
+  .muted{ color:var(--muted); }
+  .btc-c{ color:var(--btc); }
+  .eth-c{ color:var(--eth); }
+  .sol-c{ color:var(--sol); }
+
+  .nav-section h5{ font-size:10px; color:var(--muted); text-transform:uppercase;
+                   letter-spacing:.5px; margin-bottom:8px; }
+  .nav-link{
+    display:block; padding:7px 10px; border-radius:6px;
+    color:var(--muted); text-decoration:none; font-size:12px;
+    cursor:pointer; transition:all .15s; margin-bottom:2px;
+    border:none; background:none; width:100%; text-align:left;
+  }
+  .nav-link:hover{ background:var(--border); color:var(--text); }
+  .nav-link.active{ color:var(--accent); background:var(--glow); }
+
+  /* ── Main ── */
+  main{ padding:20px 24px; display:flex; flex-direction:column; gap:20px; }
+
+  /* ── Section ── */
+  .section{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; overflow:hidden;
+  }
+  .section-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px; border-bottom:1px solid var(--border);
+    cursor:pointer; user-select:none;
+  }
+  .section-title{
+    display:flex; align-items:center; gap:10px;
+    font-size:13px; font-weight:600;
+  }
+  .section-title .icon{ font-size:14px; }
+  .section-badge{
+    font-size:10px; padding:2px 7px; border-radius:10px;
+    background:var(--border2); color:var(--muted);
+  }
+  .section-body{ padding:16px; }
+  .collapsed .section-body{ display:none; }
+  .chevron{ color:var(--muted); font-size:11px; transition:transform .2s; }
+  .collapsed .chevron{ transform:rotate(-90deg); }
+
+  /* ── Coin banner ── */
+  .coin-banner{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 16px; border-radius:8px;
+    margin-bottom:16px; border:1px solid;
+  }
+  .coin-banner.BTC{ background:var(--btc-glow); border-color:rgba(247,147,26,.3); }
+  .coin-banner.ETH{ background:var(--eth-glow); border-color:rgba(98,126,234,.3);  }
+  .coin-banner.SOL{ background:var(--sol-glow); border-color:rgba(153,69,255,.3);  }
+  .coin-banner .big-icon{ font-size:28px; font-weight:900; }
+  .coin-banner.BTC .big-icon{ color:var(--btc); }
+  .coin-banner.ETH .big-icon{ color:var(--eth); }
+  .coin-banner.SOL .big-icon{ color:var(--sol); }
+  .coin-banner-info h2{ font-size:16px; font-weight:700; }
+  .coin-banner-info p { font-size:11px; color:var(--muted); margin-top:2px; }
+  .coin-stats{ margin-left:auto; display:flex; gap:20px; }
+  .cs-item{ text-align:right; }
+  .cs-item .val{ font-size:14px; font-weight:600; }
+  .cs-item .lbl{ font-size:10px; color:var(--muted); }
+
+  /* ── Table ── */
+  .tbl-wrap{ overflow-x:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:12px; }
+  th{ padding:7px 10px; text-align:left; font-size:10px; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.4px; white-space:nowrap;
+      border-bottom:1px solid var(--border); }
+  td{ padding:7px 10px; border-bottom:1px solid var(--border);
+      vertical-align:middle; white-space:nowrap; }
+  tr:last-child td{ border-bottom:none; }
+  tr:hover td{ background:rgba(255,255,255,.02); }
+
+  /* ── Market pill ── */
+  .market-pill{
+    display:inline-block; padding:3px 8px;
+    border-radius:20px; font-size:10px; font-weight:600;
+  }
+  .pill-open  { background:rgba(34,197,94,.15);  color:var(--green); }
+  .pill-closed{ background:rgba(107,114,128,.15); color:var(--muted); }
+
+  /* ── Price bar ── */
+  .price-bar-wrap{ width:80px; }
+  .price-bar{
+    height:4px; border-radius:2px; margin-top:3px;
+    background:var(--border2);
+  }
+  .price-bar-fill{ height:100%; border-radius:2px; }
+
+  /* ── Signal card ── */
+  .signal-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+    gap:12px;
+  }
+  .signal-card{
+    background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; padding:14px; position:relative; overflow:hidden;
+  }
+  .signal-card::before{
+    content:''; position:absolute; top:0; left:0; right:0;
+    height:2px;
+  }
+  .signal-card.multi_period::before{ background:var(--yellow); }
+  .signal-card.top50::before       { background:var(--accent); }
+  .signal-card.exit-sig::before    { background:var(--red);    }
+  .sig-top{ display:flex; align-items:flex-start; justify-content:space-between;
+             gap:8px; margin-bottom:10px; }
+  .sig-title{
+    font-size:12px; font-weight:600; line-height:1.4;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+  }
+  .sig-badge{
+    font-size:9px; padding:2px 6px; border-radius:10px;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .sig-badge.mp{ background:rgba(234,179,8,.2);  color:var(--yellow); }
+  .sig-badge.t5{ background:rgba(14,165,233,.2); color:var(--accent); }
+  .sig-badge.ex{ background:rgba(239,68,68,.2);  color:var(--red);    }
+  .sig-metrics{
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:8px; margin-bottom:10px;
+  }
+  .sig-m{ text-align:center; }
+  .sig-m .val{ font-size:14px; font-weight:700; }
+  .sig-m .lbl{ font-size:9px; color:var(--muted); margin-top:1px; }
+  .sig-wallets{
+    display:flex; flex-direction:column; gap:4px;
+    border-top:1px solid var(--border); padding-top:8px;
+  }
+  .sig-w{ display:flex; align-items:center; justify-content:space-between; }
+  .sig-w-addr{ font-size:10px; color:var(--muted); }
+  .sig-w-addr a{
+    color:inherit; text-decoration:none;
+  }
+  .sig-w-addr a:hover{ color:var(--accent); }
+  .sig-w-stats{ display:flex; gap:6px; font-size:10px; }
+  .sig-footer{
+    margin-top:8px; display:flex; align-items:center;
+    justify-content:space-between; font-size:10px; color:var(--muted);
+  }
+  .sig-alloc{
+    padding:4px 8px; border-radius:4px;
+    background:rgba(34,197,94,.12); color:var(--green);
+    font-size:11px; font-weight:600;
+  }
+  .sig-link{
+    color:var(--accent); text-decoration:none; font-size:10px;
+  }
+  .sig-link:hover{ text-decoration:underline; }
+
+  /* ── Wallet row expandable ── */
+  .wallet-expand-btn{
+    background:none; border:none; color:var(--accent);
+    cursor:pointer; font:inherit; font-size:10px; padding:0;
+  }
+  .wallet-detail{
+    background:rgba(0,0,0,.3); border-radius:6px;
+    padding:10px 12px; margin-top:4px; font-size:11px;
+  }
+  .wallet-detail table{ font-size:11px; }
+  .wallet-detail td{ padding:4px 8px; }
+
+  /* ── Age badge ── */
+  .age-new{ color:var(--green); font-size:10px; }
+  .age-old{ color:var(--muted); font-size:10px; }
+
+  /* ── Empty state ── */
+  .empty{
+    text-align:center; padding:32px; color:var(--muted); font-size:12px;
+  }
+  .empty .icon{ font-size:24px; margin-bottom:8px; }
+
+  /* ── Toast ── */
+  #toast{
+    position:fixed; bottom:20px; right:20px;
+    background:var(--surface); border:1px solid var(--border2);
+    border-radius:8px; padding:10px 16px; font-size:12px;
+    box-shadow:0 4px 20px rgba(0,0,0,.4);
+    transition:opacity .3s; opacity:0; pointer-events:none; z-index:200;
+  }
+  #toast.show{ opacity:1; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar{ width:5px; height:5px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+  ::-webkit-scrollbar-thumb{ background:var(--border2); border-radius:3px; }
+
+  @media(max-width:900px){
+    .app{ grid-template-columns:1fr; }
+    aside{ position:static; height:auto; }
+    .coin-stats{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">
+      <span class="btc">₿TC</span>
+      <span class="dot"> · </span>
+      <span class="eth">ΞTH</span>
+      <span class="dot"> · </span>
+      <span class="sol">◎SOL</span>
+      <span style="color:var(--muted);font-weight:400"> Wallet Tracker</span>
+    </div>
+    <span class="status-dot" id="status-dot"></span>
+    <span id="status-text" style="color:var(--muted);font-size:11px">Loading…</span>
+  </div>
+  <div class="header-right">
+    <span id="clock"></span>
+    <span id="refresh-timer"></span>
+    <button class="btn" onclick="copyAllSignals()">Copy Signals</button>
+    <a href="index.html" class="btn" style="text-decoration:none">⚔ War</a>
+  </div>
+</header>
+
+<!-- Coin tabs -->
+<div class="coin-tabs" id="coin-tabs">
+  <button class="coin-tab" data-coin="BTC" onclick="switchCoin('BTC')">
+    <span class="tab-icon" style="color:var(--btc)">₿</span> Bitcoin
+    <span class="tab-count" id="tab-count-BTC">—</span>
+  </button>
+  <button class="coin-tab" data-coin="ETH" onclick="switchCoin('ETH')">
+    <span class="tab-icon" style="color:var(--eth)">Ξ</span> Ethereum
+    <span class="tab-count" id="tab-count-ETH">—</span>
+  </button>
+  <button class="coin-tab" data-coin="SOL" onclick="switchCoin('SOL')">
+    <span class="tab-icon" style="color:var(--sol)">◎</span> Solana
+    <span class="tab-count" id="tab-count-SOL">—</span>
+  </button>
+</div>
+
+<div class="app">
+  <aside id="sidebar">
+    <div class="stat-card" id="global-stats">
+      <h4>Overview</h4>
+      <div class="stat-row"><span class="stat-label">Generated</span>
+        <span class="stat-val muted" id="gen-time">—</span></div>
+      <div class="stat-row"><span class="stat-label">BTC Markets</span>
+        <span class="stat-val btc-c" id="s-btc-markets">—</span></div>
+      <div class="stat-row"><span class="stat-label">ETH Markets</span>
+        <span class="stat-val eth-c" id="s-eth-markets">—</span></div>
+      <div class="stat-row"><span class="stat-label">SOL Markets</span>
+        <span class="stat-val sol-c" id="s-sol-markets">—</span></div>
+    </div>
+    <div class="stat-card" id="coin-stats-card">
+      <h4 id="sidebar-coin-title">Coin Stats</h4>
+      <div class="stat-row"><span class="stat-label">Open Markets</span>
+        <span class="stat-val" id="s-open">—</span></div>
+      <div class="stat-row"><span class="stat-label">Top Wallets</span>
+        <span class="stat-val" id="s-wallets">—</span></div>
+      <div class="stat-row"><span class="stat-label">MP Signals</span>
+        <span class="stat-val yellow" id="s-mp-sig">—</span></div>
+      <div class="stat-row"><span class="stat-label">Top50 Signals</span>
+        <span class="stat-val blue" id="s-t50-sig">—</span></div>
+      <div class="stat-row"><span class="stat-label">Exit Alerts</span>
+        <span class="stat-val red"  id="s-exit">—</span></div>
+    </div>
+    <div class="nav-section">
+      <h5>Sections</h5>
+      <button class="nav-link" onclick="scrollTo('sec-signals')">Signals</button>
+      <button class="nav-link" onclick="scrollTo('sec-exits')">Exit Alerts</button>
+      <button class="nav-link" onclick="scrollTo('sec-markets')">Markets</button>
+      <button class="nav-link" onclick="scrollTo('sec-mp')">Multi-Period Wallets</button>
+      <button class="nav-link" onclick="scrollTo('sec-top50')">Top-50 Wallets</button>
+    </div>
+  </aside>
+
+  <main id="main-content">
+    <div id="coin-view"></div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Embedded data ────────────────────────────────────────────
+window.__EMBEDDED__ = {};
+
+// ── State ────────────────────────────────────────────────────
+let DATA        = null;
+let activeCoin  = 'BTC';
+let refreshSecs = 300;
+let refreshInterval, clockInterval;
+
+// ── Init ─────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  DATA = window.__EMBEDDED__;
+  if (DATA && DATA.coins) {
+    setStatus('live');
+    renderAll();
+  } else {
+    setStatus('error');
+    document.getElementById('status-text').textContent = 'No data embedded';
+  }
+  startClock();
+  startRefreshTimer();
+});
+
+function setStatus(state, msg) {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  dot.className = 'status-dot ' + (state === 'live' ? '' : state);
+  if (state === 'live') {
+    const d = DATA?.generated_at
+      ? new Date(DATA.generated_at).toLocaleTimeString()
+      : '';
+    text.textContent = 'Last updated ' + d;
+  } else if (msg) {
+    text.textContent = msg;
+  }
+}
+
+function startClock() {
+  const el = document.getElementById('clock');
+  const tick = () => { el.textContent = new Date().toLocaleTimeString(); };
+  tick(); clockInterval = setInterval(tick, 1000);
+}
+
+function startRefreshTimer() {
+  const el = document.getElementById('refresh-timer');
+  let secs = refreshSecs;
+  refreshInterval = setInterval(() => {
+    secs--;
+    el.textContent = `Refresh in ${secs}s`;
+    if (secs <= 0) { secs = refreshSecs; }
+  }, 1000);
+}
+
+// ── Coin switch ──────────────────────────────────────────────
+function switchCoin(coin) {
+  activeCoin = coin;
+  document.querySelectorAll('.coin-tab').forEach(t => {
+    t.classList.remove('active-BTC','active-ETH','active-SOL',
+                       'active-btc','active-eth','active-sol');
+  });
+  const tab = document.querySelector(`[data-coin="${coin}"]`);
+  if (tab) tab.classList.add('active-' + coin.toLowerCase());
+  renderCoinView(coin);
+  updateSidebar(coin);
+}
+
+// ── Render all ───────────────────────────────────────────────
+function renderAll() {
+  if (!DATA?.coins) return;
+
+  // Tab counts
+  for (const coin of ['BTC','ETH','SOL']) {
+    const cd = DATA.coins[coin] || {};
+    const n  = (cd.mp_signals||[]).length + (cd.t50_signals||[]).length;
+    const el = document.getElementById('tab-count-' + coin);
+    if (el) el.textContent = n > 0 ? n + ' sig' : '0';
+  }
+
+  // Global sidebar stats
+  const fmt = (coin, key) => (DATA.coins[coin]?.[key] || []).length;
+  document.getElementById('s-btc-markets').textContent = fmt('BTC','markets');
+  document.getElementById('s-eth-markets').textContent = fmt('ETH','markets');
+  document.getElementById('s-sol-markets').textContent = fmt('SOL','markets');
+  const gt = DATA.generated_at
+    ? new Date(DATA.generated_at).toLocaleString()
+    : '—';
+  document.getElementById('gen-time').textContent = gt.split(',')[0];
+
+  // Default tab
+  switchCoin('BTC');
+}
+
+function updateSidebar(coin) {
+  const cd = DATA?.coins?.[coin] || {};
+  const coinNames = {BTC:'Bitcoin',ETH:'Ethereum',SOL:'Solana'};
+  document.getElementById('sidebar-coin-title').textContent = coinNames[coin] || coin;
+
+  const open = (cd.open_enriched||[]).length;
+  const w    = Math.max((cd.mp_wallets||[]).length, (cd.top50||[]).length);
+  document.getElementById('s-open').textContent    = open;
+  document.getElementById('s-wallets').textContent = w;
+  document.getElementById('s-mp-sig').textContent  = (cd.mp_signals||[]).length;
+  document.getElementById('s-t50-sig').textContent = (cd.t50_signals||[]).length;
+  document.getElementById('s-exit').textContent    = (cd.exit_signals||[]).length;
+}
+
+// ── Main coin view ───────────────────────────────────────────
+function renderCoinView(coin) {
+  const cd    = DATA?.coins?.[coin] || {};
+  const meta  = DATA?.coin_meta?.[coin] || {color:'#888', icon:'?'};
+  const color = meta.color;
+  const icon  = meta.icon;
+  const names = {BTC:'Bitcoin',ETH:'Ethereum',SOL:'Solana'};
+  const name  = names[coin] || coin;
+
+  const allSigs = [...(cd.mp_signals||[]), ...(cd.t50_signals||[])];
+  const exits   = cd.exit_signals || [];
+  const markets = cd.markets      || [];
+  const mpW     = cd.mp_wallets   || [];
+  const t50W    = cd.top50        || [];
+
+  const openMkts  = markets.filter(m => !m.closed);
+  const closedMkts = markets.filter(m =>  m.closed);
+  const totalVol  = markets.reduce((s,m) => s + (m.volume||0), 0);
+
+  let html = `
+  <div class="coin-banner ${coin}">
+    <div class="big-icon">${icon}</div>
+    <div class="coin-banner-info">
+      <h2>${name} Markets</h2>
+      <p>${markets.length} markets · ${openMkts.length} open · $${fmtNum(totalVol)} volume</p>
+    </div>
+    <div class="coin-stats">
+      <div class="cs-item">
+        <div class="val yellow">${(cd.mp_signals||[]).length}</div>
+        <div class="lbl">MP Signals</div>
+      </div>
+      <div class="cs-item">
+        <div class="val" style="color:var(--accent)">${(cd.t50_signals||[]).length}</div>
+        <div class="lbl">T50 Signals</div>
+      </div>
+      <div class="cs-item">
+        <div class="val red">${exits.length}</div>
+        <div class="lbl">Exit Alerts</div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── Signals ──
+  html += sectionWrap('sec-signals', '📡 Copy Signals', allSigs.length, renderSignals(allSigs, coin));
+
+  // ── Exit alerts ──
+  html += sectionWrap('sec-exits', '🚨 Exit Alerts', exits.length, renderExits(exits), exits.length > 0);
+
+  // ── Open Markets ──
+  html += sectionWrap('sec-markets', '📊 Open Markets', openMkts.length, renderMarketsTable(openMkts, coin));
+
+  // ── Multi-period wallets ──
+  html += sectionWrap('sec-mp', '★ Multi-Period Wallets', mpW.length, renderWalletTable(mpW, 'mp'));
+
+  // ── Top-50 wallets ──
+  html += sectionWrap('sec-top50', '🏆 Top-50 Active Wallets', t50W.length, renderWalletTable(t50W, 'top50'));
+
+  document.getElementById('coin-view').innerHTML = html;
+}
+
+function sectionWrap(id, title, count, body, highlight=false) {
+  const badgeStyle = highlight
+    ? 'background:rgba(239,68,68,.2);color:var(--red)'
+    : '';
+  return `
+  <div class="section" id="${id}">
+    <div class="section-header" onclick="toggleSection(this)">
+      <div class="section-title">
+        <span>${title}</span>
+        <span class="section-badge" style="${badgeStyle}">${count}</span>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="section-body">${body}</div>
+  </div>`;
+}
+
+function toggleSection(hdr) {
+  hdr.parentElement.classList.toggle('collapsed');
+}
+
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// ── Signals ─────────────────────────────────────────────────
+function renderSignals(sigs, coin) {
+  if (!sigs.length) return `<div class="empty"><div class="icon">📭</div>No signals yet — wallets haven't accumulated enough positions in the same market.</div>`;
+
+  const cards = sigs.map(s => {
+    const isMp   = s.source === 'multi_period';
+    const ev_pct = (s.ev * 100).toFixed(1);
+    const ev_col = s.ev > 0 ? 'green' : 'red';
+    const drift_col = Math.abs(s.driftPct||0) > 15 ? 'red' : s.driftPct > 0 ? 'yellow' : 'green';
+    const age_str = s.ageHours != null
+      ? (s.ageHours < 24 ? `<span class="age-new">NEW ${s.ageHours}h</span>`
+                         : `<span class="age-old">${Math.floor(s.ageHours/24)}d</span>`)
+      : '';
+
+    const alloc = s.allocation != null
+      ? `<span class="sig-alloc">$${s.allocation} → $${s.winPayout} (+$${s.netProfit})</span>`
+      : '';
+
+    const polyUrl = s.marketSlug
+      ? `https://polymarket.com/event/${s.marketSlug}`
+      : `https://polymarket.com`;
+
+    const walletRows = (s.wallets||[]).slice(0,4).map(w => `
+      <div class="sig-w">
+        <span class="sig-w-addr">
+          <a href="https://polygonscan.com/address/${w.address}" target="_blank"
+             title="${w.address}">${w.address.slice(0,6)}…${w.address.slice(-4)}</a>
+        </span>
+        <span class="sig-w-stats">
+          <span class="${w.netPnl>=0?'green':'red'}">${w.netPnl>=0?'+':''}$${Math.round(w.netPnl)}</span>
+          <span class="muted">${w.winRate}%</span>
+          <span class="muted">${w.netTokens} tok</span>
+        </span>
+      </div>`).join('');
+
+    return `
+    <div class="signal-card ${s.source}">
+      <div class="sig-top">
+        <div class="sig-title">${esc(s.marketTitle)}</div>
+        <span class="sig-badge ${isMp?'mp':'t5'}">${isMp?'★ Multi-P':'Top50'}</span>
+      </div>
+      <div class="sig-metrics">
+        <div class="sig-m">
+          <div class="val">${(s.yesPrice*100).toFixed(0)}¢</div>
+          <div class="lbl">YES Price</div>
+        </div>
+        <div class="sig-m">
+          <div class="val ${ev_col}">${ev_pct > 0 ? '+' : ''}${ev_pct}¢</div>
+          <div class="lbl">EV (slip: ${(s.evSlippage*100).toFixed(1)}¢)</div>
+        </div>
+        <div class="sig-m">
+          <div class="val ${drift_col}">${s.driftPct > 0 ? '+' : ''}${s.driftPct||0}%</div>
+          <div class="lbl">Price Drift</div>
+        </div>
+      </div>
+      <div class="sig-wallets">${walletRows}</div>
+      <div class="sig-footer">
+        <span>${age_str} &nbsp; ${s.walletCount} wallets · $${fmtNum(s.volume)} vol</span>
+        <a class="sig-link" href="${polyUrl}" target="_blank">Polymarket ↗</a>
+      </div>
+      ${alloc ? `<div style="margin-top:8px">${alloc}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<div class="signal-grid">${cards}</div>`;
+}
+
+// ── Exit alerts ─────────────────────────────────────────────
+function renderExits(exits) {
+  if (!exits.length) return `<div class="empty"><div class="icon">✅</div>No exit signals detected.</div>`;
+
+  const cards = exits.map(e => {
+    const polyUrl = e.marketSlug
+      ? `https://polymarket.com/event/${e.marketSlug}` : '#';
+    return `
+    <div class="signal-card exit-sig">
+      <div class="sig-top">
+        <div class="sig-title">${esc(e.marketTitle)}</div>
+        <span class="sig-badge ex">↓ Exit ${e.reductionPct}%</span>
+      </div>
+      <div class="sig-metrics">
+        <div class="sig-m">
+          <div class="val red">↓${e.reductionPct}%</div>
+          <div class="lbl">Position Cut</div>
+        </div>
+        <div class="sig-m">
+          <div class="val">${e.prevTokens} → ${e.currTokens}</div>
+          <div class="lbl">Tokens</div>
+        </div>
+        <div class="sig-m">
+          <div class="val ${e.walletPnl>=0?'green':'red'}">${e.walletPnl>=0?'+':''}$${Math.round(e.walletPnl)}</div>
+          <div class="lbl">Wallet P&L</div>
+        </div>
+      </div>
+      <div class="sig-footer">
+        <span class="muted">${e.address.slice(0,8)}… · ${e.walletWinRate}% win · score ${e.periodScore}</span>
+        <a class="sig-link" href="${polyUrl}" target="_blank">View ↗</a>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="signal-grid">${cards}</div>`;
+}
+
+// ── Markets table ────────────────────────────────────────────
+function renderMarketsTable(markets, coin) {
+  if (!markets.length) return `<div class="empty">No open markets found.</div>`;
+
+  const sorted = [...markets].sort((a,b) => (b.volume||0) - (a.volume||0));
+  const rows   = sorted.slice(0,30).map(m => {
+    const p    = m.yes_price;
+    const pct  = p != null ? (p*100).toFixed(0) + '¢' : '—';
+    const col  = p != null ? (p > 0.6 ? 'green' : p < 0.35 ? 'red' : 'yellow') : 'muted';
+    const slug = m.slug || '';
+    const url  = slug ? `https://polymarket.com/event/${slug}` : '#';
+    const bar  = p != null ? `
+      <div class="price-bar-wrap">
+        <div style="font-size:11px" class="${col}">${pct}</div>
+        <div class="price-bar">
+          <div class="price-bar-fill" style="width:${(p*100).toFixed(0)}%;background:var(--${col === 'muted' ? 'border2' : col})"></div>
+        </div>
+      </div>` : `<span class="muted">—</span>`;
+
+    return `<tr>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis">
+        <a href="${url}" target="_blank" style="color:var(--text);text-decoration:none"
+           onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text)'">
+          ${esc(m.title)}
+        </a>
+      </td>
+      <td>${bar}</td>
+      <td class="muted">$${fmtNum(m.volume||0)}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="tbl-wrap"><table>
+    <thead><tr><th>Market</th><th>YES Price</th><th>Volume</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+// ── Wallet table ─────────────────────────────────────────────
+function renderWalletTable(wallets, key) {
+  if (!wallets.length) return `<div class="empty">No wallets found.</div>`;
+
+  const rows = wallets.slice(0,40).map((w, i) => {
+    const pnl_col = w.net_pnl >= 0 ? 'green' : 'red';
+    const pnl_str = (w.net_pnl >= 0 ? '+' : '') + '$' + Math.abs(Math.round(w.net_pnl));
+    const addr_short = w.address.slice(0,6) + '…' + w.address.slice(-4);
+    const ps_str = w.period_flags?.length > 0
+      ? w.period_flags.map(p => ({jun_2025:"Jun'25",feb_2026:"Feb'26",mar_2026:"Mar'26"}[p]||p)).join(' ')
+      : '—';
+    const bets_html = (w.latest_bets||[]).slice(0,3).map(b => {
+      const up  = b.unrealized_pnl;
+      const col = up == null ? 'muted' : up >= 0 ? 'green' : 'red';
+      const upStr = up == null ? '' : ` <span class="${col}">(${up>=0?'+':''}$${up})</span>`;
+      return `<tr>
+        <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">
+          ${esc(b.market_title||b.market_id)}
+        </td>
+        <td>${b.tokens} tok @ ${(b.avg_price*100).toFixed(0)}¢</td>
+        <td class="${col}">${b.current_price!=null?(b.current_price*100).toFixed(0)+'¢':'—'}${upStr}</td>
+      </tr>`;
+    }).join('');
+
+    return `<tr id="wr-${key}-${i}">
+      <td class="muted" style="font-size:11px">
+        <a href="https://polygonscan.com/address/${w.address}" target="_blank"
+           style="color:var(--muted);text-decoration:none"
+           onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'"
+        >${addr_short}</a>
+      </td>
+      <td class="${pnl_col}" style="font-weight:600">${pnl_str}</td>
+      <td class="${w.win_rate >= 60 ? 'green' : w.win_rate >= 40 ? 'yellow' : 'red'}">${w.win_rate}%</td>
+      <td class="muted">${w.trades}</td>
+      <td class="muted" style="font-size:10px">${ps_str}</td>
+      <td>
+        ${bets_html ? `<button class="wallet-expand-btn" onclick="toggleBets('${key}',${i})">▶ bets</button>` : '<span class="muted">—</span>'}
+      </td>
+    </tr>
+    <tr id="wb-${key}-${i}" style="display:none">
+      <td colspan="6">
+        <div class="wallet-detail">
+          <table>
+            <thead><tr><th>Market</th><th>Position</th><th>Current / Unrealized</th></tr></thead>
+            <tbody>${bets_html}</tbody>
+          </table>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>Address</th><th>Net P&L</th><th>Win%</th>
+      <th>Trades</th><th>Periods</th><th>Live Bets</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function toggleBets(key, i) {
+  const row = document.getElementById(`wb-${key}-${i}`);
+  const btn = document.querySelector(`#wr-${key}-${i} .wallet-expand-btn`);
+  if (!row) return;
+  const show = row.style.display === 'none';
+  row.style.display = show ? '' : 'none';
+  if (btn) btn.textContent = show ? '▼ bets' : '▶ bets';
+}
+
+// ── Copy signals ─────────────────────────────────────────────
+function copyAllSignals() {
+  if (!DATA?.coins) return;
+  const lines = [];
+  for (const coin of ['BTC','ETH','SOL']) {
+    const cd = DATA.coins[coin] || {};
+    const sigs = [...(cd.mp_signals||[]), ...(cd.t50_signals||[])];
+    if (!sigs.length) continue;
+    lines.push(`\n=== ${coin} Signals ===`);
+    sigs.forEach(s => {
+      const tag = s.source === 'multi_period' ? '★' : '·';
+      lines.push(`${tag} ${s.marketTitle}`);
+      lines.push(`  YES=${(s.yesPrice*100).toFixed(0)}¢  EV=${(s.ev*100).toFixed(1)}¢  Wallets=${s.walletCount}  Vol=$${fmtNum(s.volume)}`);
+      if (s.allocation) lines.push(`  Kelly alloc: $${s.allocation} → $${s.winPayout}`);
+    });
+  }
+  if (!lines.length) { showToast('No signals to copy'); return; }
+  navigator.clipboard.writeText(lines.join('\n'))
+    .then(() => showToast('Signals copied!'))
+    .catch(() => showToast('Copy failed'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Helpers ─────────────────────────────────────────────────
+function fmtNum(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return Math.round(n).toString();
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
+</body>
+</html>

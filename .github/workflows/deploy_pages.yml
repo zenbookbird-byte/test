@@ -6,7 +6,9 @@ on:
       - 'claude/polymarket-war-analysis-0MUfz'
     paths:
       - 'dashboard.html'
+      - 'crypto_dashboard.html'
       - 'data/war_data.json'
+      - 'data/crypto_data.json'
   workflow_dispatch:
 
 permissions:
@@ -31,19 +33,48 @@ jobs:
         with:
           ref: claude/polymarket-war-analysis-0MUfz
 
-      - name: Build self-contained index.html
+      - name: Build site
         run: |
           mkdir _site
           python3 - <<'PYEOF'
-          import json, re
-          with open('data/war_data.json') as f:
-              data = json.load(f)
+          import json, re, os
+
+          # ── War dashboard → index.html ──────────────────────────────
+          try:
+              with open('data/war_data.json') as f:
+                  war_data = json.load(f)
+          except Exception:
+              war_data = {}
+
           with open('dashboard.html') as f:
-              html = f.read()
-          injected = f'window.__EMBEDDED__ = {json.dumps(data, separators=(",", ":"))};'
-          html = re.sub(r'window\.__EMBEDDED__\s*=\s*\{.*?\};', injected, html, flags=re.DOTALL)
+              war_html = f.read()
+
+          if war_data:
+              injected = f'window.__EMBEDDED__ = {json.dumps(war_data, separators=(",", ":"))};'
+              war_html = re.sub(r'window\.__EMBEDDED__\s*=\s*\{.*?\};', injected, war_html, flags=re.DOTALL)
+
           with open('_site/index.html', 'w') as f:
-              f.write(html)
+              f.write(war_html)
+
+          # ── Crypto dashboard → crypto.html ──────────────────────────
+          try:
+              with open('data/crypto_data.json') as f:
+                  crypto_data = json.load(f)
+          except Exception:
+              crypto_data = {}
+
+          with open('crypto_dashboard.html') as f:
+              crypto_html = f.read()
+
+          if crypto_data:
+              injected = f'window.__EMBEDDED__ = {json.dumps(crypto_data, separators=(",", ":"))};'
+              crypto_html = re.sub(r'window\.__EMBEDDED__\s*=\s*\{.*?\};', injected, crypto_html, flags=re.DOTALL)
+
+          with open('_site/crypto.html', 'w') as f:
+              f.write(crypto_html)
+
+          print(f"Built index.html ({os.path.getsize('_site/index.html')//1024} KB) "
+                f"and crypto.html ({os.path.getsize('_site/crypto.html')//1024} KB)")
           PYEOF
 
       - name: Setup Pages
