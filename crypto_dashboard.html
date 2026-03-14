@@ -392,41 +392,68 @@
 <div id="toast"></div>
 
 <script>
-// ── Embedded data ────────────────────────────────────────────
+// ── Embedded data (injected at deploy; empty = load live) ────
 window.__EMBEDDED__ = {};
 
 // ── State ────────────────────────────────────────────────────
 let DATA        = null;
 let activeCoin  = 'BTC';
-let refreshSecs = 300;
-let refreshInterval, clockInterval;
+let refreshSecs = 90;
+let refreshInterval, clockInterval, timerInterval;
+let _liveLoading = false;
+
+// ── API config ───────────────────────────────────────────────
+const CORS_PROXIES = ['https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+let _proxyIdx = 0;
+const GAMMA   = 'https://gamma-api.polymarket.com';
+const CLOB    = 'https://clob.polymarket.com';
+const SUBGRAPH= 'https://api.thegraph.com/subgraphs/name/polymarket/matic-markets-5';
+
+const COIN_CFG = {
+  BTC: { keywords:['bitcoin','btc'],
+         terms:['bitcoin price','btc price','bitcoin above','btc above','bitcoin 2026','btc 2026','bitcoin ath'],
+         color:'#f7931a', icon:'₿' },
+  ETH: { keywords:['ethereum','eth'],
+         terms:['ethereum price','eth price','ethereum above','eth above','ethereum 2026','eth 2026'],
+         color:'#627eea', icon:'Ξ' },
+  SOL: { keywords:['solana','sol price','sol above'],
+         terms:['solana price','sol price','solana above','solana 2026','sol 2026'],
+         color:'#9945ff', icon:'◎' },
+};
+
+const MIN_TRADES   = 5;
+const TOP_PROFIT   = 50;
+const ACT_WINDOW   = 60;
+const MIN_SIG_WALL = 2;
+const SUCCESS_RATE = 0.82;
+const BUDGET       = 100.0;
+const PERIODS = {
+  jun_2025:[1748736000,1751327999],
+  feb_2026:[1769904000,1772323199],
+  mar_2026:[1772323200,1775001599],
+};
+const REQ_PERIODS = new Set(['feb_2026','mar_2026']);
 
 // ── Init ─────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  DATA = window.__EMBEDDED__;
-  if (DATA && DATA.coins) {
-    setStatus('live');
-    renderAll();
-  } else {
-    setStatus('error');
-    document.getElementById('status-text').textContent = 'No data embedded';
-  }
   startClock();
   startRefreshTimer();
+  // Fast initial render from embedded data if available
+  if (window.__EMBEDDED__?.coins) {
+    DATA = window.__EMBEDDED__;
+    renderAll();
+    setStatus('loading', 'Cached data — fetching live…');
+  } else {
+    setStatus('loading', 'Connecting to Polymarket…');
+  }
+  loadLive();  // always start live fetch
 });
 
 function setStatus(state, msg) {
   const dot  = document.getElementById('status-dot');
   const text = document.getElementById('status-text');
-  dot.className = 'status-dot ' + (state === 'live' ? '' : state);
-  if (state === 'live') {
-    const d = DATA?.generated_at
-      ? new Date(DATA.generated_at).toLocaleTimeString()
-      : '';
-    text.textContent = 'Last updated ' + d;
-  } else if (msg) {
-    text.textContent = msg;
-  }
+  dot.className = 'status-dot ' + (state === 'live' ? '' : state === 'loading' ? 'loading' : 'error');
+  if (msg) text.textContent = msg;
 }
 
 function startClock() {
@@ -438,11 +465,377 @@ function startClock() {
 function startRefreshTimer() {
   const el = document.getElementById('refresh-timer');
   let secs = refreshSecs;
-  refreshInterval = setInterval(() => {
+  timerInterval = setInterval(() => {
     secs--;
     el.textContent = `Refresh in ${secs}s`;
-    if (secs <= 0) { secs = refreshSecs; }
+    if (secs <= 0) { secs = refreshSecs; loadLive(); }
   }, 1000);
+}
+
+// ── HTTP helpers ─────────────────────────────────────────────
+async function apiFetch(url, opts = {}) {
+  const isPost = opts.method === 'POST';
+  const attempts = isPost ? [url, CORS_PROXIES[_proxyIdx]+encodeURIComponent(url)]
+                          : [CORS_PROXIES[_proxyIdx]+encodeURIComponent(url), url];
+  let lastErr;
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const r = await fetch(attempts[i], { ...opts, signal: AbortSignal.timeout(10000) });
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      return await r.json();
+    } catch(e) {
+      lastErr = e;
+      if (i === 0 && !isPost && _proxyIdx < CORS_PROXIES.length-1) _proxyIdx++;
+    }
+  }
+  throw lastErr;
+}
+
+// ── Market fetching ──────────────────────────────────────────
+async function fetchCoinMarkets(coin) {
+  const cfg = COIN_CFG[coin];
+  const seen = new Set(); const markets = [];
+  const tasks = [];
+  for (const term of cfg.terms)
+    for (const closed of ['false','true'])
+      tasks.push(apiFetch(`${GAMMA}/markets?q=${encodeURIComponent(term)}&closed=${closed}&limit=100`).catch(()=>null));
+  const results = await Promise.allSettled(tasks);
+  for (const r of results) {
+    if (r.status !== 'fulfilled' || !r.value) continue;
+    const batch = Array.isArray(r.value) ? r.value : (r.value.markets||[]);
+    for (const m of batch) {
+      const id    = m.conditionId || m.id;
+      const text  = `${(m.question||m.title||'').toLowerCase()} ${(m.slug||'').toLowerCase()}`;
+      if (!id || seen.has(id)) continue;
+      if (cfg.keywords.some(kw => text.includes(kw))) { markets.push(m); seen.add(id); }
+    }
+  }
+  return markets;
+}
+
+// ── Trade fetching ───────────────────────────────────────────
+const GQL = `query T($conds:[String!]!,$skip:Int!){fpmmTrades(first:1000 skip:$skip where:{fpmm_in:$conds} orderBy:creationTimestamp orderDirection:desc){id type creator{id} fpmm{id} outcomeTokensTraded collateralAmount creationTimestamp}}`;
+
+async function fetchTrades(conditionIds) {
+  if (!conditionIds.length) return [];
+  let all = [], skip = 0;
+  while (true) {
+    const res = await apiFetch(SUBGRAPH, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({query:GQL, variables:{conds:conditionIds, skip}})
+    }).catch(()=>null);
+    const trades = res?.data?.fpmmTrades || [];
+    all.push(...trades);
+    if (trades.length < 1000) break;
+    skip += 1000;
+  }
+  return all;
+}
+
+async function fetchTradesCLOB(mids) {
+  let all = [];
+  for (let i = 0; i < Math.min(mids.length, 30); i += 6) {
+    const batch = mids.slice(i, i+6);
+    const results = await Promise.allSettled(batch.map(async mid => {
+      const d = await apiFetch(`${CLOB}/trades?market=${mid}&limit=500`);
+      const t = Array.isArray(d) ? d : (d.data||[]);
+      t.forEach(x => x._market = mid); return t;
+    }));
+    for (const r of results) if (r.status==='fulfilled') all.push(...r.value);
+  }
+  return all;
+}
+
+// ── Wallet aggregation ────────────────────────────────────────
+function tsPeriod(ts) {
+  for (const [n,[s,e]] of Object.entries(PERIODS)) if (ts>=s&&ts<=e) return n;
+  return null;
+}
+function newW() {
+  return {trades:0,buys:0,sells:0,grossIn:0,grossOut:0,profitableExits:0,unprofitableExits:0,
+          firstTrade:null,lastTrade:null,periodFlags:new Set(),periodPnl:{},positions:{}};
+}
+function tagPeriodC(w,ts,col,isBuy) {
+  const p=tsPeriod(ts); if(!p) return;
+  w.periodFlags.add(p);
+  if(!w.periodPnl[p]) w.periodPnl[p]={grossIn:0,grossOut:0};
+  if(isBuy) w.periodPnl[p].grossIn+=col; else w.periodPnl[p].grossOut+=col;
+}
+function updatePosC(w,mid,tok,cost,isBuy) {
+  if(!mid) return;
+  if(!w.positions[mid]) w.positions[mid]={netTokens:0,totalCost:0};
+  const pos=w.positions[mid];
+  if(isBuy) { pos.netTokens+=tok; pos.totalCost+=cost; }
+  else {
+    if(pos.netTokens>0) { const r=Math.min(tok/pos.netTokens,1); pos.totalCost-=pos.totalCost*r; }
+    pos.netTokens=Math.max(0,pos.netTokens-tok);
+  }
+}
+function aggregateSub(trades) {
+  const ws = {};
+  for (const t of trades) {
+    const addr = t.creator?.id?.toLowerCase(); if(!addr) continue;
+    if(!ws[addr]) ws[addr]=newW();
+    const w=ws[addr]; w.trades++;
+    const ts=parseInt(t.creationTimestamp||0), col=parseInt(t.collateralAmount||0)/1e6,
+          tok=parseInt(t.outcomeTokensTraded||0)/1e6, mid=t.fpmm?.id||'', tp=(t.type||'').toUpperCase();
+    if(!w.firstTrade||ts<w.firstTrade) w.firstTrade=ts;
+    if(!w.lastTrade ||ts>w.lastTrade ) w.lastTrade=ts;
+    if(tp==='BUY') { w.buys++;w.grossIn+=col;  tagPeriodC(w,ts,col,true); updatePosC(w,mid,tok,col,true); }
+    else if(tp==='SELL') {
+      w.sells++;w.grossOut+=col; tagPeriodC(w,ts,col,false); updatePosC(w,mid,tok,col,false);
+      if(tok>0) { const p=col/tok; if(p>=0.5) w.profitableExits++; else w.unprofitableExits++; }
+    }
+  }
+  return ws;
+}
+function aggregateClob(trades) {
+  const ws = {};
+  for (const t of trades) {
+    for (const [af,sf] of [['maker_address','maker_side'],['taker_address','taker_side']]) {
+      const addr=(t[af]||'').toLowerCase();
+      if(!addr||addr==='0x'+'0'.repeat(40)) continue;
+      if(!ws[addr]) ws[addr]=newW();
+      const w=ws[addr]; w.trades++;
+      const ts_raw=t.timestamp||t.created_at||0, ts=parseInt(ts_raw)||0;
+      const price=parseFloat(t.price||0), size=parseFloat(t.size||0), cost=price*size;
+      const side=(t[sf]||t.side||'').toUpperCase(), mid=t._market||'';
+      if(ts){if(!w.firstTrade||ts<w.firstTrade)w.firstTrade=ts;if(!w.lastTrade||ts>w.lastTrade)w.lastTrade=ts;}
+      if(side==='BUY') { w.buys++;w.grossIn+=cost; tagPeriodC(w,ts,cost,true); updatePosC(w,mid,size,cost,true); }
+      else if(side==='SELL') {
+        w.sells++;w.grossOut+=cost; tagPeriodC(w,ts,cost,false); updatePosC(w,mid,size,cost,false);
+        if(price>=0.5) w.profitableExits++; else w.unprofitableExits++;
+      }
+    }
+  }
+  return ws;
+}
+function scoreWalletsC(ws) {
+  const now=Math.floor(Date.now()/1000); const rows=[];
+  for (const [addr,w] of Object.entries(ws)) {
+    if(w.trades<MIN_TRADES) continue;
+    const exits=w.profitableExits+w.unprofitableExits;
+    const winRate=exits>0?(w.profitableExits/exits*100):0;
+    const netPnl=w.grossOut-w.grossIn;
+    const span=(w.firstTrade&&w.lastTrade)?(w.lastTrade-w.firstTrade):0;
+    const activeDays=Math.max(1,Math.floor(span/86400));
+    const lastAgo=w.lastTrade?Math.floor((now-w.lastTrade)/86400):9999;
+    const pPnl={};
+    for(const[p,pp] of Object.entries(w.periodPnl)) pPnl[p]=Math.round((pp.grossOut-pp.grossIn)*100)/100;
+    rows.push({
+      address:addr, trades:w.trades, buys:w.buys, sells:w.sells,
+      winRate:Math.round(winRate*10)/10, profitableExits:w.profitableExits, totalExits:exits,
+      netPnl:Math.round(netPnl*100)/100, grossIn:Math.round(w.grossIn*100)/100, grossOut:Math.round(w.grossOut*100)/100,
+      activeDays, lastAgo, isActive:lastAgo<=ACT_WINDOW,
+      periodFlags:w.periodFlags, periodScore:w.periodFlags.size, periodPnl:pPnl, positions:w.positions,
+      latest_bets:[],
+    });
+  }
+  return rows.sort((a,b)=>b.winRate-a.winRate||b.netPnl-a.netPnl);
+}
+function getMpC(rows) {
+  return rows.filter(r=>[...REQ_PERIODS].every(p=>r.periodFlags.has(p))&&r.netPnl>0)
+             .sort((a,b)=>b.periodScore-a.periodScore||b.netPnl-a.netPnl);
+}
+function getTop50C(rows) {
+  return rows.filter(r=>r.isActive&&r.netPnl>0).sort((a,b)=>b.netPnl-a.netPnl).slice(0,TOP_PROFIT);
+}
+
+// ── Live prices ───────────────────────────────────────────────
+async function enrichOdds(markets) {
+  const open = markets.filter(m=>!m.closed&&!m.resolved);
+  const results = await Promise.allSettled(open.map(async m => {
+    let yesPrice=null;
+    const pr=m.outcomePrices||[];
+    if(pr.length) { const v=parseFloat(pr[0]); if(!isNaN(v)) yesPrice=v; }
+    if(yesPrice===null) {
+      const tids=(m.tokens||[]).map(t=>t.token_id||t.tokenId).filter(Boolean);
+      if(tids.length) {
+        try {
+          const book=await apiFetch(`${CLOB}/book?token_id=${tids[0]}`);
+          const bids=book?.bids||[];
+          if(bids.length) yesPrice=parseFloat(bids[0].price);
+        } catch(e){}
+      }
+    }
+    return { title:m.question||m.title||m.slug||'?', yesPrice, volume:parseFloat(m.volume||m.volumeNum||0),
+             marketId:m.conditionId||m.id||'', slug:m.slug||'' };
+  }));
+  return results.filter(r=>r.status==='fulfilled').map(r=>r.value);
+}
+function enrichBets(rows, openEnr) {
+  const midMap={};
+  for(const m of openEnr) midMap[m.marketId]=m;
+  for(const row of rows) {
+    const bets=[];
+    for(const [mid,pos] of Object.entries(row.positions||{})) {
+      const mkt=midMap[mid]; if(!mkt) continue;
+      const nt=pos.netTokens||0, tc=pos.totalCost||0;
+      const avg=nt>0?Math.round(tc/nt*10000)/10000:0;
+      const cp=mkt.yesPrice;
+      const up=cp!=null?Math.round((cp-avg)*nt*100)/100:null;
+      bets.push({market_id:mid,market_title:mkt.title,tokens:Math.round(nt*100)/100,avg_price:avg,
+                 cost:Math.round(tc*100)/100,current_price:cp,unrealized_pnl:up});
+    }
+    row.latest_bets=bets.sort((a,b)=>b.tokens-a.tokens);
+  }
+}
+
+// ── Signals ───────────────────────────────────────────────────
+function buildSignalsC(srcWallets, openMkts, label) {
+  const sigs=[];
+  for(const mkt of openMkts) {
+    if(!mkt.marketId||mkt.yesPrice==null) continue;
+    const holders=[];
+    for(const w of srcWallets) {
+      const pos=w.positions[mkt.marketId];
+      if(!pos||pos.netTokens<=0.5) continue;
+      const avg=pos.netTokens>0?pos.totalCost/pos.netTokens:mkt.yesPrice;
+      holders.push({address:w.address,netTokens:Math.round(pos.netTokens*100)/100,avgEntry:Math.round(avg*10000)/10000,
+                    netPnl:w.netPnl,winRate:w.winRate,periodScore:w.periodScore,period_flags:[...w.periodFlags]});
+    }
+    if(holders.length<MIN_SIG_WALL) continue;
+    const tt=holders.reduce((s,h)=>s+h.netTokens,0);
+    const tc=holders.reduce((s,h)=>s+h.avgEntry*h.netTokens,0);
+    const avgEntry=tt>0?tc/tt:mkt.yesPrice;
+    const avgPs=holders.reduce((s,h)=>s+h.periodScore,0)/holders.length;
+    const p=mkt.yesPrice;
+    const ev=SUCCESS_RATE*(1-p)-(1-SUCCESS_RATE)*p;
+    const drift=avgEntry>0?Math.round((p/avgEntry-1)*1000)/10:0;
+    const evSlip=SUCCESS_RATE*(1-p*1.02)-(1-SUCCESS_RATE)*(p*1.02);
+    sigs.push({source:label,marketTitle:mkt.title,marketSlug:mkt.slug||'',yesPrice:p,volume:mkt.volume,
+               walletCount:holders.length,avgEntryPrice:Math.round(avgEntry*10000)/10000,
+               avgPeriodScore:Math.round(avgPs*10)/10,ev:Math.round(ev*10000)/10000,
+               evSlippage:Math.round(evSlip*10000)/10000,driftPct:drift,
+               wallets:holders.sort((a,b)=>b.netPnl-a.netPnl)});
+  }
+  return sigs.sort((a,b)=>b.avgPeriodScore-a.avgPeriodScore||b.walletCount-a.walletCount||b.ev-a.ev);
+}
+function allocateC(sigs) {
+  const pos=sigs.filter(s=>s.ev>0);
+  if(!pos.length) return [];
+  pos.forEach(s=>{ const p=s.yesPrice,b=p>0?(1/p-1):0;
+    const k=b>0?Math.max(0,(b*SUCCESS_RATE-(1-SUCCESS_RATE))/b):0;
+    s.kellyFraction=Math.round(k*0.25*10000)/10000; });
+  const tk=pos.reduce((a,s)=>a+s.kellyFraction,0);
+  const scale=tk>0?Math.min(1,1/tk):1;
+  pos.forEach(s=>{ s.allocation=Math.round(BUDGET*s.kellyFraction*scale*100)/100;
+    s.shares=s.yesPrice>0?Math.round(s.allocation/s.yesPrice*10)/10:0;
+    s.winPayout=Math.round(s.shares*100)/100; s.netProfit=Math.round((s.winPayout-s.allocation)*100)/100; });
+  return pos;
+}
+
+// ── WebSocket price ticks ────────────────────────────────────
+let _ws=null; let _wsTokenIds=[];
+const _tokenToMid={};
+function connectWS(markets) {
+  const tids=[];
+  for(const m of markets) {
+    const mid=m.conditionId||m.id;
+    for(const t of (m.tokens||[])) { const tid=t.token_id||t.tokenId; if(tid){tids.push(tid);_tokenToMid[tid]=mid;} }
+  }
+  if(!tids.length) return;
+  _wsTokenIds=tids;
+  if(_ws) { try{_ws.close();}catch(e){} }
+  try {
+    _ws=new WebSocket('wss://ws-subscriptions-clob.polymarket.com/ws/market');
+    _ws.onopen=()=>_ws.send(JSON.stringify({auth:{},id:'1',markets:[],assets_ids:tids,type:'market'}));
+    _ws.onmessage=(e)=>{
+      try {
+        const list=JSON.parse(e.data); const evs=Array.isArray(list)?list:[list];
+        for(const m of evs) {
+          if(m.asset_id&&m.price!=null) {
+            const p=parseFloat(m.price); if(isNaN(p)) continue;
+            const mid=_tokenToMid[m.asset_id]; if(!mid) continue;
+            // Update openEnriched prices in DATA
+            for(const coin of ['BTC','ETH','SOL']) {
+              const oe=(DATA?.coins?.[coin]?.open_enriched||[]).find(o=>o.market_id===mid||o.marketId===mid);
+              if(oe) { oe.yes_price=p; oe.yesPrice=p; }
+            }
+          }
+        }
+      } catch(ex){}
+    };
+    _ws.onerror=()=>{};
+    _ws.onclose=()=>{ if(_wsTokenIds.length) setTimeout(()=>connectWS([]),8000); };
+  } catch(ex){}
+}
+
+// ── Main live pipeline ───────────────────────────────────────
+async function loadLive() {
+  if(_liveLoading) return;
+  _liveLoading=true;
+  setStatus('loading', 'Fetching live market data…');
+  try {
+    // Fetch all 3 coins in parallel
+    const [btcMkts,ethMkts,solMkts] = await Promise.all([
+      fetchCoinMarkets('BTC'), fetchCoinMarkets('ETH'), fetchCoinMarkets('SOL')
+    ]);
+    const mktsPerCoin = {BTC:btcMkts, ETH:ethMkts, SOL:solMkts};
+    setStatus('loading', `Markets loaded (${btcMkts.length}B/${ethMkts.length}E/${solMkts.length}S) — fetching trades…`);
+
+    // All condition IDs (deduplicated)
+    const allMids = [...new Set([...btcMkts,...ethMkts,...solMkts].map(m=>m.conditionId||m.id).filter(Boolean))];
+
+    let trades = await fetchTrades(allMids).catch(()=>[]);
+    if(!trades.length) {
+      trades = await fetchTradesCLOB(allMids).catch(()=>[]);
+    }
+    setStatus('loading', `${trades.length} trades — analysing wallets…`);
+
+    const isSubgraph = trades.length>0 && trades[0]?.creator;
+    const allWs = isSubgraph ? aggregateSub(trades) : aggregateClob(trades);
+    const allRows = scoreWalletsC(allWs);
+
+    // Build per-coin data
+    const coinsData = {};
+    const allOpenEnr = [];
+    const wsMarkets = [];
+
+    for(const [coin, mkts] of Object.entries(mktsPerCoin)) {
+      const coinMids = new Set(mkts.map(m=>m.conditionId||m.id).filter(Boolean));
+      const coinRows = allRows.filter(r=>Object.keys(r.positions||{}).some(mid=>coinMids.has(mid)));
+      const mpW  = getMpC(coinRows);
+      const t50W = getTop50C(coinRows);
+
+      setStatus('loading', `${coin}: fetching live prices…`);
+      const openEnr = await enrichOdds(mkts).catch(()=>[]);
+      allOpenEnr.push(...openEnr);
+      wsMarkets.push(...mkts);
+      enrichBets(coinRows, openEnr);
+
+      const mpSigs  = allocateC(buildSignalsC(mpW,  openEnr.map(o=>({...o,marketId:o.marketId||o.market_id})), 'multi_period'));
+      const t50Sigs = allocateC(buildSignalsC(t50W, openEnr.map(o=>({...o,marketId:o.marketId||o.market_id})), 'top50'));
+
+      coinsData[coin] = {
+        markets: mkts.map(m=>({id:m.conditionId||m.id,title:m.question||m.title||m.slug||'',
+                               volume:parseFloat(m.volume||m.volumeNum||0),
+                               closed:!!(m.closed||m.resolved),
+                               yes_price:(m.outcomePrices||[]).length?parseFloat(m.outcomePrices[0]):null,
+                               slug:m.slug||''})),
+        open_enriched: openEnr.map(o=>({...o,market_id:o.marketId||o.market_id})),
+        mp_wallets:  mpW.map(r=>({...r,period_flags:[...r.periodFlags],positions:r.positions})),
+        top50:       t50W.map(r=>({...r,period_flags:[...r.periodFlags],positions:r.positions})),
+        mp_signals:  mpSigs,
+        t50_signals: t50Sigs,
+        exit_signals:[],
+      };
+    }
+
+    DATA = {
+      generated_at: new Date().toISOString(),
+      coins: coinsData,
+      coin_meta: {BTC:{color:'#f7931a',icon:'₿'},ETH:{color:'#627eea',icon:'Ξ'},SOL:{color:'#9945ff',icon:'◎'}},
+    };
+    renderAll();
+    setStatus('live', `Live · ${new Date().toLocaleTimeString()}`);
+    connectWS(wsMarkets);
+  } catch(err) {
+    setStatus('error', 'Live fetch failed: '+err.message);
+    console.error(err);
+  } finally {
+    _liveLoading=false;
+  }
 }
 
 // ── Coin switch ──────────────────────────────────────────────
