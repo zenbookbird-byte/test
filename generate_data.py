@@ -8,7 +8,7 @@ data/war_data.json for the dashboard to consume.
 Run by GitHub Actions on a schedule — no CORS issues.
 """
 
-import requests, json, time, os
+import requests, json, time, os, re
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -70,6 +70,15 @@ def ts_period(ts):
 
 
 # ── Markets ────────────────────────────────────────────────────
+_WAR_EXACT = [kw for kw in WAR_KEYWORDS if kw != "war"]
+
+def _market_is_war(title, slug):
+    """Return True only for genuine war/conflict markets (avoids hardware/warriors/etc)."""
+    text = f"{title} {slug}"
+    if any(kw in text for kw in _WAR_EXACT):
+        return True
+    return bool(re.search(r'\bwar\b', text))
+
 def find_war_markets():
     print("Fetching markets…")
     markets, seen = [], set()
@@ -83,7 +92,7 @@ def find_war_markets():
                 title = (m.get("question") or m.get("title") or "").lower()
                 slug  = (m.get("slug") or "").lower()
                 if not cid or cid in seen: continue
-                if any(kw in title or kw in slug for kw in WAR_KEYWORDS):
+                if _market_is_war(title, slug):
                     markets.append(m); seen.add(cid)
             time.sleep(RATE_DELAY)
     print(f"  {len(markets)} markets found")
@@ -410,6 +419,15 @@ def main():
     print("=" * 60)
 
     markets = find_war_markets()
+    # Guard: only proceed if we found at least one genuine war market
+    # (keywords: iran, israel, nuclear, etc. — not just the word-boundary "war")
+    genuine = [m for m in markets
+               if any(kw in (m.get("question") or m.get("title") or "").lower()
+                      or kw in (m.get("slug") or "").lower()
+                      for kw in _WAR_EXACT)]
+    if not genuine:
+        print("[!] No genuine war markets found — preserving existing data/war_data.json")
+        return
     if not markets:
         print("[!] No markets found")
         return

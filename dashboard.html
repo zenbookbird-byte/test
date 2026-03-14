@@ -895,7 +895,9 @@ async function fetchWarMarkets() {
       const title = (m.question || m.title || '').toLowerCase()
       const slug  = (m.slug || '').toLowerCase()
       if (!id || seen.has(id)) continue
-      if (WAR_KEYWORDS.some(kw => title.includes(kw) || slug.includes(kw))) {
+      if (WAR_KEYWORDS.some(kw => kw === 'war'
+            ? /\bwar\b/.test(title) || /\bwar\b/.test(slug)
+            : title.includes(kw) || slug.includes(kw))) {
         markets.push(m); seen.add(id)
       }
     }
