@@ -1313,7 +1313,7 @@ function renderMultiPeriodTable(rows) {
   const search  = document.getElementById('wallet-search').value.toLowerCase()
   const minPnl  = parseFloat(document.getElementById('min-pnl').value) || 0
   const filtered = rows.filter(r =>
-    (!search || r.address.toLowerCase().includes(search)) && r.netPnl >= minPnl
+    (!search || r.address.toLowerCase().includes(search)) && (r.netPnl ?? r.net_pnl ?? 0) >= minPnl
   )
 
   if (!filtered.length) {
@@ -1355,7 +1355,7 @@ function renderTop50Table(rows) {
   const search = document.getElementById('wallet-search').value.toLowerCase()
   const minPnl = parseFloat(document.getElementById('min-pnl').value) || 0
   const filtered = rows.filter(r =>
-    (!search || r.address.toLowerCase().includes(search)) && r.netPnl >= minPnl
+    (!search || r.address.toLowerCase().includes(search)) && (r.netPnl ?? r.net_pnl ?? 0) >= minPnl
   )
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="emoji">📭</div><p>No data yet.</p></div></td></tr>`
@@ -1390,7 +1390,7 @@ function renderWinRateTable(rows) {
   const search = document.getElementById('wallet-search').value.toLowerCase()
   const minPnl = parseFloat(document.getElementById('min-pnl').value) || 0
   const filtered = rows.filter(r =>
-    (!search || r.address.toLowerCase().includes(search)) && r.netPnl >= minPnl
+    (!search || r.address.toLowerCase().includes(search)) && (r.netPnl ?? r.net_pnl ?? 0) >= minPnl
   ).slice(0, 100)
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="emoji">📭</div><p>No data yet.</p></div></td></tr>`
