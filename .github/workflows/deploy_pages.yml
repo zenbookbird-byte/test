@@ -1,0 +1,36 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - 'claude/polymarket-war-analysis-0MUfz'
+    paths:
+      - 'dashboard.html'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: claude/polymarket-war-analysis-0MUfz
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Deploy to gh-pages
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          cp dashboard.html /tmp/index.html
+          git checkout gh-pages || git checkout --orphan gh-pages
+          cp /tmp/index.html index.html
+          git add index.html
+          git diff --staged --quiet && echo "No changes" || (
+            git commit -m "chore: deploy dashboard to gh-pages $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push origin gh-pages
+          )
