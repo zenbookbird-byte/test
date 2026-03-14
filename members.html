@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CopyTrade Pro — Members Area</title>
+<style>
+  :root {
+    --bg:     #0a0a0f;
+    --panel:  #111118;
+    --card:   #16161f;
+    --border: #1e1e2e;
+    --accent: #00f5ff;
+    --pink:   #ff2d7e;
+    --purple: #a855f7;
+    --green:  #00ff88;
+    --yellow: #ffd60a;
+    --text:   #f0f0ff;
+    --muted:  #6b7280;
+    --sidebar-w: 300px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; overflow-x:hidden; }
+
+  /* ── LOGIN GATE ── */
+  #login-gate {
+    position: fixed; inset: 0; z-index: 999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #login-gate.hidden { display: none; }
+  .gate-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 24px; padding: 48px 40px; width: min(460px, 92vw);
+    text-align: center;
+    box-shadow: 0 0 80px rgba(255,45,126,.12);
+  }
+  .gate-logo {
+    font-size: 1.4rem; font-weight: 900; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, var(--accent), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .gate-sub   { color: var(--muted); font-size: 0.88rem; margin-bottom: 32px; }
+  .gate-label { font-size: 0.78rem; font-weight: 700; color: var(--muted);
+    text-align: left; margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .gate-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 13px 16px; color: var(--text);
+    font-size: 0.95rem; margin-bottom: 16px;
+    transition: border-color .15s;
+  }
+  .gate-input:focus { outline: none; border-color: var(--accent); }
+  .gate-btn {
+    width: 100%; background: linear-gradient(135deg, var(--pink), var(--purple));
+    color: #fff; border: none; padding: 15px; border-radius: 10px;
+    font-size: 1rem; font-weight: 800; cursor: pointer;
+    box-shadow: 0 0 30px rgba(255,45,126,.35);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .gate-btn:hover { transform: translateY(-1px); box-shadow: 0 0 50px rgba(255,45,126,.55); }
+  .gate-error { color: #ef4444; font-size: 0.82rem; margin-top: 10px; display: none; }
+  .gate-hint  { color: var(--muted); font-size: 0.75rem; margin-top: 14px; }
+  .gate-hint a { color: var(--accent); text-decoration: none; }
+
+  /* ── APP LAYOUT ── */
+  #app { display: flex; min-height: 100vh; }
+  #app.hidden { display: none; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: var(--sidebar-w); flex-shrink: 0;
+    background: var(--panel); border-right: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; bottom: 0;
+    overflow-y: auto; z-index: 50;
+    transition: transform .25s;
+  }
+  .sidebar-logo {
+    padding: 22px 24px 16px;
+    font-size: 1rem; font-weight: 900; letter-spacing: -0.5px;
+    background: linear-gradient(90deg, var(--accent), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .sidebar-tier {
+    font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
+    border-radius: 50px; -webkit-text-fill-color: initial;
+  }
+  .tier-badge-pro     { background: rgba(255,45,126,.15); color: var(--pink); }
+  .tier-badge-starter { background: rgba(0,245,255,.12);  color: var(--accent); }
+  .tier-badge-private { background: rgba(255,214,10,.12); color: var(--yellow); }
+
+  /* progress bar */
+  .sidebar-progress { padding: 16px 24px; border-bottom: 1px solid var(--border); }
+  .progress-label { font-size: 0.72rem; color: var(--muted); margin-bottom: 6px;
+    display: flex; justify-content: space-between; }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--pink));
+    border-radius: 2px; transition: width .4s; }
+
+  /* module nav */
+  .sidebar-nav { padding: 12px 0 80px; }
+  .module-nav-group { }
+  .module-nav-header {
+    padding: 14px 24px 6px;
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .lesson-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 24px; cursor: pointer;
+    font-size: 0.84rem; color: var(--muted);
+    transition: background .12s, color .12s;
+    border-left: 3px solid transparent;
+  }
+  .lesson-nav-item:hover { background: rgba(255,255,255,.04); color: var(--text); }
+  .lesson-nav-item.active {
+    background: rgba(0,245,255,.07); color: var(--accent);
+    border-left-color: var(--accent);
+  }
+  .lesson-nav-item.completed { color: var(--green); }
+  .lesson-nav-item.completed .lni-check { color: var(--green); }
+  .lesson-nav-item.locked { opacity: .4; cursor: not-allowed; }
+  .lni-check { font-size: 0.75rem; flex-shrink: 0; width: 16px; }
+  .lni-num   { font-size: 0.7rem; color: var(--muted); flex-shrink: 0; font-family: monospace; min-width: 20px; }
+  .lni-dur   { font-size: 0.67rem; color: var(--muted); margin-left: auto; flex-shrink: 0; }
+
+  /* sidebar toggle (mobile) */
+  .sidebar-toggle {
+    display: none; position: fixed; bottom: 20px; left: 16px; z-index: 200;
+    background: var(--pink); color: #fff; border: none; width: 48px; height: 48px;
+    border-radius: 50%; font-size: 1.1rem; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(255,45,126,.4);
+  }
+  @media(max-width:760px){
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+    .main-content { margin-left: 0 !important; }
+  }
+
+  /* MAIN CONTENT */
+  .main-content {
+    flex: 1; margin-left: var(--sidebar-w);
+    min-height: 100vh;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: rgba(10,10,15,.9); backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .topbar-breadcrumb { font-size: 0.82rem; color: var(--muted); }
+  .topbar-breadcrumb span { color: var(--text); font-weight: 600; }
+  .topbar-actions { display: flex; align-items: center; gap: 12px; }
+  .btn-mark-done {
+    background: rgba(0,255,136,.1); color: var(--green);
+    border: 1px solid rgba(0,255,136,.25); padding: 7px 18px;
+    border-radius: 50px; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+    transition: background .15s;
+  }
+  .btn-mark-done:hover { background: rgba(0,255,136,.2); }
+  .btn-mark-done.done { background: var(--green); color: #000; border-color: var(--green); }
+  .btn-next {
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    color: #fff; border: none; padding: 7px 18px;
+    border-radius: 50px; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  }
+
+  /* LESSON AREA */
+  .lesson-area { padding: 40px 40px 80px; max-width: 860px; }
+  @media(max-width:640px){ .lesson-area { padding: 24px 18px 80px; } }
+
+  .lesson-module-tag {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+  }
+  .lesson-title {
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem); font-weight: 900;
+    letter-spacing: -0.5px; margin-bottom: 16px; line-height: 1.1;
+  }
+  .lesson-meta {
+    display: flex; gap: 20px; font-size: 0.8rem; color: var(--muted);
+    margin-bottom: 32px; flex-wrap: wrap;
+  }
+  .lesson-meta span { display: flex; align-items: center; gap: 5px; }
+
+  /* video embed area */
+  .video-embed {
+    aspect-ratio: 16/9; background: #080810;
+    border-radius: 16px; overflow: hidden; margin-bottom: 36px;
+    position: relative; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .video-embed-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, #0d0d1e 0%, #13071a 100%);
+  }
+  .video-embed-inner {
+    position: relative; z-index: 1; text-align: center;
+  }
+  .video-placeholder-icon { font-size: 3rem; margin-bottom: 14px; display: block; }
+  .video-placeholder-text { font-size: 0.88rem; color: var(--muted); max-width: 320px; line-height: 1.6; }
+  .video-placeholder-text code {
+    background: rgba(0,245,255,.1); color: var(--accent);
+    padding: 2px 8px; border-radius: 4px; font-size: 0.82rem;
+  }
+
+  /* lesson body text */
+  .lesson-body { line-height: 1.85; }
+  .lesson-body h2 {
+    font-size: 1.25rem; font-weight: 800; margin: 36px 0 12px;
+    color: var(--text); letter-spacing: -0.3px;
+  }
+  .lesson-body h3 {
+    font-size: 1rem; font-weight: 700; margin: 24px 0 8px;
+    color: var(--accent);
+  }
+  .lesson-body p { color: #c9d1d9; margin-bottom: 16px; font-size: 0.95rem; }
+  .lesson-body p strong { color: var(--text); }
+  .lesson-body ul { margin: 12px 0 18px 20px; }
+  .lesson-body ul li { color: #c9d1d9; margin-bottom: 8px; font-size: 0.93rem; line-height: 1.65; }
+  .lesson-body ul li::marker { color: var(--accent); }
+
+  .callout {
+    background: var(--card); border-left: 3px solid var(--accent);
+    border-radius: 0 12px 12px 0; padding: 18px 20px; margin: 20px 0;
+    font-size: 0.92rem; color: #c9d1d9; line-height: 1.7;
+  }
+  .callout.pink   { border-left-color: var(--pink); }
+  .callout.yellow { border-left-color: var(--yellow); }
+  .callout.green  { border-left-color: var(--green); }
+  .callout strong { color: var(--text); }
+
+  .code-block {
+    background: #080810; border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px 22px; margin: 18px 0;
+    font-family: 'Courier New', monospace; font-size: 0.82rem;
+    line-height: 1.7; overflow-x: auto;
+  }
+  .code-block .c-green  { color: var(--green); }
+  .code-block .c-yellow { color: var(--yellow); }
+  .code-block .c-cyan   { color: var(--accent); }
+  .code-block .c-pink   { color: var(--pink); }
+  .code-block .c-muted  { color: #4b5563; }
+
+  /* checklist */
+  .checklist { list-style: none; margin: 14px 0 22px; padding: 0; }
+  .checklist li {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.04);
+    font-size: 0.9rem; color: #c9d1d9;
+  }
+  .checklist li .ck-icon { color: var(--green); flex-shrink: 0; margin-top: 2px; }
+
+  /* nav footer */
+  .lesson-nav-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 52px; padding-top: 24px; border-top: 1px solid var(--border);
+    gap: 12px; flex-wrap: wrap;
+  }
+  .nav-foot-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); padding: 12px 20px; border-radius: 12px;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none;
+    transition: border-color .15s;
+  }
+  .nav-foot-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-foot-btn.primary {
+    background: linear-gradient(135deg, var(--pink), var(--purple));
+    border-color: transparent; color: #fff;
+  }
+  .nav-foot-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 0 30px rgba(255,45,126,.35); }
+
+  /* resource downloads */
+  .resources { margin-top: 40px; }
+  .resources h3 { font-size: 0.85rem; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .resource-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 18px; margin-bottom: 10px;
+    text-decoration: none; color: var(--text);
+    transition: border-color .15s;
+  }
+  .resource-item:hover { border-color: var(--accent); }
+  .resource-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .resource-name { font-size: 0.88rem; font-weight: 600; }
+  .resource-type { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .resource-dl   { margin-left: auto; font-size: 0.75rem; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN GATE ── -->
+<div id="login-gate">
+  <div class="gate-box">
+    <div class="gate-logo">CopyTrade Pro</div>
+    <p class="gate-sub">Members only. Enter your access code from your purchase email.</p>
+
+    <div class="gate-label">Email</div>
+    <input class="gate-input" id="gate-email" type="email" placeholder="you@email.com" autocomplete="email">
+
+    <div class="gate-label">Access Code</div>
+    <input class="gate-input" id="gate-code" type="text" placeholder="CTPRO-XXXX-XXXX" autocomplete="off">
+
+    <button class="gate-btn" onclick="tryLogin()">Access My Course →</button>
+    <div class="gate-error" id="gate-error">Wrong code. Check your purchase email and try again.</div>
+    <p class="gate-hint">
+      No account yet? <a href="course.html#pricing">Buy the course →</a><br>
+      Lost your code? <a href="#">Email support</a>
+    </p>
+    <p class="gate-hint" style="margin-top:8px;font-size:0.68rem;">
+      Demo: any email + code <strong>DEMO</strong>
+    </p>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      CopyTrade Pro
+      <span class="sidebar-tier" id="tier-badge">Pro + Bot</span>
+    </div>
+
+    <div class="sidebar-progress">
+      <div class="progress-label">
+        <span>Your progress</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" id="sidebar-nav">
+      <!-- built by JS -->
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-breadcrumb" id="topbar-bc">Module 1 · <span>How Polymarket Works</span></div>
+      <div class="topbar-actions">
+        <button class="btn-mark-done" id="btn-done" onclick="markDone()">Mark complete</button>
+        <button class="btn-next" onclick="nextLesson()">Next →</button>
+      </div>
+    </div>
+
+    <div class="lesson-area" id="lesson-area">
+      <!-- built by JS -->
+    </div>
+  </main>
+
+</div>
+
+<button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+
+<script>
+/* ════════════════════════════════════════════
+   COURSE DATA
+   ════════════════════════════════════════════ */
+const TIERS = { starter: 5, pro: 7, private: 7 }; // modules unlocked
+
+const MODULES = [
+  {
+    num: 1, title: 'How Polymarket Works',
+    lessons: [
+      {
+        id: 'l1-1', title: 'What is Polymarket and why should you care',
+        dur: '8 min', tier: 'starter',
+        body: `
+<h2>What is Polymarket?</h2>
+<p>Polymarket is a prediction market that runs on the Polygon blockchain. Instead of betting on horse races or sports, you bet on real-world events — things like "Will the Fed cut rates in May?" or "Will Ukraine and Russia have peace talks before June?" — using USDC stablecoins.</p>
+<p>The prices are probabilities. If a market says YES is trading at 0.34, the crowd thinks there's a 34% chance that event happens. You buy YES if you think it's more likely than 34%. You buy NO if you think it's less likely.</p>
+<div class="callout">
+  <strong>Why this matters:</strong> Unlike crypto price trading where you're guessing direction against professionals with algorithms, prediction markets have a clear answer at resolution. The event either happens or it doesn't. That binary clarity is something we can actually work with.
+</div>
+<h2>How money flows</h2>
+<p>When a market resolves YES, every YES share is worth $1. Every NO share is worth $0. Simple. If you bought YES at $0.34 and it resolves YES, you made 66 cents per dollar — that's a 194% return.</p>
+<ul>
+  <li>All funds are in USDC (a USD stablecoin — 1 USDC = $1)</li>
+  <li>No exchange to trust — it's all on-chain, non-custodial</li>
+  <li>You connect a Polygon wallet (MetaMask or similar) and that's it</li>
+  <li>Markets resolve based on real-world outcomes verified by data providers</li>
+</ul>
+<h2>The on-chain edge</h2>
+<p>Here's the thing that makes copy trading work on Polymarket specifically: <strong>every single trade is public on the blockchain.</strong> You can see every wallet's full trade history. You can calculate their P&L. You can rank them. And you can follow them.</p>
+<p>That transparency is the whole foundation of what we're building. The market isn't rigged — it's just that some participants have done way more research than you. We're going to find those participants and mirror what they do.</p>`,
+        resources: [
+          { icon:'📄', name:'Polymarket Explainer PDF',     type:'PDF · 8 pages',   href:'#' },
+          { icon:'🔗', name:'Polymarket.com — market list', type:'External link',   href:'#' },
+        ]
+      },
+      {
+        id: 'l1-2', title: 'Understanding the order book and how prices move',
+        dur: '11 min', tier: 'starter',
+        body: `
+<h2>CLOB — how Polymarket's market actually works</h2>
+<p>Polymarket uses a Central Limit Order Book (CLOB). That means there's a real bid/ask spread, not just an AMM pool. When you place a buy order, you're matched against someone's sell order. If no match exists at your price, your order sits open until it fills or you cancel it.</p>
+<p>The bot places <strong>limit orders at the current best price</strong>, which means you almost always get filled cleanly without slippage — something that matters a lot when you're sizing positions properly.</p>
+<div class="callout pink">
+  <strong>Practical note:</strong> Don't try to market-buy on thin markets. The spread can be 5–10 cents wide on low-liquidity events. The bot checks liquidity before placing — this is one of the filters I'll show you in Module 4.
+</div>
+<h2>What moves prices?</h2>
+<p>Same as any market: information. When a piece of news breaks, you'll see the price jump instantly. "Ukraine ceasefire talks confirmed" → YES price goes from 0.34 to 0.72 in minutes. The wallets we track often move <em>before</em> the news hits mainstream — that's the signal.</p>`,
+        resources: [
+          { icon:'📊', name:'CLOB vs AMM — Quick Comparison', type:'PDF · 3 pages', href:'#' },
+        ]
+      },
+      {
+        id: 'l1-3', title: 'Setting up your Polygon wallet and getting USDC',
+        dur: '14 min', tier: 'starter',
+        body: `
+<h2>What you need to get started</h2>
+<ul>
+  <li>A Polygon-compatible wallet (MetaMask is easiest)</li>
+  <li>Some MATIC for gas fees (a few dollars worth is plenty — fees are tiny)</li>
+  <li>USDC on Polygon for trading capital</li>
+</ul>
+<h2>Step 1: Install MetaMask</h2>
+<p>Go to metamask.io and install the browser extension. Write down your seed phrase on paper. Store it somewhere safe. Don't take a photo of it. Don't put it in a Google Doc. This is your money — treat it seriously.</p>
+<h2>Step 2: Add Polygon network</h2>
+<p>MetaMask defaults to Ethereum mainnet. You need Polygon. Either go to chainlist.org and add it with one click, or manually add: Network name: Polygon, RPC URL: https://polygon-rpc.com, Chain ID: 137, Symbol: MATIC.</p>
+<h2>Step 3: Get USDC to Polygon</h2>
+<p>The easiest path: Buy USDC on Coinbase or Kraken → Withdraw directly to your Polygon wallet address (select Polygon as the network). Most exchanges support this. Double-check you're withdrawing to Polygon, not Ethereum mainnet — the addresses look identical but the networks are different.</p>
+<div class="callout green">
+  <strong>Start small:</strong> Fund with $50–100 for your first paper trade test run. You don't need to commit more until you've watched the bot work for a week.
+</div>
+<div class="code-block">
+<span class="c-muted"># Your .env file will look like this</span>
+<span class="c-cyan">POLY_PRIVATE_KEY</span>=<span class="c-yellow">your_private_key_here</span>
+<span class="c-cyan">POLY_ADDRESS</span>=<span class="c-yellow">0xYourWalletAddress</span>
+<span class="c-cyan">BUDGET_USDC</span>=<span class="c-yellow">100</span>
+<span class="c-cyan">PAPER_TRADE</span>=<span class="c-yellow">true</span>   <span class="c-muted"># start with this!</span>
+</div>`,
+        resources: [
+          { icon:'📄', name:'Wallet Setup Checklist',      type:'PDF · 2 pages',  href:'#' },
+          { icon:'🔗', name:'MetaMask download',           type:'External link',  href:'#' },
+          { icon:'🔗', name:'Chainlist.org — add Polygon', type:'External link',  href:'#' },
+        ]
+      },
+    ]
+  },
+  {
+    num: 2, title: 'Finding the Top 1% Wallets',
+    lessons: [
+      {
+        id: 'l2-1', title: 'Why most wallets are just noise',
+        dur: '9 min', tier: 'starter',
+        body: `
+<h2>Not every profitable wallet is worth following</h2>
+<p>When you first look at Polymarket on-chain data, you'll find thousands of wallets with positive P&L. The problem is most of them got lucky on one or two trades. A wallet that bet YES on a market that resolved YES doesn't mean they had an edge — it might just mean they got 50/50 odds right once.</p>
+<p>What we want is wallets that are <strong>consistently profitable across different time periods, different market types, and different bet sizes.</strong> That's a much smaller list. When I first ran the analysis, I found fewer than 60 wallets that passed all the filters out of thousands.</p>
+<div class="callout">
+  <strong>The key insight:</strong> Lucky traders look profitable over 1 month. Actually good traders look profitable over Feb, Mar, AND Jun — when conditions were completely different. Filter by multi-period consistency and the noise disappears.
+</div>
+<h2>What separates signal from noise</h2>
+<ul>
+  <li><strong>Win rate over 60%</strong> across at least 20+ resolved markets</li>
+  <li><strong>Positive P&L in at least 3 separate months</strong> — not just one good run</li>
+  <li><strong>Reasonable bet sizing</strong> — wallets that risk 40% of their balance on one trade aren't sophisticated, they're just gambling</li>
+  <li><strong>Active in the same market types we're targeting</strong> — a wallet that only bets on sports markets is useless to us</li>
+</ul>`
+      },
+      {
+        id: 'l2-2', title: 'My multi-period scoring system — the full method',
+        dur: '18 min', tier: 'starter',
+        body: `
+<h2>How I score wallets</h2>
+<p>I pull on-chain trade history for every wallet that's been active on Polymarket in the last 6 months. Then I run them through a scoring formula that looks at three time windows separately — short term (last 30 days), medium (last 90 days), and long term (6 months). A wallet has to score above my threshold in at least two of the three windows to make the list.</p>
+<div class="code-block">
+<span class="c-muted"># The scoring formula (simplified)</span>
+<span class="c-cyan">score</span> = (
+  <span class="c-yellow">win_rate</span> * 0.35 +
+  <span class="c-yellow">avg_roi_per_trade</span> * 0.30 +
+  <span class="c-yellow">consistency_across_periods</span> * 0.25 +
+  <span class="c-yellow">trade_volume_confidence</span> * 0.10
+)
+</div>
+<p>The full formula and the Python script that generates the wallet list is in the course materials. You can re-run it any time to get a fresh list — I update my own list roughly monthly.</p>
+<h2>The final list</h2>
+<p>After running this on the full dataset, I typically end up with 45–60 wallets. These are the ones the bot watches. When 3 or more of them agree on a trade — same market, same direction, within a short time window — that's our signal.</p>`,
+        resources: [
+          { icon:'📄', name:'Wallet Scoring Spreadsheet',     type:'Excel / Google Sheets', href:'#' },
+          { icon:'🐍', name:'wallet_scorer.py — source code', type:'Python file',            href:'#' },
+          { icon:'📄', name:'Current top wallet list',        type:'CSV · updated monthly', href:'#' },
+        ]
+      },
+    ]
+  },
+  {
+    num: 3, title: 'Setting Up the Copy Bot',
+    lessons: [
+      {
+        id: 'l3-1', title: 'Installing Python and dependencies',
+        dur: '12 min', tier: 'starter',
+        body: `
+<h2>What you need installed</h2>
+<ul>
+  <li>Python 3.10 or higher (free at python.org)</li>
+  <li>pip (comes with Python — you use it to install packages)</li>
+  <li>A code editor — VS Code is free and great, but Notepad works too</li>
+</ul>
+<h2>Windows installation</h2>
+<p>Download Python from python.org. During installation, check the box that says "Add Python to PATH" — this is important. Then open Command Prompt and type <code>python --version</code> to confirm it worked.</p>
+<h2>Mac installation</h2>
+<p>Open Terminal and type <code>python3 --version</code>. If Python isn't installed, it'll offer to install it. Accept. You can also use Homebrew: <code>brew install python3</code>.</p>
+<h2>Installing bot dependencies</h2>
+<div class="code-block">
+<span class="c-muted"># Navigate to the bot folder</span>
+<span class="c-cyan">cd</span> copytrade-bot
+
+<span class="c-muted"># Install everything the bot needs</span>
+<span class="c-cyan">pip install</span> -r requirements.txt
+
+<span class="c-muted"># You should see something like:</span>
+<span class="c-green">Successfully installed requests-2.31.0 web3-6.11.0 ...</span>
+</div>
+<div class="callout green">
+  <strong>It failed?</strong> The most common issue is Python not being on your PATH. On Windows, reinstall Python and make sure that checkbox is ticked. On Mac, try <code>pip3</code> instead of <code>pip</code>.
+</div>`,
+        resources: [
+          { icon:'🐍', name:'requirements.txt',           type:'Text file',    href:'#' },
+          { icon:'📄', name:'Troubleshooting install PDF', type:'PDF · 4 pages', href:'#' },
+        ]
+      },
+      {
+        id: 'l3-2', title: 'Configuring your .env file',
+        dur: '10 min', tier: 'starter',
+        body: `
+<h2>What the .env file does</h2>
+<p>The .env file holds your private settings — your wallet address, private key, budget, and bot behaviour flags. The bot reads this file at startup. You never put these values directly in the code, and you never share the .env file with anyone.</p>
+<div class="code-block">
+<span class="c-muted"># Copy the template and rename it</span>
+<span class="c-cyan">cp</span> .env.example .env
+
+<span class="c-muted"># Open it in any text editor and fill in your values</span>
+<span class="c-cyan">POLY_PRIVATE_KEY</span>=<span class="c-yellow">0xYourPrivateKeyHere</span>
+<span class="c-cyan">POLY_ADDRESS</span>=<span class="c-yellow">0xYourPublicAddressHere</span>
+<span class="c-cyan">BUDGET_USDC</span>=<span class="c-yellow">100</span>          <span class="c-muted"># how much USDC to trade with</span>
+<span class="c-cyan">PAPER_TRADE</span>=<span class="c-yellow">true</span>         <span class="c-muted"># set to false when ready to go live</span>
+<span class="c-cyan">MIN_COPY_WALLETS</span>=<span class="c-yellow">3</span>      <span class="c-muted"># need at least 3 wallets to agree</span>
+<span class="c-cyan">MIN_YES_PRICE</span>=<span class="c-yellow">0.10</span>       <span class="c-muted"># ignore markets below 10 cents</span>
+<span class="c-cyan">MAX_YES_PRICE</span>=<span class="c-yellow">0.90</span>       <span class="c-muted"># ignore markets above 90 cents</span>
+<span class="c-cyan">WAR_MODE</span>=<span class="c-yellow">true</span>           <span class="c-muted"># focus on geopolitical markets</span>
+</div>
+<div class="callout pink">
+  <strong>Never share your private key.</strong> Not with me. Not with anyone. Not in Discord. If someone asks for it, they're trying to steal your wallet.
+</div>`,
+        resources: [
+          { icon:'📄', name:'.env.example template',    type:'Template file', href:'#' },
+          { icon:'📄', name:'All settings explained',   type:'PDF · 6 pages', href:'#' },
+        ]
+      },
+      {
+        id: 'l3-3', title: 'Running in paper mode and reading your first logs',
+        dur: '15 min', tier: 'starter',
+        body: `
+<h2>Always start in paper mode</h2>
+<p>Paper mode runs the bot exactly as it would in real life — it detects signals, calculates sizes, logs everything — but doesn't actually place orders. No real money moves. This lets you watch it work for a few days before trusting it with actual USDC.</p>
+<div class="code-block">
+<span class="c-muted"># Start the bot in paper mode</span>
+<span class="c-cyan">python copy_trader.py</span>
+
+<span class="c-muted"># What you'll see:</span>
+<span class="c-green">[09:14:02] ✅ loaded 47 top-ranked wallets</span>
+<span class="c-white">[09:14:03]    polling subgraph for new trades...</span>
+<span class="c-yellow">[09:14:18] 🔔 signal → 3 wallets bought YES "Ukraine ceasefire"</span>
+<span class="c-white">[09:14:18]    YES @ 0.34 | kelly size: $12.40 | PAPER MODE — not placed</span>
+</div>
+<h2>What to look for in the first 48 hours</h2>
+<ul>
+  <li>At least 1–2 signals per day is normal. If you're seeing zero, check your wallet list is loaded.</li>
+  <li>The kelly sizes should be small relative to your budget — that's correct, it's being conservative.</li>
+  <li>Paper mode P&L will appear in the logs after a market resolves. Give it a few days.</li>
+</ul>
+<div class="callout green">
+  <strong>Ready to go live?</strong> Change <code>PAPER_TRADE=true</code> to <code>PAPER_TRADE=false</code> in your .env file. That's the only change needed. The bot will now place real orders.
+</div>`
+      },
+    ]
+  },
+  {
+    num: 4, title: 'Signal Logic Deep Dive',
+    lessons: [
+      {
+        id: 'l4-1', title: 'How the bot decides to buy',
+        dur: '16 min', tier: 'starter',
+        body: `
+<h2>The buy signal — exactly what triggers it</h2>
+<p>The bot fires a buy signal when <strong>all of these are true simultaneously:</strong></p>
+<ul>
+  <li>3 or more wallets from the tracked list bought the same outcome (YES or NO) in the same market</li>
+  <li>All those buys happened within the last 2 hours (no old stale signals)</li>
+  <li>The current price is between the MIN and MAX you set (default: 0.10–0.90)</li>
+  <li>The market hasn't been flagged as resolved or near resolution</li>
+  <li>We don't already have an open position in that market</li>
+</ul>
+<p>Every condition must pass. One failing check = no trade. This keeps the bot from entering on weak signals.</p>
+<div class="callout">
+  <strong>Why 3 wallets minimum?</strong> One wallet acting alone could be noise — maybe they just got lucky before, or they're testing something. Three wallets agreeing, independently, in a short window, is a much stronger signal. You can raise this to 4 or 5 if you want to be more selective (fewer trades, higher confidence).
+</div>`
+      },
+      {
+        id: 'l4-2', title: 'Exit logic — when the bot sells',
+        dur: '13 min', tier: 'starter',
+        body: `
+<h2>How the bot decides to exit</h2>
+<p>The bot checks open positions every cycle. It exits when any of these happen:</p>
+<ul>
+  <li><strong>Profit target hit</strong> — position has gained more than your target % (default: +50%)</li>
+  <li><strong>Stop loss hit</strong> — position has lost more than your floor (default: -40%)</li>
+  <li><strong>Signal reversed</strong> — 2+ tracked wallets sold the same position you hold. If the smart money is leaving, we leave too.</li>
+  <li><strong>Market near resolution</strong> — within 48 hours of the resolution date and we're still open, the bot exits to free up capital</li>
+</ul>
+<div class="callout yellow">
+  <strong>Customize these thresholds</strong> in your .env file: <code>TAKE_PROFIT=0.5</code>, <code>STOP_LOSS=0.4</code>. I've found 50/40 works well across most market types but you may want to tighten the stop loss on smaller budgets.
+</div>`,
+        resources: [
+          { icon:'📄', name:'Signal Logic Reference Sheet', type:'PDF · 2 pages', href:'#' },
+        ]
+      },
+    ]
+  },
+  {
+    num: 5, title: 'Kelly Criterion Sizing',
+    lessons: [
+      {
+        id: 'l5-1', title: 'Why bet sizing matters more than win rate',
+        dur: '10 min', tier: 'starter',
+        body: `
+<h2>You can have a great win rate and still blow up</h2>
+<p>Here's something counterintuitive: a system with a 70% win rate can lose everything if the bet sizing is wrong. Imagine betting 50% of your bankroll every trade. Even with a 70% win rate, a 3-loss streak — which happens — wipes out 87.5% of your account. You can't recover from that.</p>
+<p>This is why bet sizing is the thing I obsessed over longest when building this. <strong>Kelly Criterion is the math that solves it.</strong> It tells you the exact percentage of your bankroll to risk on each bet to maximise long-term growth without risking ruin.</p>
+<div class="callout">
+  The bot uses <strong>fractional Kelly</strong> — specifically half-Kelly — which is even more conservative than full Kelly. You grow slightly slower but the drawdowns are much more manageable. This is what most professional bettors and quantitative traders use.
+</div>`
+      },
+      {
+        id: 'l5-2', title: 'How the bot calculates your position size',
+        dur: '12 min', tier: 'starter',
+        body: `
+<h2>The formula the bot uses</h2>
+<p>For every signal, the bot calculates the Kelly fraction based on the current price (which represents the implied probability) and the historical win rate of the wallets that triggered the signal.</p>
+<div class="code-block">
+<span class="c-muted"># Simplified Kelly calculation inside the bot</span>
+<span class="c-cyan">def</span> <span class="c-yellow">kelly_size</span>(budget, price, wallet_win_rate):
+    p = wallet_win_rate          <span class="c-muted"># probability of winning</span>
+    q = 1 - p                   <span class="c-muted"># probability of losing</span>
+    b = (1 - price) / price     <span class="c-muted"># net odds</span>
+    kelly = (p * b - q) / b     <span class="c-muted"># full Kelly fraction</span>
+    half_kelly = kelly * 0.5    <span class="c-muted"># we use half for safety</span>
+    <span class="c-cyan">return</span> budget * half_kelly
+</div>
+<p>So if the tracked wallets have a 75% historical win rate, the current price is 0.34 (meaning odds of roughly 1.94x on your money), and your budget is $500 — the bot might size the position at $12–18. Not $100. Not $250. A responsible amount that keeps you in the game long term.</p>`,
+        resources: [
+          { icon:'📊', name:'Kelly Sizing Calculator',     type:'Google Sheets', href:'#' },
+          { icon:'📄', name:'Kelly Criterion Explainer',   type:'PDF · 5 pages', href:'#' },
+        ]
+      },
+    ]
+  },
+  {
+    num: 6, title: 'BTC, ETH & SOL Markets',
+    lessons: [
+      {
+        id: 'l6-1', title: 'Running the bot on crypto price markets',
+        dur: '17 min', tier: 'pro',
+        body: `
+<h2>Crypto price prediction markets</h2>
+<p>Polymarket runs markets like "Will BTC close above $90k on March 31?" and "Will ETH reclaim $2,500 this week?" These are completely different from war/political markets — the wallets that win here are different, the volatility is different, and the timing is different.</p>
+<p>The good news: the bot works the same way. We just swap out the wallet list for one tuned to crypto markets, adjust the price filters slightly, and let it run.</p>
+<div class="callout">
+  <strong>Run both at once:</strong> You can run two instances of the bot simultaneously — one in war mode, one in crypto mode. Point them at different budgets so they don't compete for capital.
+</div>
+<div class="code-block">
+<span class="c-muted"># .env for crypto markets instance</span>
+<span class="c-cyan">WAR_MODE</span>=<span class="c-yellow">false</span>
+<span class="c-cyan">CRYPTO_MODE</span>=<span class="c-yellow">true</span>
+<span class="c-cyan">BUDGET_USDC</span>=<span class="c-yellow">150</span>
+<span class="c-cyan">MIN_YES_PRICE</span>=<span class="c-yellow">0.15</span>   <span class="c-muted"># crypto markets are more volatile</span>
+<span class="c-cyan">MAX_YES_PRICE</span>=<span class="c-yellow">0.85</span>
+</div>`,
+        resources: [
+          { icon:'📄', name:'Crypto wallet list (curated)', type:'CSV',            href:'#' },
+          { icon:'📄', name:'Crypto mode config guide',     type:'PDF · 3 pages',  href:'#' },
+        ]
+      },
+    ]
+  },
+  {
+    num: 7, title: 'Running It 24/7',
+    lessons: [
+      {
+        id: 'l7-1', title: 'Moving from your laptop to a VPS',
+        dur: '20 min', tier: 'pro',
+        body: `
+<h2>Why you need a VPS</h2>
+<p>If the bot only runs when your laptop is open, you'll miss trades at night, when you're at work, or whenever you close the lid. A VPS (Virtual Private Server) is a tiny computer in a data centre that runs 24/7 for about $4–6/month. You SSH into it, start the bot, and walk away.</p>
+<h2>Recommended options</h2>
+<ul>
+  <li><strong>Hetzner CX11</strong> — €3.79/month, fast, in Germany. My first choice.</li>
+  <li><strong>DigitalOcean Droplet</strong> — $4/month, 1GB RAM, works perfectly.</li>
+  <li><strong>Contabo VPS S</strong> — very cheap for the specs, slightly slower support.</li>
+</ul>
+<h2>Setup in 5 steps</h2>
+<ol style="margin-left:20px;line-height:2;color:#c9d1d9;font-size:0.93rem;">
+  <li>Create a VPS, pick Ubuntu 22.04</li>
+  <li>SSH in: <code>ssh root@your-server-ip</code></li>
+  <li>Install Python: <code>apt install python3 python3-pip -y</code></li>
+  <li>Upload your bot files (FileZilla or scp)</li>
+  <li>Run bot in background: <code>nohup python3 copy_trader.py &amp;</code></li>
+</ol>
+<div class="callout green">
+  <strong>Using tmux:</strong> Instead of nohup, I prefer tmux. Run <code>tmux new -s bot</code>, start the bot inside that session, then press Ctrl+B, D to detach. The bot keeps running even after you close your SSH connection.
+</div>`,
+        resources: [
+          { icon:'📄', name:'VPS Setup Walkthrough PDF',  type:'PDF · 8 pages', href:'#' },
+          { icon:'📄', name:'tmux cheatsheet',            type:'PDF · 1 page',  href:'#' },
+        ]
+      },
+      {
+        id: 'l7-2', title: 'Reading logs, adjusting settings, scaling up',
+        dur: '14 min', tier: 'pro',
+        body: `
+<h2>How to read the bot logs</h2>
+<p>The bot writes a log file at <code>logs/bot_YYYY-MM-DD.log</code> every day. Each line has a timestamp, event type, and details. Here's what to look for:</p>
+<ul>
+  <li><strong>GREEN lines</strong> — orders placed and wins. Good.</li>
+  <li><strong>YELLOW lines</strong> — signals detected, sizing calculated. Informational.</li>
+  <li><strong>RED lines</strong> — errors. If you see these often, something needs fixing.</li>
+  <li><strong>ERROR: insufficient balance</strong> — you need more USDC in your wallet.</li>
+</ul>
+<h2>When to adjust settings</h2>
+<p>Give the bot at least 2 weeks before changing anything. Short-term variance can make a good system look bad. If after a month you're seeing consistent losses, the first thing to check is your wallet list — it may need refreshing with a new scoring run.</p>
+<h2>Scaling up safely</h2>
+<p>Don't go from $100 to $5,000 overnight. Double your budget monthly if you're happy with results. The Kelly system automatically scales with your budget, so the logic stays sound — you just need to make sure the markets you're trading have enough liquidity at larger sizes.</p>`,
+        resources: [
+          { icon:'📄', name:'Log file reference guide',     type:'PDF · 3 pages', href:'#' },
+          { icon:'📊', name:'Scaling calculator',           type:'Google Sheets', href:'#' },
+        ]
+      },
+    ]
+  },
+];
+
+// flatten lessons
+const ALL_LESSONS = MODULES.flatMap(m => m.lessons.map(l => ({ ...l, modNum: m.num, modTitle: m.title })));
+const TOTAL = ALL_LESSONS.length;
+
+/* ════════════════════════════════
+   STATE
+════════════════════════════════ */
+let currentLessonId = ALL_LESSONS[0].id;
+let completed = new Set(JSON.parse(localStorage.getItem('ctp_done') || '[]'));
+let userTier = 'pro';
+
+function saveCompleted() {
+  localStorage.setItem('ctp_done', JSON.stringify([...completed]));
+}
+
+/* ════════════════════════════════
+   LOGIN
+════════════════════════════════ */
+function tryLogin() {
+  const email = document.getElementById('gate-email').value.trim();
+  const code  = document.getElementById('gate-code').value.trim().toUpperCase();
+  const err   = document.getElementById('gate-error');
+
+  // tier detection from code prefix
+  const tierMap = {
+    'DEMO':    'pro',
+    'STARTER': 'starter',
+    'PRO':     'pro',
+    'PRIVATE': 'private',
+  };
+  const prefix = code.split('-')[0];
+  if (!email || !code) { err.style.display = 'block'; err.textContent = 'Please enter your email and access code.'; return; }
+  if (!tierMap[prefix] && code !== 'DEMO') { err.style.display = 'block'; err.textContent = 'Wrong code. Check your purchase email and try again.'; return; }
+
+  userTier = tierMap[prefix] || 'pro';
+  err.style.display = 'none';
+  document.getElementById('login-gate').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+
+  // set tier badge
+  const badge = document.getElementById('tier-badge');
+  const tierNames = { starter:'Starter', pro:'Pro + Bot', private:'Private Elite' };
+  const tierClasses = { starter:'tier-badge-starter', pro:'tier-badge-pro', private:'tier-badge-private' };
+  badge.textContent = tierNames[userTier];
+  badge.className = 'sidebar-tier ' + tierClasses[userTier];
+
+  buildSidebar();
+  loadLesson(ALL_LESSONS[0].id);
+  updateProgress();
+}
+
+/* ════════════════════════════════
+   SIDEBAR
+════════════════════════════════ */
+function buildSidebar() {
+  const nav = document.getElementById('sidebar-nav');
+  nav.innerHTML = '';
+  const unlockedMods = TIERS[userTier];
+
+  MODULES.forEach(mod => {
+    const locked = mod.num > unlockedMods;
+    const header = document.createElement('div');
+    header.className = 'module-nav-header';
+    header.textContent = `Module ${mod.num} — ${mod.title}` + (locked ? ' 🔒' : '');
+    nav.appendChild(header);
+
+    mod.lessons.forEach(lesson => {
+      const item = document.createElement('div');
+      const isDone = completed.has(lesson.id);
+      const isCurrent = lesson.id === currentLessonId;
+      item.className = 'lesson-nav-item' + (isCurrent ? ' active' : '') + (isDone ? ' completed' : '') + (locked ? ' locked' : '');
+      item.innerHTML = `
+        <span class="lni-check">${isDone ? '✓' : ''}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${lesson.title}</span>
+        <span class="lni-dur">${lesson.dur}</span>
+      `;
+      if (!locked) item.onclick = () => loadLesson(lesson.id);
+      nav.appendChild(item);
+    });
+  });
+}
+
+/* ════════════════════════════════
+   LOAD LESSON
+════════════════════════════════ */
+function loadLesson(id) {
+  const lesson = ALL_LESSONS.find(l => l.id === id);
+  if (!lesson) return;
+  currentLessonId = id;
+
+  // topbar
+  document.getElementById('topbar-bc').innerHTML = `Module ${lesson.modNum} · <span>${lesson.title}</span>`;
+  const doneBtn = document.getElementById('btn-done');
+  doneBtn.textContent = completed.has(id) ? '✓ Completed' : 'Mark complete';
+  doneBtn.className = 'btn-mark-done' + (completed.has(id) ? ' done' : '');
+
+  // content
+  const area = document.getElementById('lesson-area');
+  const resources = lesson.resources ? `
+    <div class="resources">
+      <h3>Downloads &amp; links</h3>
+      ${lesson.resources.map(r => `
+        <a href="${r.href}" class="resource-item">
+          <span class="resource-icon">${r.icon}</span>
+          <div>
+            <div class="resource-name">${r.name}</div>
+            <div class="resource-type">${r.type}</div>
+          </div>
+          <span class="resource-dl">Download ↓</span>
+        </a>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const idx = ALL_LESSONS.findIndex(l => l.id === id);
+  const prev = ALL_LESSONS[idx - 1];
+  const next = ALL_LESSONS[idx + 1];
+
+  area.innerHTML = `
+    <div class="lesson-module-tag">Module ${lesson.modNum} · ${lesson.modTitle}</div>
+    <h1 class="lesson-title">${lesson.title}</h1>
+    <div class="lesson-meta">
+      <span>⏱ ${lesson.dur}</span>
+      <span>📹 Video + text</span>
+      ${completed.has(id) ? '<span style="color:var(--green)">✓ Completed</span>' : ''}
+    </div>
+
+    <!-- VIDEO PLACEHOLDER -->
+    <div class="video-embed">
+      <div class="video-embed-bg"></div>
+      <div class="video-embed-inner">
+        <span class="video-placeholder-icon">🎬</span>
+        <div class="video-placeholder-text">
+          Drop your video here — replace this div with:<br>
+          <code>&lt;iframe src="https://www.youtube.com/embed/VIDEO_ID" ...&gt;</code><br><br>
+          Or use Vimeo, Loom, or any embed link.
+        </div>
+      </div>
+    </div>
+
+    <!-- LESSON BODY -->
+    <div class="lesson-body">${lesson.body}</div>
+
+    ${resources}
+
+    <!-- NAV FOOTER -->
+    <div class="lesson-nav-footer">
+      ${prev ? `<a class="nav-foot-btn" onclick="loadLesson('${prev.id}')">← ${prev.title}</a>` : '<div></div>'}
+      <button class="nav-foot-btn primary" onclick="markDone(); ${next ? `loadLesson('${next.id}')` : ''}">
+        ${completed.has(id) ? (next ? 'Next lesson →' : 'All done! 🎉') : 'Mark done & continue →'}
+      </button>
+    </div>
+  `;
+
+  // rebuild sidebar to update active state
+  buildSidebar();
+  window.scrollTo(0, 0);
+}
+
+/* ════════════════════════════════
+   MARK DONE / PROGRESS
+════════════════════════════════ */
+function markDone() {
+  completed.add(currentLessonId);
+  saveCompleted();
+  const btn = document.getElementById('btn-done');
+  btn.textContent = '✓ Completed';
+  btn.className = 'btn-mark-done done';
+  updateProgress();
+  buildSidebar();
+}
+
+function updateProgress() {
+  const pct = Math.round((completed.size / TOTAL) * 100);
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function nextLesson() {
+  const idx = ALL_LESSONS.findIndex(l => l.id === currentLessonId);
+  if (ALL_LESSONS[idx + 1]) loadLesson(ALL_LESSONS[idx + 1].id);
+}
+
+/* ════════════════════════════════
+   SIDEBAR MOBILE TOGGLE
+════════════════════════════════ */
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+/* auto-open FAQ on enter in code field */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('gate-code').addEventListener('keydown', e => {
+    if (e.key === 'Enter') tryLogin();
+  });
+  document.getElementById('gate-email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('gate-code').focus();
+  });
+});
+</script>
+</body>
+</html>
