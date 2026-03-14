@@ -23,6 +23,7 @@ MIN_WALLETS_SIGNAL = 2
 COPY_SUCCESS_RATE  = 0.85
 COPY_BUDGET        = 100.0
 RATE_DELAY         = 0.2
+WEBHOOK_URL        = os.environ.get("WEBHOOK_URL", "")  # Slack/Discord/Telegram webhook (optional)
 
 WAR_KEYWORDS = [
     "iran","israel","hamas","hezbollah","war","strike","attack",
@@ -139,7 +140,7 @@ def new_wallet():
                 profitable_exits=0,unprofitable_exits=0,
                 first_trade=None,last_trade=None,
                 period_flags=set(),period_pnl={},positions={},
-                closed_positions=[])
+                closed_positions=[],all_closed=[])
 
 def tag_period(w, ts, cost, is_buy):
     p = ts_period(ts)
@@ -164,9 +165,10 @@ def update_pos(w, mid, tokens, cost, is_buy):
             pos["total_cost"] -= pos["total_cost"] * ratio
         pos["net_tokens"] = max(0.0, pos["net_tokens"] - tokens)
         pos["_sell_total"] += cost
-        # Detect fully-closed position and record if PNL >= 80%
+        # Detect fully-closed position
         if pos["net_tokens"] <= 0.1 and pos["_buy_total"] > 0 and not pos["_recorded"]:
             pnl_pct = (pos["_sell_total"] - pos["_buy_total"]) / pos["_buy_total"] * 100
+            w["all_closed"].append({"pnl_pct": round(pnl_pct, 1), "buy_cost": round(pos["_buy_total"], 2)})
             if pnl_pct >= 80.0:
                 w["closed_positions"].append({
                     "market_id":    mid,
@@ -244,6 +246,9 @@ def score_wallets(wallets):
         last_ago = (now - (w["last_trade"] or 0))//86400 if w["last_trade"] else 9999
         flags    = w["period_flags"]
         pnl_by_p = {p: round(pp["gross_out"]-pp["gross_in"],2) for p,pp in w["period_pnl"].items()}
+        # Drawdown: worst single closed-position loss
+        losses = [c["pnl_pct"] for c in w.get("all_closed", []) if c["pnl_pct"] < 0]
+        max_loss_pct = round(min(losses), 1) if losses else 0.0
         open_positions = {
             mid: {"net_tokens": round(p["net_tokens"],4), "total_cost": round(p["total_cost"],4)}
             for mid, p in w["positions"].items() if p["net_tokens"] > 0.5
@@ -268,6 +273,7 @@ def score_wallets(wallets):
             "period_pnl":     pnl_by_p,
             "positions":      open_positions,
             "closed_positions_80": w["closed_positions"],
+            "max_loss_pct":        max_loss_pct,
             "latest_bets":    [],  # enriched after enrich_odds() runs
         })
     rows.sort(key=lambda r:(-r["win_rate"],-r["net_pnl"]))
@@ -369,6 +375,8 @@ def build_signals(source, open_mkts, label):
         p  = mkt["yes_price"]
         ev = COPY_SUCCESS_RATE*(1-p) - (1-COPY_SUCCESS_RATE)*p
         drift_pct = round((p / avg_entry - 1) * 100, 1) if avg_entry > 0 else 0.0
+        p_slip    = p * 1.02  # 2% slippage estimate
+        ev_slip   = COPY_SUCCESS_RATE * (1 - p_slip) - (1 - COPY_SUCCESS_RATE) * p_slip
         signals.append({
             "source": label, "marketTitle": mkt["title"],
             "marketSlug": mkt.get("slug", ""),
@@ -377,6 +385,7 @@ def build_signals(source, open_mkts, label):
             "avgEntryPrice": round(avg_entry,4),
             "avgPeriodScore": round(avg_ps,1),
             "ev": round(ev,4),
+            "evSlippage": round(ev_slip, 4),
             "driftPct": drift_pct,
             "wallets": sorted(holders, key=lambda h:-h["netPnl"]),
         })
@@ -429,11 +438,100 @@ def format_markets(markets):
     return out
 
 
+# ── Signal age ─────────────────────────────────────────────────
+def apply_signal_age(signals, prev_signals):
+    """Stamp each signal with the Unix timestamp it was first seen."""
+    now = int(time.time())
+    prev_map = {s["marketTitle"]: s.get("firstSeen", now) for s in (prev_signals or [])}
+    for s in signals:
+        s["firstSeen"] = prev_map.get(s["marketTitle"], now)
+        s["ageHours"]  = round((now - s["firstSeen"]) / 3600, 1)
+    return signals
+
+
+# ── Exit signals ────────────────────────────────────────────────
+def detect_exit_signals(all_rows, open_enriched, prev_cache):
+    """
+    Compare current open positions to positions from the previous run.
+    If a tracked wallet reduced a position by ≥50%, emit an exit signal.
+    """
+    if not prev_cache:
+        return []
+    mid_to_mkt = {m["market_id"]: m for m in open_enriched}
+    addr_to_row = {r["address"]: r for r in all_rows}
+    exits = []
+    for addr, prev_positions in prev_cache.items():
+        row = addr_to_row.get(addr)
+        if not row:
+            continue
+        curr_positions = row.get("positions", {})
+        for mid, prev_tokens in prev_positions.items():
+            if prev_tokens < 1.0:
+                continue
+            curr_tokens = curr_positions.get(mid, {}).get("net_tokens", 0.0) \
+                          if isinstance(curr_positions.get(mid), dict) \
+                          else curr_positions.get(mid, 0.0)
+            reduction = (prev_tokens - curr_tokens) / prev_tokens
+            if reduction < 0.5:
+                continue
+            mkt = mid_to_mkt.get(mid)
+            exits.append({
+                "address":      addr,
+                "market_id":    mid,
+                "marketTitle":  mkt["title"] if mkt else mid[:40] + "…",
+                "marketSlug":   mkt.get("slug", "") if mkt else "",
+                "prevTokens":   round(prev_tokens, 2),
+                "currTokens":   round(curr_tokens, 2),
+                "reductionPct": round(reduction * 100, 1),
+                "walletPnl":    row["net_pnl"],
+                "walletWinRate":row["win_rate"],
+                "periodScore":  row["period_score"],
+            })
+    exits.sort(key=lambda e: (-e["reductionPct"], -e["walletPnl"]))
+    return exits
+
+
+# ── Webhook ─────────────────────────────────────────────────────
+def send_webhook(mp_sigs, t50_sigs, exit_sigs):
+    if not WEBHOOK_URL:
+        return
+    lines = []
+    all_sigs = mp_sigs + [s for s in t50_sigs if s["marketTitle"] not in {x["marketTitle"] for x in mp_sigs}]
+    if all_sigs:
+        lines.append(f"📡 *{len(all_sigs)} copy signal(s)*")
+        for s in all_sigs[:5]:
+            tag = "★" if s["source"] == "multi_period" else "·"
+            ev_pct = round(s["ev"] * 100, 1)
+            slip_pct = round(s.get("evSlippage", s["ev"]) * 100, 1)
+            lines.append(f"  {tag} {s['marketTitle'][:60]}  YES={s['yesPrice']:.2f}  EV={ev_pct:+}¢  slippage={slip_pct:+}¢  ${s.get('allocation',0):.2f}")
+    if exit_sigs:
+        lines.append(f"\n🚨 *{len(exit_sigs)} exit signal(s)*")
+        for e in exit_sigs[:5]:
+            lines.append(f"  ↓{e['reductionPct']}% {e['marketTitle'][:55]}  (wallet P&L ${e['walletPnl']:+.0f})")
+    if not lines:
+        return
+    payload = {"text": "\n".join(lines)}
+    try:
+        requests.post(WEBHOOK_URL, json=payload, timeout=10)
+        print(f"  Webhook sent ({len(all_sigs)} signals, {len(exit_sigs)} exits)")
+    except Exception as e:
+        print(f"  [warn] Webhook failed: {e}")
+
+
 # ── Main ───────────────────────────────────────────────────────
 def main():
     print("=" * 60)
     print(f"  War Data Generator — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("=" * 60)
+
+    # Load previous run's data for exit-signal detection and signal-age tracking
+    prev_data = {}
+    try:
+        with open("data/war_data.json") as f:
+            prev_data = json.load(f)
+        print("  Loaded previous data for exit/age tracking")
+    except Exception:
+        pass
 
     markets = find_war_markets()
     # Guard: only proceed if we found at least one genuine war market
@@ -484,19 +582,35 @@ def main():
     print("Enriching latest bets…")
     enrich_latest_bets(all_rows, open_enriched)
 
-    mp_signals  = allocate(build_signals(mp,    open_enriched, "multi_period"))
-    t50_signals = allocate(build_signals(top50, open_enriched, "top50"))
+    prev_all_sigs = prev_data.get("mp_signals", []) + prev_data.get("t50_signals", [])
+    mp_signals  = apply_signal_age(allocate(build_signals(mp,    open_enriched, "multi_period")), prev_all_sigs)
+    t50_signals = apply_signal_age(allocate(build_signals(top50, open_enriched, "top50")),        prev_all_sigs)
     print(f"  {len(mp_signals)} multi-period signals  |  {len(t50_signals)} top-50 signals")
 
+    # Exit signals: compare current open positions to previous run
+    prev_cache   = prev_data.get("positions_cache", {})
+    exit_signals = detect_exit_signals(all_rows, open_enriched, prev_cache)
+    print(f"  {len(exit_signals)} exit signals detected")
+
+    send_webhook(mp_signals, t50_signals, exit_signals)
+
+    # Build positions cache for exit-signal detection on next run
+    positions_cache = {
+        r["address"]: {mid: pos["net_tokens"] for mid, pos in r["positions"].items()}
+        for r in all_rows[:200] if r.get("positions")
+    }
+
     data = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "markets":       format_markets(markets),
-        "open_enriched": open_enriched,
-        "wallet_rows":   [{k:v for k,v in r.items() if k!="positions"} for r in all_rows],
-        "mp_wallets":    [{k:v for k,v in r.items() if k!="positions"} for r in mp],
-        "top50":         [{k:v for k,v in r.items() if k!="positions"} for r in top50],
-        "mp_signals":    mp_signals,
-        "t50_signals":   t50_signals,
+        "generated_at":    datetime.now(timezone.utc).isoformat(),
+        "markets":         format_markets(markets),
+        "open_enriched":   open_enriched,
+        "wallet_rows":     [{k:v for k,v in r.items() if k!="positions"} for r in all_rows],
+        "mp_wallets":      [{k:v for k,v in r.items() if k!="positions"} for r in mp],
+        "top50":           [{k:v for k,v in r.items() if k!="positions"} for r in top50],
+        "mp_signals":      mp_signals,
+        "t50_signals":     t50_signals,
+        "exit_signals":    exit_signals,
+        "positions_cache": positions_cache,
     }
 
     os.makedirs("data", exist_ok=True)

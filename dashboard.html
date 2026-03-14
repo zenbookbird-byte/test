@@ -473,6 +473,24 @@
   .no-wins { color: var(--muted); font-style: italic; font-size: 11px; }
   .wins-badge { color: var(--green); font-weight: 700; cursor: pointer; }
 
+  /* ── Exit signals ── */
+  .exit-card {
+    background: var(--surface);
+    border: 1px solid rgba(239,68,68,.4);
+    border-left: 3px solid var(--red);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .exit-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(239,68,68,.15); color: var(--red);
+    border: 1px solid rgba(239,68,68,.3);
+    padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+  }
+  .exit-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .exit-reduction { font-size: 22px; font-weight: 800; color: var(--red); }
+  .exit-stats { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+
   /* ── Iran War Top Traders ── */
   .bet-chips { display: flex; flex-wrap: wrap; gap: 4px; }
   .bet-chip {
@@ -540,6 +558,11 @@
       <div class="stat-label">Copy Signals</div>
       <div class="stat-value" id="stat-signals">—</div>
       <div class="stat-sub">positive EV only</div>
+    </div>
+    <div class="stat-card" id="stat-exits-card" style="display:none">
+      <div class="stat-label">Exit Signals</div>
+      <div class="stat-value" id="stat-exits" style="color:var(--red)">—</div>
+      <div class="stat-sub">smart money selling</div>
     </div>
 
     <div class="filter-group">
@@ -734,6 +757,19 @@
       </div>
     </section>
 
+    <!-- ── Exit Signals ── -->
+    <section class="section" id="exit-section" style="display:none">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="icon">🚨</span>
+          Exit Signals — Smart Money Selling
+          <span class="section-count" id="exit-count"></span>
+        </div>
+        <span style="font-size:11px;color:var(--muted)">Tracked wallets reduced or closed a position ≥50% since last update</span>
+      </div>
+      <div class="signal-cards" id="exit-cards"></div>
+    </section>
+
   </main>
 </div>
 
@@ -792,6 +828,7 @@ let top50       = []
 let openEnriched= []
 let mpSignals   = []
 let t50Signals  = []
+let exitSignals = []
 let marketView  = 'open'
 let refreshTimer= REFRESH_SECS
 let refreshInterval, clockInterval, timerInterval
@@ -1247,9 +1284,14 @@ function renderBetNow(markets) {
   }).join('')
 }
 
-function closedWinsHtml(cps, rowId) {
-  if (!cps || !cps.length) return '<span class="no-wins">—</span>'
-  return `<span class="wins-badge" onclick="toggleDetail('${rowId}');event.stopPropagation()">🏆 ${cps.length}</span>`
+function closedWinsHtml(cps, rowId, maxLoss) {
+  const winBadge = (cps && cps.length)
+    ? `<span class="wins-badge" onclick="toggleDetail('${rowId}');event.stopPropagation()">🏆 ${cps.length}</span>`
+    : '<span class="no-wins">—</span>'
+  const lossBadge = maxLoss && maxLoss < -5
+    ? ` <span style="color:var(--red);font-size:11px" title="Worst closed-position loss">${maxLoss.toFixed(0)}%</span>`
+    : ''
+  return winBadge + lossBadge
 }
 
 function closedWinsDetail(cps, colspan) {
@@ -1343,6 +1385,7 @@ function renderMultiPeriodTable(rows) {
     const febPnl = pp.feb_2026 !== undefined ? pnlHtml(pp.feb_2026) : '<span style="color:var(--muted)">—</span>'
     const junPnl = pp.jun_2025 !== undefined ? pnlHtml(pp.jun_2025) : '<span style="color:var(--muted)">—</span>'
     const cps    = r.closed_positions_80 || []
+    const maxLoss = r.max_loss_pct ?? 0
     const detId  = `detail-mp-${i}`
     return `<tr class="wallet-row" onclick="toggleDetail('${detId}')">
       <td>${star}</td>
@@ -1356,7 +1399,7 @@ function renderMultiPeriodTable(rows) {
       <td>${febPnl}</td>
       <td>${junPnl}</td>
       <td style="color:var(--muted)">${r.lastAgo ?? r.last_ago}d ago</td>
-      <td>${closedWinsHtml(cps, detId)}</td>
+      <td>${closedWinsHtml(cps, detId, maxLoss)}</td>
     </tr>
     <tr class="detail-row" id="${detId}">${closedWinsDetail(cps, 12)}</tr>`
   }).join('')
@@ -1381,6 +1424,7 @@ function renderTop50Table(rows) {
     const flags   = r.periodFlags || r.period_flags
     const roi = grossIn > 0 ? (netPnl/grossIn*100).toFixed(1) : 0
     const cps = r.closed_positions_80 || []
+    const maxLoss = r.max_loss_pct ?? 0
     const detId = `detail-t50-${i}`
     return `<tr class="wallet-row" onclick="toggleDetail('${detId}')">
       <td style="color:var(--muted)">${i+1}</td>
@@ -1391,7 +1435,7 @@ function renderTop50Table(rows) {
       <td><span class="pnl-pos">+${roi}%</span></td>
       <td><div class="period-badges">${periodBadges(flags)}</div></td>
       <td style="color:var(--muted)">${lastAgo}d ago</td>
-      <td>${closedWinsHtml(cps, detId)}</td>
+      <td>${closedWinsHtml(cps, detId, maxLoss)}</td>
     </tr>
     <tr class="detail-row" id="${detId}">${closedWinsDetail(cps, 9)}</tr>`
   }).join('')
@@ -1417,6 +1461,7 @@ function renderWinRateTable(rows) {
     const actD    = r.activeDays ?? r.active_days ?? 0
     const flags   = r.periodFlags || r.period_flags
     const cps     = r.closed_positions_80 || []
+    const maxLoss = r.max_loss_pct ?? 0
     const detId   = `detail-wr-${i}`
     return `<tr class="wallet-row" onclick="toggleDetail('${detId}')">
       <td style="color:var(--muted)">${i+1}</td>
@@ -1428,7 +1473,7 @@ function renderWinRateTable(rows) {
       <td style="color:var(--muted)">${tpd}</td>
       <td style="color:var(--muted)">${actD}d</td>
       <td><div class="period-badges">${periodBadges(flags)}</div></td>
-      <td>${closedWinsHtml(cps, detId)}</td>
+      <td>${closedWinsHtml(cps, detId, maxLoss)}</td>
     </tr>
     <tr class="detail-row" id="${detId}">${closedWinsDetail(cps, 10)}</tr>`
   }).join('')
@@ -1537,6 +1582,22 @@ function renderSignals(mpSigs, t50Sigs) {
           <div class="sig-stat-value">$${s.avgEntryPrice.toFixed(4)}</div>
         </div>
         <div class="sig-stat">
+          <div class="sig-stat-label">EV w/ 2% slippage</div>
+          ${(() => {
+            const slip = s.evSlippage !== undefined ? s.evSlippage : (COPY_SUCCESS_RATE*(1-s.yesPrice*1.02)-(1-COPY_SUCCESS_RATE)*s.yesPrice*1.02)
+            const col  = slip > 0 ? 'var(--green)' : 'var(--red)'
+            return `<div class="sig-stat-value" style="color:${col}">${(slip*100).toFixed(1)}¢</div>`
+          })()}
+        </div>
+        <div class="sig-stat">
+          <div class="sig-stat-label">Signal age</div>
+          <div class="sig-stat-value" style="color:var(--muted)">${
+            s.ageHours !== undefined
+              ? (s.ageHours < 1 ? '<span style="color:var(--green)">NEW</span>' : s.ageHours.toFixed(1) + 'h')
+              : '—'
+          }</div>
+        </div>
+        <div class="sig-stat">
           <div class="sig-stat-label">Market volume</div>
           <div class="sig-stat-value">$${s.volume >= 1e6 ? (s.volume/1e6).toFixed(1)+'M' : (s.volume/1000).toFixed(0)+'K'}</div>
         </div>
@@ -1563,7 +1624,74 @@ function renderSignals(mpSigs, t50Sigs) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  7b. RENDER IRAN WAR TOP TRADERS
+//  7b. RENDER EXIT SIGNALS
+// ═══════════════════════════════════════════════════════════════
+function renderExitSignals(exits) {
+  const section  = document.getElementById('exit-section')
+  const cards    = document.getElementById('exit-cards')
+  const countEl  = document.getElementById('exit-count')
+  const statEl   = document.getElementById('stat-exits')
+  const statCard = document.getElementById('stat-exits-card')
+
+  if (!exits || !exits.length) {
+    section.style.display = 'none'
+    statCard.style.display = 'none'
+    return
+  }
+
+  section.style.display = ''
+  statCard.style.display = ''
+  countEl.textContent  = `${exits.length} signal${exits.length > 1 ? 's' : ''}`
+  statEl.textContent   = exits.length
+
+  cards.innerHTML = exits.map(e => {
+    const slug   = e.marketSlug || ''
+    const mktUrl = slug ? `https://polymarket.com/event/${slug}` : `https://polymarket.com/markets`
+    const fullyClosed = e.currTokens < 0.1
+    const badge  = fullyClosed
+      ? '<span class="exit-badge">🚨 FULLY CLOSED</span>'
+      : `<span class="exit-badge">🚨 SELL SIGNAL −${e.reductionPct}%</span>`
+    return `<div class="exit-card">
+      <div class="exit-header">
+        <div>
+          <div style="margin-bottom:6px">${badge}</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.4">
+            <a href="${mktUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${e.marketTitle}</a>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="exit-reduction">−${e.reductionPct}%</div>
+          <div style="font-size:11px;color:var(--muted)">${fullyClosed ? 'fully exited' : 'position reduced'}</div>
+        </div>
+      </div>
+      <div class="exit-stats">
+        <div class="sig-stat">
+          <div class="sig-stat-label">Wallet</div>
+          <div class="sig-stat-value">${addrHtml(e.address)}</div>
+        </div>
+        <div class="sig-stat">
+          <div class="sig-stat-label">Tokens before → now</div>
+          <div class="sig-stat-value" style="color:var(--red)">${e.prevTokens} → ${e.currTokens}</div>
+        </div>
+        <div class="sig-stat">
+          <div class="sig-stat-label">Wallet P&L</div>
+          <div class="sig-stat-value">${pnlHtml(e.walletPnl)}</div>
+        </div>
+        <div class="sig-stat">
+          <div class="sig-stat-label">Win Rate</div>
+          <div class="sig-stat-value">${winBar(e.walletWinRate)}</div>
+        </div>
+        <div class="sig-stat">
+          <div class="sig-stat-label">Period Score</div>
+          <div class="sig-stat-value">${e.periodScore}/3</div>
+        </div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  7c. RENDER IRAN WAR TOP TRADERS
 // ═══════════════════════════════════════════════════════════════
 
 function latestBetsChips(bets) {
@@ -1714,6 +1842,9 @@ function loadFromStatic(d) {
 
   renderSignals(mpSignals, t50Signals)
 
+  exitSignals = d.exit_signals || []
+  renderExitSignals(exitSignals)
+
   openEnriched = d.open_enriched || []
 
   const ago = d.generated_at && d.generated_at !== 'pending'
@@ -1804,6 +1935,7 @@ async function loadAll() {
     mpSignals  = allocateBudget(buildSignals(mpWallets, openEnriched, 'multi_period'))
     t50Signals = allocateBudget(buildSignals(top50,     openEnriched, 'top50'))
     renderSignals(mpSignals, t50Signals)
+    renderExitSignals([])  // exit signals only available from static JSON
     setStatus('live', `Live data · ${new Date().toLocaleTimeString()}`)
 
   } catch(err) {
