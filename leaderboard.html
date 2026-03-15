@@ -50,13 +50,14 @@
     padding:60px 5vw 40px;
     background:linear-gradient(135deg, rgba(0,245,255,.04) 0%, transparent 60%);
     border-bottom:1px solid var(--border);
+    text-align: center;
   }
   .page-header-inner { max-width:1200px; margin:0 auto; }
   .page-label { font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
   .page-title { font-size:clamp(1.8rem,4vw,2.8rem); font-weight:900; letter-spacing:-1px; margin-bottom:12px; }
-  .page-sub { font-size:0.95rem; color:var(--muted); max-width:560px; line-height:1.7; }
-  .header-stats { display:flex; gap:40px; margin-top:28px; flex-wrap:wrap; }
-  .hstat { }
+  .page-sub { font-size:0.95rem; color:var(--muted); max-width:560px; line-height:1.7; margin:0 auto; }
+  .header-stats { display:flex; gap:40px; margin-top:28px; flex-wrap:wrap; justify-content:center; }
+  .hstat { text-align:center; }
   .hstat-val { font-size:1.6rem; font-weight:900; letter-spacing:-0.5px; }
   .hstat-val.green { color:var(--green); }
   .hstat-val.accent { color:var(--accent); }
@@ -204,20 +205,74 @@
   /* update flash */
   @keyframes flashGreen { 0%,100%{background:transparent} 50%{background:rgba(0,255,136,.08)} }
   .flash { animation:flashGreen .6s ease; }
+
+  /* ── MEMBERS GATE ── */
+  #lb-gate {
+    position:fixed; inset:0; z-index:200;
+    background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+  }
+  #lb-gate.hidden { display:none; }
+  .gate-box {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:24px; padding:48px 40px; width:min(440px,92vw);
+    text-align:center; box-shadow:0 0 80px rgba(0,245,255,.08);
+  }
+  .gate-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(255,45,126,.1); border:1px solid rgba(255,45,126,.2);
+    color:var(--pink); border-radius:50px; padding:4px 14px;
+    font-size:0.72rem; font-weight:700; letter-spacing:0.5px; margin-bottom:20px;
+  }
+  .gate-logo { font-size:1.4rem; font-weight:900; letter-spacing:-0.5px;
+    background:linear-gradient(90deg,var(--accent),var(--pink));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    margin-bottom:6px; }
+  .gate-sub { color:var(--muted); font-size:0.88rem; margin-bottom:28px; line-height:1.6; }
+  .gate-label { font-size:0.72rem; font-weight:700; color:var(--muted); text-align:left;
+    margin-bottom:5px; letter-spacing:0.5px; text-transform:uppercase; }
+  .gate-input { width:100%; background:var(--bg); border:1px solid var(--border);
+    border-radius:10px; padding:12px 15px; color:var(--text); font-size:0.93rem;
+    margin-bottom:14px; transition:border-color .15s; }
+  .gate-input:focus { outline:none; border-color:var(--accent); }
+  .gate-btn { width:100%; background:linear-gradient(135deg,var(--pink),var(--purple));
+    color:#fff; border:none; padding:14px; border-radius:10px;
+    font-size:0.95rem; font-weight:800; cursor:pointer;
+    box-shadow:0 0 30px rgba(255,45,126,.3); transition:transform .15s; }
+  .gate-btn:hover { transform:translateY(-1px); }
+  .gate-error { color:#ef4444; font-size:0.8rem; margin-top:10px; display:none; }
+  .gate-hint { color:var(--muted); font-size:0.75rem; margin-top:14px; }
+  .gate-hint a { color:var(--accent); text-decoration:none; }
 </style>
 </head>
 <body>
 
+<!-- MEMBERS GATE -->
+<div id="lb-gate">
+  <div class="gate-box">
+    <div class="gate-badge">🔒 Members only</div>
+    <div class="gate-logo">CopyTrade Pro</div>
+    <p class="gate-sub">The wallet leaderboard is available to all paying students. Enter your access code from your purchase email.</p>
+    <div class="gate-label">Email</div>
+    <input class="gate-input" id="gate-email" type="email" placeholder="you@email.com">
+    <div class="gate-label">Access Code</div>
+    <input class="gate-input" id="gate-code" type="text" placeholder="CTPRO-XXXX-XXXX">
+    <button class="gate-btn" onclick="tryGateLogin()">View Leaderboard →</button>
+    <div class="gate-error" id="gate-error">Wrong code — check your purchase email.</div>
+    <p class="gate-hint">Not a student yet? <a href="course.html#pricing">Buy the course →</a></p>
+    <p class="gate-hint" style="margin-top:6px;font-size:0.68rem;">Demo: any email + code <strong>DEMO</strong></p>
+  </div>
+</div>
+
+<div id="lb-app" style="display:none;">
 <nav>
   <a href="course.html" class="logo">CopyTrade Pro</a>
   <div class="nav-links">
     <a href="course.html">Home</a>
     <a href="leaderboard.html" class="active">Leaderboard</a>
-    <a href="blog.html">Blog</a>
-    <a href="community.html">Community</a>
     <a href="members.html">My Course</a>
   </div>
-  <a href="course.html#pricing" class="nav-cta">Get Access →</a>
+  <a href="members.html" class="nav-cta">Members Area →</a>
 </nav>
 
 <!-- HEADER -->
@@ -357,7 +412,7 @@ function filtered() {
     return true;
   }).sort((a,b) => {
     const av = a[sortKey], bv = b[sortKey];
-    return sortDir * (av < bv ? 1 : av > bv ? -1 : 0);
+    return sortDir * (av > bv ? 1 : av < bv ? -1 : 0);
   });
 }
 
@@ -534,8 +589,38 @@ function liveUpdate() {
   if (el) el.textContent = (parseInt(el.textContent.replace(',','')) + Math.floor(Math.random()*3+1)).toLocaleString();
 }
 
-render();
-setInterval(liveUpdate, 2800);
+/* ── GATE LOGIN ── */
+const VALID_PREFIXES = ['DEMO','STARTER','PRO','PRIVATE'];
+
+function tryGateLogin() {
+  const email = document.getElementById('gate-email').value.trim();
+  const code  = document.getElementById('gate-code').value.trim().toUpperCase();
+  const err   = document.getElementById('gate-error');
+  const prefix = code.split('-')[0];
+  if (!email || !code) { err.style.display='block'; err.textContent='Enter your email and access code.'; return; }
+  if (!VALID_PREFIXES.includes(prefix)) { err.style.display='block'; err.textContent='Wrong code — check your purchase email.'; return; }
+  err.style.display = 'none';
+  localStorage.setItem('ctp_lb_auth', '1');
+  document.getElementById('lb-gate').classList.add('hidden');
+  document.getElementById('lb-app').style.display = '';
+  render();
+  setInterval(liveUpdate, 2800);
+}
+
+// auto-unlock if already authenticated
+if (localStorage.getItem('ctp_lb_auth')) {
+  document.getElementById('lb-gate').classList.add('hidden');
+  document.getElementById('lb-app').style.display = '';
+  render();
+  setInterval(liveUpdate, 2800);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('gate-code').addEventListener('keydown', e => { if (e.key==='Enter') tryGateLogin(); });
+  document.getElementById('gate-email').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('gate-code').focus(); });
+});
 </script>
+
+</div><!-- /#lb-app -->
 </body>
 </html>

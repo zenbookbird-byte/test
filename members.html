@@ -294,6 +294,74 @@
   .resource-name { font-size: 0.88rem; font-weight: 600; }
   .resource-type { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
   .resource-dl   { margin-left: auto; font-size: 0.75rem; color: var(--accent); }
+
+  /* sidebar section dividers */
+  .sidebar-section-divider {
+    margin: 8px 0 0; padding: 18px 24px 4px;
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: rgba(255,255,255,.15);
+    border-top: 1px solid var(--border);
+  }
+
+  /* update post styles (inside members) */
+  .update-tag { display:inline-block; font-size:0.68rem; font-weight:700;
+    letter-spacing:1.5px; text-transform:uppercase; border-radius:4px;
+    padding:2px 9px; margin-bottom:14px; }
+  .utag-analysis { background:rgba(255,45,126,.12); color:var(--pink); }
+  .utag-strategy { background:rgba(0,245,255,.10);  color:var(--accent); }
+  .utag-results  { background:rgba(0,255,136,.10);  color:var(--green); }
+  .utag-update   { background:rgba(255,214,10,.10); color:var(--yellow); }
+  .update-title  { font-size:clamp(1.3rem,3vw,1.9rem); font-weight:900; letter-spacing:-.5px; margin-bottom:12px; line-height:1.15; }
+  .update-meta   { font-size:0.78rem; color:var(--muted); margin-bottom:28px;
+    padding-bottom:18px; border-bottom:1px solid var(--border);
+    display:flex; gap:18px; flex-wrap:wrap; }
+  .update-body   { line-height:1.9; }
+  .update-body h2 { font-size:1.15rem; font-weight:800; margin:32px 0 10px; letter-spacing:-.3px; }
+  .update-body h3 { font-size:0.95rem; font-weight:700; margin:22px 0 7px; color:var(--accent); }
+  .update-body p  { color:#c9d1d9; margin-bottom:15px; font-size:0.93rem; }
+  .update-body p strong { color:var(--text); }
+  .update-body ul { margin:10px 0 18px 20px; }
+  .update-body ul li { color:#c9d1d9; margin-bottom:7px; font-size:0.91rem; line-height:1.65; }
+  .update-body ul li::marker { color:var(--accent); }
+  .update-stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:20px 0; }
+  @media(max-width:480px){ .update-stat-row { grid-template-columns:1fr 1fr; } }
+  .update-stat-box { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px; text-align:center; }
+  .update-stat-val { font-size:1.35rem; font-weight:900; }
+  .update-callout { background:var(--card); border-left:3px solid var(--accent);
+    border-radius:0 10px 10px 0; padding:14px 16px; margin:18px 0;
+    font-size:0.88rem; color:#c9d1d9; line-height:1.7; }
+  .update-callout.pink  { border-left-color:var(--pink); }
+  .update-callout.green { border-left-color:var(--green); }
+  .update-callout strong { color:var(--text); }
+  .market-pill { display:inline-block; background:rgba(0,245,255,.08);
+    border:1px solid rgba(0,245,255,.15); color:var(--accent);
+    border-radius:5px; padding:2px 9px; font-size:0.78rem; margin:2px; }
+
+  /* community section */
+  .community-platform {
+    border-radius:18px; overflow:hidden;
+    border:1px solid var(--border); margin-bottom:18px;
+  }
+  .community-platform.discord { border-color:rgba(88,101,242,.3); box-shadow:0 0 40px rgba(88,101,242,.06); }
+  .community-platform.telegram { border-color:rgba(38,165,228,.25); box-shadow:0 0 40px rgba(38,165,228,.05); }
+  .cp-header { padding:24px 24px 18px; display:flex; align-items:center; gap:16px; }
+  .cp-icon { width:52px; height:52px; border-radius:14px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:1.5rem; }
+  .cp-icon-discord { background:rgba(88,101,242,.18); }
+  .cp-icon-tg      { background:rgba(38,165,228,.14); }
+  .cp-name    { font-size:1.1rem; font-weight:800; }
+  .cp-handle  { font-size:0.78rem; color:var(--muted); margin-top:2px; }
+  .cp-members { font-size:0.8rem; font-weight:700; margin-top:5px; }
+  .cp-features { padding:0 24px 18px; }
+  .cp-feat { display:flex; gap:9px; margin-bottom:9px; font-size:0.84rem; color:var(--muted); }
+  .cp-feat strong { color:var(--text); }
+  .cp-cta { display:block; margin:0 24px 24px; text-align:center; text-decoration:none;
+    color:#fff; padding:13px; border-radius:11px; font-weight:800; font-size:0.92rem;
+    transition:filter .15s, transform .15s; }
+  .cp-cta:hover { filter:brightness(1.15); transform:translateY(-1px); }
+  .cp-cta-discord { background:#5865f2; }
+  .cp-cta-tg      { background:#26a5e4; }
+  .cp-invite-note { font-size:0.72rem; color:var(--muted); text-align:center; margin-bottom:20px; }
 </style>
 </head>
 <body>
@@ -759,6 +827,227 @@ const MODULES = [
 const ALL_LESSONS = MODULES.flatMap(m => m.lessons.map(l => ({ ...l, modNum: m.num, modTitle: m.title })));
 const TOTAL = ALL_LESSONS.length;
 
+/* ════════════════════════════════════════════
+   UPDATES (replaces public blog)
+════════════════════════════════════════════ */
+const UPDATE_POSTS = [
+  {
+    id: 'u-1', title: 'War markets in March: what the top wallets are buying',
+    date: 'Mar 9, 2026', tag: 'utag-analysis', tagLabel: '📊 Market Analysis',
+    body: `
+<h2>The data</h2>
+<p>I pulled every trade by the 60 tracked wallets over the last 30 days — 1,247 total transactions across 84 open markets.</p>
+<div class="update-stat-row">
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--green)">+$18,240</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Top 60 wallets combined (30d)</div></div>
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--accent)">77%</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Avg win rate across group</div></div>
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--yellow)">4</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">High-conviction clusters</div></div>
+</div>
+<h2>Trend 1: Ukraine ceasefire markets are getting crowded</h2>
+<p>31 out of 60 tracked wallets have positions in at least one ceasefire market — unusually high concentration. YES prices on short-dated ceasefires (before April 30) trading around 28–34 cents. The smart money thinks there's meaningfully more than a 34% chance.</p>
+<div class="update-callout">
+  <strong>Bot setting suggestion:</strong> Lower MIN_COPY_WALLETS to 2 for ceasefire markets specifically. Signal quality is high enough here.
+</div>
+<h2>Trend 2: Russia-NATO escalation markets avoided</h2>
+<p>Only 3 wallets have touched direct Russia-NATO conflict markets. Smart money doesn't think they price the risk correctly. Avoid or stay conservative.</p>
+<h2>Trend 3: Fed rate decision markets outperforming</h2>
+<p>Best performers this month. Consistent pattern: top wallets buy YES on "Fed cuts rates in [month]" at 40–55 cents 2–3 weeks before the decision, then the price runs to 70–80 cents. 7/8 win rate, avg +89% ROI on these.</p>
+<h2>What I'm running this week</h2>
+<ul>
+  <li>War mode + BTC mode, two separate instances</li>
+  <li>$300 on war, $150 on BTC</li>
+  <li>MIN_COPY_WALLETS: 2 for ceasefire markets, 3 for everything else</li>
+  <li>MAX_YES_PRICE: lowered to 0.80</li>
+</ul>
+<div class="update-callout green">
+  <strong>Hot markets right now:</strong>
+  <br><span class="market-pill">Ukraine ceasefire before Apr 30?</span>
+  <span class="market-pill">Fed rate cut in May?</span>
+  <span class="market-pill">BTC $90k by Apr 30?</span>
+  <span class="market-pill">Russia peace talks resume in Q2?</span>
+</div>`,
+  },
+  {
+    id: 'u-2', title: 'When to override the bot — 5 situations where I trade manually',
+    date: 'Mar 2, 2026', tag: 'utag-strategy', tagLabel: '🧠 Strategy',
+    body: `
+<h2>The bot is a tool, not a brain</h2>
+<p>There are specific situations where I pause it and trade manually. Here are the five I've learned the hard way.</p>
+<h2>1. When a major event breaks in real time</h2>
+<p>By the time 3 wallets buy and the bot fires, the price has moved 15–20 cents. Type /pause immediately when major geopolitical news breaks. Re-evaluate after 30–60 minutes.</p>
+<h2>2. When one wallet triggers 3+ signals in succession</h2>
+<p>Highly correlated risk — you're making one big bet dressed as several small ones. Skip those clusters.</p>
+<h2>3. Market resolution within 48 hours</h2>
+<p>Never enter a market resolving in under 2 days unless the price is below 15 cents.</p>
+<h2>4. Three losses in a row</h2>
+<p>Raise MIN_COPY_WALLETS from 3 to 4 temporarily, or pause for 24 hours. Don't overtrade after a losing streak.</p>
+<h2>5. Market has under $10k liquidity</h2>
+<p>Your $15 buy can move price 8 cents on a thin book. Check Polymarket.com before large positions in low-volume markets.</p>`,
+  },
+  {
+    id: 'u-3', title: "Marcus's $500 → $981 in 30 days: full breakdown",
+    date: 'Feb 24, 2026', tag: 'utag-results', tagLabel: '💰 Student Results',
+    body: `
+<div class="update-stat-row">
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--text)">$500</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Starting budget</div></div>
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--green)">$981</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Ending balance</div></div>
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--yellow)">+96%</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Return in 30 days</div></div>
+</div>
+<h2>What worked</h2>
+<p>61 wins out of 74 trades (82% win rate). Every winning trade was on a market where at least 4 wallets agreed. His 3 losses all came from 3-wallet signals during high geopolitical uncertainty.</p>
+<h3>Best trade</h3>
+<p>"Ukraine ceasefire before Mar 31?" — YES at $0.28, exited at $0.74 after a diplomatic development. +$33.40 on $15 position. +223% in 11 days.</p>
+<h3>Worst trade</h3>
+<p>"Fed rate cut in February?" — YES at $0.61, Fed surprised with a hold. Exited at $0.22. -$11.80. Fixed by adjusting STOP_LOSS from -40% to -35%.</p>
+<h2>What he's changing for month 2</h2>
+<ul>
+  <li>Raising MIN_COPY_WALLETS from 3 to 4</li>
+  <li>Manual check on any market resolving within 7 days</li>
+  <li>Running BTC mode with $100 of profits</li>
+  <li>Reinvesting 50%, withdrawing 50%</li>
+</ul>
+<div class="update-callout green">
+  <strong>Key takeaway:</strong> Ran paper mode first, didn't touch Kelly sizing, let the bot work. Only mistake: stop loss too wide early on.
+</div>`,
+  },
+  {
+    id: 'u-4', title: 'Bot v1.4 released — Telegram control, Kelly improvements',
+    date: 'Feb 18, 2026', tag: 'utag-update', tagLabel: '🔧 Bot Update',
+    body: `
+<h2>What's new in v1.4</h2>
+<h3>1. Telegram bot integration</h3>
+<p>Two new files: <code style="background:rgba(0,245,255,.08);padding:1px 7px;border-radius:4px;color:var(--accent)">notifier.py</code> and <code style="background:rgba(0,245,255,.08);padding:1px 7px;border-radius:4px;color:var(--accent)">telegram_bot.py</code>. Real-time alerts for every signal, buy, and close. Commands: /status /pnl /positions /trades /pause /resume. Zero extra dependencies.</p>
+<h3>2. Fractional Kelly now configurable</h3>
+<p>Set <code style="background:rgba(0,245,255,.08);padding:1px 7px;border-radius:4px;color:var(--accent)">KELLY_FRACTION=0.25</code> in your .env. Range 0.15 (conservative) to 0.40 (aggressive). Default stays 0.25.</p>
+<h3>3. Thin market protection</h3>
+<p>Added minimum $500 liquidity check before entering. Fixes the issue where thin order books moved significantly on entry.</p>
+<div class="update-callout">
+  <strong>How to update:</strong> Pull the latest files from your members area. Replace copy_trader.py and add the two new Telegram files. No .env changes needed unless you want Telegram.
+</div>`,
+  },
+  {
+    id: 'u-5', title: 'BTC prediction markets: how they behave around news events',
+    date: 'Feb 11, 2026', tag: 'utag-analysis', tagLabel: '📊 Market Analysis',
+    body: `
+<h2>The key finding: post-event windows are gold</h2>
+<p>Best signals come 24–72 hours after a major macro event (Fed decision, CPI print, major ETF news). Not before — the top wallets don't front-run better than the market. But after the initial reaction settles, they position correctly consistently.</p>
+<div class="update-stat-row">
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--green)">84%</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Win rate: post-event signals</div></div>
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--yellow)">61%</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Win rate: pre-event signals</div></div>
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--accent)">+$127</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Avg P&L per post-event signal</div></div>
+</div>
+<p>No code change needed. Just be aware that signals in the 72h after a macro event are historically your highest-quality entries.</p>
+<div class="update-callout pink">
+  <strong>The counterpoint:</strong> The 24h before a Fed decision is the worst time to enter BTC markets. Pause or use reduced settings going into big macro events.
+</div>`,
+  },
+  {
+    id: 'u-6', title: "What to do during a drawdown — my actual playbook",
+    date: 'Feb 4, 2026', tag: 'utag-strategy', tagLabel: '🧠 Strategy',
+    body: `
+<h2>It will happen</h2>
+<p>Run this bot long enough and you'll have a week with 3–5 losses in a row. That's variance, not a broken strategy. Kelly sizing keeps losses small. How you respond matters more than the losses themselves.</p>
+<h2>My playbook after a bad run</h2>
+<ol style="margin-left:18px;line-height:2.2;color:#c9d1d9;font-size:0.91rem;">
+  <li>After 3 consecutive losses: type /pause and step away for 24 hours</li>
+  <li>Read the logs — were these all 3-wallet signals or 4+?</li>
+  <li>If all 3-wallet: raise MIN_COPY_WALLETS to 4 temporarily</li>
+  <li>Check if the wallet list needs refreshing with a new scoring run</li>
+  <li>Resume with the same Kelly fraction — do not change it</li>
+</ol>
+<div class="update-callout green">
+  <strong>The most important rule:</strong> Never change your Kelly fraction during a drawdown. You're not thinking clearly, and reducing it locks in a smaller size at the exact moment the bot is about to mean-revert back to winners.
+</div>
+<p>With 75% win rate and half-Kelly, you need a 7-loss streak to halve your account. The probability is less than 0.01%. Trust the math.</p>`,
+  },
+  {
+    id: 'u-7', title: 'February community results — top 5 students',
+    date: 'Mar 1, 2026', tag: 'utag-results', tagLabel: '💰 Student Results',
+    body: `
+<div class="update-stat-row">
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--green)">73%</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Students profitable in Feb</div></div>
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--yellow)">5</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Students over $1k profit</div></div>
+  <div class="update-stat-box"><div class="update-stat-val" style="color:var(--accent)">$4,200</div><div style="font-size:.7rem;color:var(--muted);margin-top:4px">Top student profit</div></div>
+</div>
+<h3>1. Alex M. — +$4,200 on $2k (+210%)</h3>
+<p>War + BTC mode simultaneously. His big win: "BTC $85k before Feb 28?" — entered 0.44, exited 0.89. $480 position, +$490 profit. Held 19 days.</p>
+<h3>2. Sarah K. — +$1,840 on $800 (+230%)</h3>
+<p>War mode only. Credits Telegram alerts: paused manually twice when news broke before signals fired. Both times the market moved against where wallets were positioned.</p>
+<h3>3. Marcus T. — +$981 on $500 (+96%)</h3>
+<p>Full breakdown in the previous update. Scaling to $700 in March.</p>
+<h3>4. Jake R. — +$1,120 on $600 (+187%)</h3>
+<p>New student, started Feb 1. Paused correctly after 3 losses in a row. Came back the following week with 8 wins straight.</p>
+<h3>5. Priya N. — +$680 on $400 (+170%)</h3>
+<p>Running on a VPS 24/7 in Mumbai. Caught several overnight signals that laptop users missed. Big advocate for Module 7 setup.</p>
+<div class="update-callout">
+  <strong>Common thread:</strong> Every top performer ran paper mode first, didn't change Kelly sizing, and used Telegram alerts or checked logs twice daily.
+</div>`,
+  },
+];
+
+/* ════════════════════════════════════════════
+   COMMUNITY CONTENT
+════════════════════════════════════════════ */
+const COMMUNITY_HTML = `
+  <div style="margin-bottom:28px;">
+    <div style="font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Members only</div>
+    <h1 style="font-size:clamp(1.4rem,3vw,2rem);font-weight:900;letter-spacing:-.5px;margin-bottom:10px;">Your community access</h1>
+    <p style="font-size:.9rem;color:var(--muted);line-height:1.7;max-width:540px;">Your invite links are below. Introduce yourself, share your results, ask questions. Both platforms, same community — pick the one you prefer.</p>
+  </div>
+
+  <div class="community-platform discord">
+    <div class="cp-header">
+      <div class="cp-icon cp-icon-discord">
+        <svg width="26" height="26" viewBox="0 0 71 55" fill="none"><path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527.41542c-.0924-.01691-.1847.02535-.2323.10987-.624 1.11-1.3153 2.558-1.7994 3.6962C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216c-.4842-1.1635-1.2006-2.5863-1.8275-3.6963-.0476-.08152-.1399-.12378-.2323-.10987C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978c-.0392.017-.0728.0452-.0951.0818C1.57795 18.7309-.943561 32.1443.293408 45.3914c.0056.0648.0420.1268.0924.1662C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195c.0924.0282.1903-.0056.2491-.0817 1.3657-1.865 2.5831-3.8315 3.6269-5.8995.0616-.1211.0028-.2648-.1231-.3127-1.931-.7325-3.7697-1.6256-5.5384-2.6398-.1399-.0817-.151-.2818-.0223-.3776.3722-.279.7445-.5692 1.0999-.8622.0643-.0535.1539-.0648.2295-.0310 11.6196 5.3051 24.1992 5.3051 35.6817.0001.0756-.0366.1652-.0253.2323.0282.3555.293.7277.5830 1.1027.8620.1287.0958.1199.2959-.0200.3776-1.7687 1.0339-3.6074 1.9066-5.5412 2.6362-.1259.0479-.1819.1944-.1203.3155 1.0662 2.0651 2.2836 4.0316 3.6241 5.8966.0532.0789.1539.1127.2463.0845C64.529 52.7249 70.4116 50.0174 76.4845 45.5576c.0532-.0394.0868-.0986.0924-.1634C78.1747 30.0791 74.2147 16.7757 66.1968 4.9823c-.0196-.0394-.0531-.0676-.0923-.0845ZM23.7259 37.3253c-3.4983 0-6.3808-3.2117-6.3808-7.156 0-3.9443 2.8266-7.156 6.3808-7.156 3.5821 0 6.4367 3.2399 6.3807 7.156 0 3.9443-2.8266 7.156-6.3807 7.156Zm23.5919 0c-3.4982 0-6.3807-3.2117-6.3807-7.156 0-3.9443 2.8265-7.156 6.3807-7.156 3.5822 0 6.4367 3.2399 6.3807 7.156 0 3.9443-2.8265 7.156-6.3807 7.156Z" fill="#5865F2"/></svg>
+      </div>
+      <div>
+        <div class="cp-name">Discord Server</div>
+        <div class="cp-handle">discord.gg/copytradepro</div>
+        <div class="cp-members" style="color:#5865f2">2,147 members · 183 online</div>
+      </div>
+    </div>
+    <div class="cp-features">
+      <div class="cp-feat">📊 <span><strong>#results</strong> — post P&L, log screenshots, celebrate wins</span></div>
+      <div class="cp-feat">🔔 <span><strong>#signals-live</strong> — real-time signal alerts from the tracked wallets</span></div>
+      <div class="cp-feat">🆘 <span><strong>#support</strong> — setup issues, bot errors, .env questions</span></div>
+      <div class="cp-feat">🧠 <span><strong>#wallet-analysis</strong> — deep dives into top wallet behaviour (Pro+)</span></div>
+      <div class="cp-feat">📰 <span><strong>#market-news</strong> — breaking news relevant to open positions</span></div>
+    </div>
+    <a href="#" class="cp-cta cp-cta-discord">Join Discord Server →</a>
+    <div class="cp-invite-note">Your permanent invite link — share with nobody else</div>
+  </div>
+
+  <div class="community-platform telegram">
+    <div class="cp-header">
+      <div class="cp-icon cp-icon-tg">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.038 9.589c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.901.632z" fill="#26A5E4"/></svg>
+      </div>
+      <div>
+        <div class="cp-name">Telegram Group</div>
+        <div class="cp-handle">t.me/copytradepro</div>
+        <div class="cp-members" style="color:#26a5e4">891 members · 47 online</div>
+      </div>
+    </div>
+    <div class="cp-features">
+      <div class="cp-feat">⚡ <span><strong>Faster for quick updates</strong> — daily P&L check-ins, quick questions</span></div>
+      <div class="cp-feat">🔔 <span><strong>Signal alerts</strong> — same feed as Discord</span></div>
+      <div class="cp-feat">💬 <span><strong>Direct access</strong> — I check this group daily and reply personally</span></div>
+      <div class="cp-feat">🤖 <span><strong>Your private bot</strong> is separate (set up in Module 7) — this is the group chat</span></div>
+    </div>
+    <a href="#" class="cp-cta cp-cta-tg">Join Telegram Group →</a>
+    <div class="cp-invite-note">Your permanent invite link</div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-top:4px;">
+    <div style="font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Community rules</div>
+    <div style="font-size:.84rem;color:#c9d1d9;line-height:1.9;">
+      1. Share <strong>real results</strong> — log screenshots, not just claims.<br>
+      2. No financial advice — "here's what I did", not "you should do this".<br>
+      3. No shill posts — promoting other bots/courses = immediate ban.<br>
+      4. <strong>Never share your private key</strong> in any channel or DM. Ever.
+    </div>
+  </div>
+`;
+
 /* ════════════════════════════════
    STATE
 ════════════════════════════════ */
@@ -835,15 +1124,93 @@ function buildSidebar() {
       nav.appendChild(item);
     });
   });
+
+  // ── Updates section ──────────────────────────────
+  const div1 = document.createElement('div');
+  div1.className = 'sidebar-section-divider';
+  div1.textContent = 'Updates';
+  nav.appendChild(div1);
+
+  UPDATE_POSTS.forEach(post => {
+    const item = document.createElement('div');
+    const isCurrent = post.id === currentLessonId;
+    item.className = 'lesson-nav-item' + (isCurrent ? ' active' : '');
+    const tagIcon = { 'utag-analysis':'📊', 'utag-strategy':'🧠', 'utag-results':'💰', 'utag-update':'🔧' }[post.tag] || '📝';
+    item.innerHTML = `
+      <span class="lni-check" style="font-size:.85rem">${tagIcon}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${post.title}</span>
+      <span class="lni-dur">${post.date.split(',')[0]}</span>
+    `;
+    item.onclick = () => loadLesson(post.id);
+    nav.appendChild(item);
+  });
+
+  // ── Community section ────────────────────────────
+  const div2 = document.createElement('div');
+  div2.className = 'sidebar-section-divider';
+  div2.textContent = 'Community';
+  nav.appendChild(div2);
+
+  const commItem = document.createElement('div');
+  const isCommCurrent = currentLessonId === 'community';
+  commItem.className = 'lesson-nav-item' + (isCommCurrent ? ' active' : '');
+  commItem.innerHTML = `
+    <span class="lni-check" style="font-size:.85rem">💬</span>
+    <span style="flex:1">Discord &amp; Telegram</span>
+  `;
+  commItem.onclick = () => loadLesson('community');
+  nav.appendChild(commItem);
 }
 
 /* ════════════════════════════════
    LOAD LESSON
 ════════════════════════════════ */
 function loadLesson(id) {
+  currentLessonId = id;
+
+  // ── Community page ──────────────────────────────
+  if (id === 'community') {
+    document.getElementById('topbar-bc').innerHTML = `<span>Community</span>`;
+    document.getElementById('btn-done').style.display = 'none';
+    document.getElementById('lesson-area').innerHTML = `<div style="max-width:640px;">${COMMUNITY_HTML}</div>`;
+    buildSidebar();
+    window.scrollTo(0,0);
+    return;
+  }
+
+  // ── Update post ─────────────────────────────────
+  const post = UPDATE_POSTS.find(p => p.id === id);
+  if (post) {
+    document.getElementById('topbar-bc').innerHTML = `Updates · <span>${post.title}</span>`;
+    document.getElementById('btn-done').style.display = 'none';
+    const area = document.getElementById('lesson-area');
+    const tagIcon = { 'utag-analysis':'📊', 'utag-strategy':'🧠', 'utag-results':'💰', 'utag-update':'🔧' }[post.tag] || '📝';
+    const idx = UPDATE_POSTS.findIndex(p => p.id === id);
+    const prev = UPDATE_POSTS[idx + 1];
+    const next = UPDATE_POSTS[idx - 1];
+    area.innerHTML = `
+      <span class="update-tag ${post.tag}">${tagIcon} ${post.tagLabel.replace(/^[^\s]+\s/,'')}</span>
+      <h1 class="update-title">${post.title}</h1>
+      <div class="update-meta">
+        <span>📅 ${post.date}</span>
+        <span>📖 Weekly update</span>
+      </div>
+      <div class="update-body">${post.body}</div>
+      <div class="lesson-nav-footer">
+        ${next ? `<button class="nav-foot-btn" onclick="loadLesson('${next.id}')">← ${next.title.slice(0,40)}…</button>` : '<div></div>'}
+        ${prev ? `<button class="nav-foot-btn" onclick="loadLesson('${prev.id}')">${prev.title.slice(0,40)}… →</button>` : '<div></div>'}
+      </div>
+    `;
+    buildSidebar();
+    window.scrollTo(0,0);
+    return;
+  }
+
+  // ── Regular course lesson ────────────────────────
   const lesson = ALL_LESSONS.find(l => l.id === id);
   if (!lesson) return;
-  currentLessonId = id;
+
+  document.getElementById('btn-done').style.display = '';
 
   // topbar
   document.getElementById('topbar-bc').innerHTML = `Module ${lesson.modNum} · <span>${lesson.title}</span>`;
