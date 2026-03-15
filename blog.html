@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Analysis — CopyTrade Pro</title>
+<style>
+  :root {
+    --bg:     #0a0a0f;
+    --panel:  #111118;
+    --card:   #16161f;
+    --border: #1e1e2e;
+    --accent: #00f5ff;
+    --pink:   #ff2d7e;
+    --purple: #a855f7;
+    --green:  #00ff88;
+    --yellow: #ffd60a;
+    --text:   #f0f0ff;
+    --muted:  #6b7280;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; overflow-x:hidden; }
+
+  /* NAV */
+  nav {
+    position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 5vw;
+    background:rgba(10,10,15,.92); backdrop-filter:blur(24px);
+    border-bottom:1px solid var(--border);
+  }
+  .logo { font-size:1rem; font-weight:900;
+    background:linear-gradient(90deg,var(--accent),var(--pink));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    text-decoration:none; }
+  .nav-links { display:flex; gap:24px; align-items:center; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:0.82rem; font-weight:500; transition:color .15s; }
+  .nav-links a:hover, .nav-links a.active { color:var(--text); }
+  @media(max-width:600px){ .nav-links { display:none; } }
+  .nav-cta { background:linear-gradient(135deg,var(--pink),var(--purple));
+    color:#fff; border:none; padding:8px 20px; border-radius:50px;
+    font-weight:700; font-size:0.82rem; cursor:pointer; text-decoration:none; }
+
+  /* LAYOUT */
+  .outer { max-width:1100px; margin:0 auto; padding:0 5vw; }
+
+  /* PAGE HEADER */
+  .page-header { padding:60px 5vw 48px; border-bottom:1px solid var(--border);
+    background:linear-gradient(135deg,rgba(255,45,126,.04) 0%,transparent 60%); }
+  .page-label { font-size:0.7rem; font-weight:700; letter-spacing:2px;
+    text-transform:uppercase; color:var(--pink); margin-bottom:10px; }
+  .page-title { font-size:clamp(1.8rem,4vw,2.8rem); font-weight:900; letter-spacing:-1px; margin-bottom:10px; }
+  .page-sub { font-size:0.95rem; color:var(--muted); max-width:520px; line-height:1.7; }
+
+  /* CATEGORY TABS */
+  .cat-tabs { display:flex; gap:8px; flex-wrap:wrap; margin:32px 0 40px; }
+  .cat-tab { background:var(--card); border:1px solid var(--border); color:var(--muted);
+    padding:6px 16px; border-radius:50px; font-size:0.78rem; font-weight:600;
+    cursor:pointer; transition:all .15s; }
+  .cat-tab:hover { border-color:var(--accent); color:var(--text); }
+  .cat-tab.active { background:rgba(255,45,126,.1); border-color:var(--pink); color:var(--pink); }
+
+  /* FEATURED POST */
+  .featured {
+    background:var(--card); border:1px solid var(--border); border-radius:20px;
+    overflow:hidden; margin-bottom:40px; display:grid; grid-template-columns:1.2fr 1fr;
+    cursor:pointer; transition:border-color .2s;
+  }
+  .featured:hover { border-color:var(--pink); }
+  @media(max-width:700px){ .featured { grid-template-columns:1fr; } }
+  .featured-thumb {
+    min-height:280px; position:relative; overflow:hidden;
+    background:linear-gradient(135deg, #0d0d1f 0%, #1a0d16 50%, #0d1a0d 100%);
+  }
+  .featured-thumb-bg {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:4rem; opacity:.18;
+  }
+  .featured-thumb-chart {
+    position:absolute; bottom:0; left:0; right:0; height:60%; padding:0 16px 16px;
+    display:flex; align-items:flex-end; gap:3px;
+  }
+  .chart-col { flex:1; border-radius:3px 3px 0 0; opacity:.7; }
+  .featured-thumb-overlay {
+    position:absolute; inset:0;
+    background:linear-gradient(135deg,rgba(255,45,126,.12),rgba(0,245,255,.08));
+  }
+  .featured-body { padding:32px 28px; display:flex; flex-direction:column; justify-content:space-between; }
+  .post-tag { display:inline-block; font-size:0.68rem; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; border-radius:4px; padding:2px 8px; margin-bottom:14px; }
+  .tag-analysis { background:rgba(255,45,126,.12); color:var(--pink); }
+  .tag-strategy { background:rgba(0,245,255,.1);   color:var(--accent); }
+  .tag-results  { background:rgba(0,255,136,.1);    color:var(--green); }
+  .tag-update   { background:rgba(255,214,10,.1);   color:var(--yellow); }
+  .tag-tutorial { background:rgba(168,85,247,.12);  color:var(--purple); }
+  .featured-title { font-size:1.5rem; font-weight:900; letter-spacing:-0.5px; line-height:1.2; margin-bottom:12px; }
+  .featured-excerpt { font-size:0.88rem; color:var(--muted); line-height:1.7; flex:1; margin-bottom:20px; }
+  .post-meta { display:flex; align-items:center; gap:16px; font-size:0.75rem; color:var(--muted); }
+  .post-meta-author { font-weight:700; color:var(--text); }
+
+  /* POST GRID */
+  .post-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:20px; }
+
+  /* POST CARD */
+  .post-card {
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    overflow:hidden; cursor:pointer; transition:border-color .2s, transform .2s;
+    display:flex; flex-direction:column;
+  }
+  .post-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .post-card-thumb {
+    height:160px; position:relative;
+    background:linear-gradient(135deg,#0d0d1a,#14101a);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .post-card-thumb-icon { font-size:2.5rem; opacity:.25; }
+  .post-card-thumb-bar {
+    position:absolute; bottom:0; left:0; right:0; height:50%;
+    padding:0 12px 10px; display:flex; align-items:flex-end; gap:2px;
+  }
+  .post-card-body { padding:20px; flex:1; display:flex; flex-direction:column; }
+  .post-card-title { font-size:1rem; font-weight:800; line-height:1.3; margin:8px 0 10px; }
+  .post-card-excerpt { font-size:0.82rem; color:var(--muted); line-height:1.6; flex:1; }
+  .post-card-meta { font-size:0.72rem; color:var(--muted); margin-top:16px;
+    padding-top:14px; border-top:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; }
+  .post-card-read { font-size:0.72rem; color:var(--accent); font-weight:600; }
+
+  /* FULL POST MODAL */
+  .post-modal {
+    display:none; position:fixed; inset:0; z-index:999;
+    background:rgba(0,0,0,.88); backdrop-filter:blur(16px);
+    overflow-y:auto; padding:40px 5vw 80px;
+  }
+  .post-modal.open { display:block; }
+  .post-modal-inner { max-width:720px; margin:0 auto; }
+  .modal-close {
+    position:fixed; top:20px; right:24px;
+    background:rgba(255,255,255,.08); border:1px solid var(--border);
+    color:var(--text); width:38px; height:38px; border-radius:50%;
+    font-size:1rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:background .15s; z-index:10;
+  }
+  .modal-close:hover { background:rgba(255,255,255,.16); }
+
+  /* article body */
+  .article-tag   { margin-bottom:14px; }
+  .article-title { font-size:clamp(1.5rem,3.5vw,2rem); font-weight:900; letter-spacing:-0.5px; line-height:1.15; margin-bottom:14px; }
+  .article-meta  { font-size:0.8rem; color:var(--muted); margin-bottom:36px; display:flex; gap:20px; flex-wrap:wrap; border-bottom:1px solid var(--border); padding-bottom:20px; }
+  .article-meta span { display:flex; align-items:center; gap:5px; }
+  .article-body { line-height:1.9; }
+  .article-body h2 { font-size:1.2rem; font-weight:800; margin:36px 0 12px; letter-spacing:-0.3px; }
+  .article-body h3 { font-size:1rem; font-weight:700; margin:24px 0 8px; color:var(--accent); }
+  .article-body p  { color:#c9d1d9; margin-bottom:16px; font-size:0.95rem; }
+  .article-body p strong { color:var(--text); }
+  .article-body ul { margin:12px 0 20px 20px; }
+  .article-body ul li { color:#c9d1d9; margin-bottom:8px; font-size:0.92rem; line-height:1.7; }
+  .article-body ul li::marker { color:var(--accent); }
+  .callout { background:var(--card); border-left:3px solid var(--accent);
+    border-radius:0 12px 12px 0; padding:16px 18px; margin:20px 0;
+    font-size:0.9rem; color:#c9d1d9; line-height:1.7; }
+  .callout.pink { border-left-color:var(--pink); }
+  .callout.green { border-left-color:var(--green); }
+  .callout strong { color:var(--text); }
+  .stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:24px 0; }
+  @media(max-width:480px){ .stat-row { grid-template-columns:1fr 1fr; } }
+  .stat-box { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; text-align:center; }
+  .stat-box-val { font-size:1.4rem; font-weight:900; }
+  .stat-box-label { font-size:0.7rem; color:var(--muted); margin-top:4px; }
+  .market-pill { display:inline-block; background:rgba(0,245,255,.08); border:1px solid rgba(0,245,255,.15);
+    color:var(--accent); border-radius:6px; padding:3px 10px; font-size:0.8rem; margin:2px; }
+
+  /* newsletter strip */
+  .newsletter { background:var(--card); border:1px solid var(--border); border-radius:18px;
+    padding:32px; margin-top:48px; text-align:center; }
+  .newsletter h3 { font-size:1.2rem; font-weight:900; margin-bottom:8px; }
+  .newsletter p  { color:var(--muted); font-size:0.88rem; margin-bottom:20px; }
+  .newsletter-form { display:flex; gap:10px; max-width:400px; margin:0 auto; }
+  .newsletter-input { flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text);
+    padding:11px 16px; border-radius:50px; font-size:0.88rem; }
+  .newsletter-input:focus { outline:none; border-color:var(--accent); }
+  .newsletter-btn { background:linear-gradient(135deg,var(--pink),var(--purple));
+    color:#fff; border:none; padding:11px 22px; border-radius:50px;
+    font-weight:700; font-size:0.85rem; cursor:pointer; white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="course.html" class="logo">CopyTrade Pro</a>
+  <div class="nav-links">
+    <a href="course.html">Home</a>
+    <a href="leaderboard.html">Leaderboard</a>
+    <a href="blog.html" class="active">Blog</a>
+    <a href="community.html">Community</a>
+    <a href="members.html">My Course</a>
+  </div>
+  <a href="course.html#pricing" class="nav-cta">Get Access →</a>
+</nav>
+
+<!-- HEADER -->
+<div class="page-header outer" style="max-width:100%;padding-left:5vw;padding-right:5vw;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="page-label">Weekly drops every Sunday</div>
+    <h1 class="page-title">Market Analysis & Strategy</h1>
+    <p class="page-sub">What markets are hot, which wallets are moving, and how to position the bot this week. Written by me — no AI-generated fluff.</p>
+  </div>
+</div>
+
+<div class="outer" style="padding-top:40px;padding-bottom:80px;">
+
+  <!-- CATEGORY TABS -->
+  <div class="cat-tabs">
+    <button class="cat-tab active" onclick="filterCat('all',this)">All posts</button>
+    <button class="cat-tab" onclick="filterCat('analysis',this)">📊 Market Analysis</button>
+    <button class="cat-tab" onclick="filterCat('strategy',this)">🧠 Strategy</button>
+    <button class="cat-tab" onclick="filterCat('results',this)">💰 Student Results</button>
+    <button class="cat-tab" onclick="filterCat('update',this)">🔧 Bot Updates</button>
+  </div>
+
+  <!-- FEATURED -->
+  <div class="featured" onclick="openPost('p1')" data-cat="analysis">
+    <div class="featured-thumb">
+      <div class="featured-thumb-bg">⚔️</div>
+      <div class="featured-thumb-overlay"></div>
+      <div class="featured-thumb-chart">
+        <div class="chart-col" style="height:40%;background:var(--green)"></div>
+        <div class="chart-col" style="height:70%;background:var(--green)"></div>
+        <div class="chart-col" style="height:55%;background:var(--green)"></div>
+        <div class="chart-col" style="height:85%;background:var(--green)"></div>
+        <div class="chart-col" style="height:45%;background:#ef4444"></div>
+        <div class="chart-col" style="height:92%;background:var(--green)"></div>
+        <div class="chart-col" style="height:78%;background:var(--green)"></div>
+        <div class="chart-col" style="height:65%;background:var(--green)"></div>
+        <div class="chart-col" style="height:88%;background:var(--green)"></div>
+      </div>
+    </div>
+    <div class="featured-body">
+      <div>
+        <span class="post-tag tag-analysis">📊 Market Analysis</span>
+        <div class="featured-title">War markets in March: what the top wallets are buying right now</div>
+        <p class="featured-excerpt">I pulled the last 30 days of on-chain data from the 60 tracked wallets. There are 4 clear trends emerging — here's where the smart money is positioned and what it might mean for your bot settings this week.</p>
+      </div>
+      <div class="post-meta">
+        <span class="post-meta-author">Posted by you</span>
+        <span>Mar 9, 2026</span>
+        <span>8 min read</span>
+        <span style="color:var(--pink);">Featured</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- POST GRID -->
+  <div class="post-grid" id="post-grid">
+
+    <div class="post-card" onclick="openPost('p2')" data-cat="strategy">
+      <div class="post-card-thumb">
+        <div class="post-card-thumb-icon">🧠</div>
+        <div class="post-card-thumb-bar">
+          <div class="chart-col" style="height:50%;background:var(--accent);opacity:.5"></div>
+          <div class="chart-col" style="height:80%;background:var(--accent);opacity:.5"></div>
+          <div class="chart-col" style="height:35%;background:var(--accent);opacity:.5"></div>
+          <div class="chart-col" style="height:65%;background:var(--accent);opacity:.5"></div>
+          <div class="chart-col" style="height:90%;background:var(--accent);opacity:.5"></div>
+          <div class="chart-col" style="height:55%;background:var(--accent);opacity:.5"></div>
+        </div>
+      </div>
+      <div class="post-card-body">
+        <span class="post-tag tag-strategy">🧠 Strategy</span>
+        <div class="post-card-title">When to override the bot — 5 situations where I trade manually</div>
+        <p class="post-card-excerpt">The bot is great but it's not omniscient. Here are the exact scenarios where I step in manually and why the Kelly sizing doesn't apply.</p>
+        <div class="post-card-meta">
+          <span>Mar 2, 2026 · 6 min</span>
+          <span class="post-card-read">Read →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="post-card" onclick="openPost('p3')" data-cat="results">
+      <div class="post-card-thumb">
+        <div class="post-card-thumb-icon">💰</div>
+        <div class="post-card-thumb-bar">
+          <div class="chart-col" style="height:30%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:60%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:45%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:85%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:70%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:95%;background:var(--green);opacity:.6"></div>
+        </div>
+      </div>
+      <div class="post-card-body">
+        <span class="post-tag tag-results">💰 Student Results</span>
+        <div class="post-card-title">Marcus's $500 → $981 in 30 days: a full breakdown</div>
+        <p class="post-card-excerpt">Marcus shared his full log files with me. I went through every trade and wrote up exactly what worked, what didn't, and what he's changing next month.</p>
+        <div class="post-card-meta">
+          <span>Feb 24, 2026 · 11 min</span>
+          <span class="post-card-read">Read →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="post-card" onclick="openPost('p4')" data-cat="update">
+      <div class="post-card-thumb">
+        <div class="post-card-thumb-icon">🔧</div>
+        <div class="post-card-thumb-bar">
+          <div class="chart-col" style="height:40%;background:var(--yellow);opacity:.5"></div>
+          <div class="chart-col" style="height:75%;background:var(--yellow);opacity:.5"></div>
+          <div class="chart-col" style="height:55%;background:var(--yellow);opacity:.5"></div>
+          <div class="chart-col" style="height:90%;background:var(--yellow);opacity:.5"></div>
+          <div class="chart-col" style="height:60%;background:var(--yellow);opacity:.5"></div>
+          <div class="chart-col" style="height:80%;background:var(--yellow);opacity:.5"></div>
+        </div>
+      </div>
+      <div class="post-card-body">
+        <span class="post-tag tag-update">🔧 Bot Update</span>
+        <div class="post-card-title">Bot v1.4 released — Telegram control, Kelly improvements</div>
+        <p class="post-card-excerpt">What's new: remote pause/resume via Telegram, half-Kelly updated to fractional Kelly with configurable fraction, and a fix for thin markets misfiring signals.</p>
+        <div class="post-card-meta">
+          <span>Feb 18, 2026 · 4 min</span>
+          <span class="post-card-read">Read →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="post-card" onclick="openPost('p5')" data-cat="analysis">
+      <div class="post-card-thumb">
+        <div class="post-card-thumb-icon">₿</div>
+        <div class="post-card-thumb-bar">
+          <div class="chart-col" style="height:60%;background:var(--pink);opacity:.5"></div>
+          <div class="chart-col" style="height:30%;background:var(--pink);opacity:.5"></div>
+          <div class="chart-col" style="height:70%;background:var(--pink);opacity:.5"></div>
+          <div class="chart-col" style="height:45%;background:var(--pink);opacity:.5"></div>
+          <div class="chart-col" style="height:85%;background:var(--pink);opacity:.5"></div>
+          <div class="chart-col" style="height:55%;background:var(--pink);opacity:.5"></div>
+        </div>
+      </div>
+      <div class="post-card-body">
+        <span class="post-tag tag-analysis">📊 Market Analysis</span>
+        <div class="post-card-title">BTC prediction markets: how they behave around news events</div>
+        <p class="post-card-excerpt">I looked at 6 months of BTC price markets on Polymarket. The data is clear: the best signal quality comes in the 72 hours after a macro news event, not before.</p>
+        <div class="post-card-meta">
+          <span>Feb 11, 2026 · 9 min</span>
+          <span class="post-card-read">Read →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="post-card" onclick="openPost('p6')" data-cat="strategy">
+      <div class="post-card-thumb">
+        <div class="post-card-thumb-icon">📉</div>
+        <div class="post-card-thumb-bar">
+          <div class="chart-col" style="height:90%;background:var(--purple);opacity:.5"></div>
+          <div class="chart-col" style="height:65%;background:var(--purple);opacity:.5"></div>
+          <div class="chart-col" style="height:40%;background:var(--purple);opacity:.5"></div>
+          <div class="chart-col" style="height:55%;background:var(--purple);opacity:.5"></div>
+          <div class="chart-col" style="height:30%;background:var(--purple);opacity:.5"></div>
+          <div class="chart-col" style="height:50%;background:var(--purple);opacity:.5"></div>
+        </div>
+      </div>
+      <div class="post-card-body">
+        <span class="post-tag tag-strategy">🧠 Strategy</span>
+        <div class="post-card-title">What to do during a drawdown — my actual playbook</div>
+        <p class="post-card-excerpt">Last month the bot had a rough week: 4 losses in a row, -$60 on a $300 budget. Here's exactly what I did, what not to do, and why you should never touch the Kelly fraction mid-drawdown.</p>
+        <div class="post-card-meta">
+          <span>Feb 4, 2026 · 7 min</span>
+          <span class="post-card-read">Read →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="post-card" onclick="openPost('p7')" data-cat="results">
+      <div class="post-card-thumb">
+        <div class="post-card-thumb-icon">📈</div>
+        <div class="post-card-thumb-bar">
+          <div class="chart-col" style="height:20%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:40%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:55%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:65%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:80%;background:var(--green);opacity:.6"></div>
+          <div class="chart-col" style="height:95%;background:var(--green);opacity:.6"></div>
+        </div>
+      </div>
+      <div class="post-card-body">
+        <span class="post-tag tag-results">💰 Student Results</span>
+        <div class="post-card-title">February community leaderboard — top 5 student results</div>
+        <p class="post-card-excerpt">Best month yet for the group. 5 students crossed $1k profit, one hit $4,200 on a $2k starting budget. Breakdown of what the top performers did differently.</p>
+        <div class="post-card-meta">
+          <span>Mar 1, 2026 · 5 min</span>
+          <span class="post-card-read">Read →</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /post-grid -->
+
+  <!-- NEWSLETTER -->
+  <div class="newsletter">
+    <h3>Get the weekly analysis in your inbox</h3>
+    <p>Every Sunday — market breakdown, hot wallets, bot tips. No spam, unsubscribe any time.</p>
+    <div class="newsletter-form">
+      <input class="newsletter-input" type="email" placeholder="your@email.com">
+      <button class="newsletter-btn">Subscribe →</button>
+    </div>
+  </div>
+
+</div><!-- /outer -->
+
+<!-- POST MODAL -->
+<div class="post-modal" id="post-modal" onclick="if(event.target===this)closePost()">
+  <button class="modal-close" onclick="closePost()">✕</button>
+  <div class="post-modal-inner" id="post-modal-inner"></div>
+</div>
+
+<script>
+const POSTS = {
+  p1: {
+    tag:'tag-analysis', tagLabel:'📊 Market Analysis',
+    title:'War markets in March: what the top wallets are buying right now',
+    date:'Mar 9, 2026', readTime:'8 min read',
+    body: `
+<h2>The data</h2>
+<p>I pulled every trade by the 60 tracked wallets over the last 30 days — 1,247 total transactions across 84 open markets. Here's what stood out.</p>
+
+<div class="stat-row">
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--green)">+$18,240</div><div class="stat-box-label">Top 60 wallets combined P&L (30d)</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--accent)">77%</div><div class="stat-box-label">Average win rate across group</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--yellow)">4</div><div class="stat-box-label">High-conviction signal clusters</div></div>
+</div>
+
+<h2>Trend 1: Ukraine ceasefire markets are getting crowded</h2>
+<p>The "Ukraine ceasefire before [date]" category has had the highest wallet concentration of any theme this month. 31 out of 60 tracked wallets have positions in at least one ceasefire market. That's unusual — normally you'd see 8–12 wallets concentrated on a theme.</p>
+<p>What does it mean? These markets are liquid and the smart money has strong conviction. The YES prices on short-dated ceasefires (before April 30) are trading around 28–34 cents. The wallets buying at those levels think there's meaningfully more than a 28–34% chance. <strong>I have the bot set to flag these as priority signals.</strong></p>
+
+<div class="callout">
+  <strong>Bot setting suggestion:</strong> Lower your MIN_COPY_WALLETS to 2 for ceasefire markets specifically. The signal quality is high enough that 2-wallet agreement is meaningful here, even if your normal threshold is 3.
+</div>
+
+<h2>Trend 2: Russia-NATO escalation markets are being avoided</h2>
+<p>Interesting counterpoint — markets framed around direct Russia-NATO conflict have very little tracked wallet activity. Only 3 wallets have touched these. My interpretation: the smart money doesn't think these markets price the risk correctly. Avoid or be conservative.</p>
+
+<h2>Trend 3: Fed rate decision markets outperforming</h2>
+<p>These are technically "political" not war, but they've been my best performers this month. The pattern is consistent: top wallets buy YES on "Fed cuts rates in [month]" at 40–55 cents about 2–3 weeks before the decision, then the price runs to 70–80 cents as the date approaches.</p>
+
+<div class="stat-row">
+  <div class="stat-box"><div class="stat-box-val pnl-pos" style="color:var(--green)">+89%</div><div class="stat-box-label">Avg ROI on Fed rate markets</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--accent)">7/8</div><div class="stat-box-label">Win rate on these specifically</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--yellow)">18d</div><div class="stat-box-label">Avg hold time</div></div>
+</div>
+
+<h2>Trend 4: Crypto price markets bifurcating</h2>
+<p>BTC $90k by April 30 has the highest single-market wallet concentration right now — 14 tracked wallets with YES positions at an average entry of $0.58. ETH markets are much thinner. SOL markets have had a couple of big winners but the wallet concentration is too low for reliable signals.</p>
+<p><strong>My recommendation this week:</strong> Keep WAR_MODE enabled, add BTC markets to your watchlist, and leave ETH/SOL on paper mode unless you see the wallet count pick up.</p>
+
+<h2>What I'm running this week</h2>
+<ul>
+  <li>War mode + BTC mode, two separate bot instances</li>
+  <li>Budget: $300 on war, $150 on BTC</li>
+  <li>MIN_COPY_WALLETS: 2 for ceasefire markets, 3 for everything else</li>
+  <li>MAX_YES_PRICE: lowered to 0.80 (avoiding overpriced markets)</li>
+</ul>
+
+<div class="callout green">
+  <strong>Current hot markets to watch:</strong>
+  <br>
+  <span class="market-pill">Ukraine ceasefire before Apr 30?</span>
+  <span class="market-pill">Fed rate cut in May?</span>
+  <span class="market-pill">BTC $90k by Apr 30?</span>
+  <span class="market-pill">Russia peace talks resume in Q2?</span>
+</div>
+    `,
+  },
+  p2: {
+    tag:'tag-strategy', tagLabel:'🧠 Strategy',
+    title:'When to override the bot — 5 situations where I trade manually',
+    date:'Mar 2, 2026', readTime:'6 min read',
+    body: `
+<h2>The bot is a tool, not a brain</h2>
+<p>I run the bot 24/7 and I trust it. But there are specific situations where I pause it and trade manually — or just don't trade at all. Here are the five I've learned the hard way.</p>
+
+<h2>1. When a major geopolitical event is breaking in real time</h2>
+<p>The bot picks up signals from wallets that have already acted. That means when something huge happens — a surprise ceasefire announcement, an assassination, a sudden escalation — the top wallets know before the bot can react. By the time 3 wallets have bought and the bot fires, the price has already moved 15–20 cents.</p>
+<p>In these moments, I pause the bot and either get in at the new price manually (if I think there's still value) or sit out entirely.</p>
+
+<div class="callout pink">
+  <strong>Rule of thumb:</strong> If you open Twitter and there's a breaking geopolitical story with major implications, type /pause immediately. Re-evaluate once the market has had 30–60 minutes to price the news.
+</div>
+
+<h2>2. When the same wallet triggers 3+ signals in quick succession</h2>
+<p>Sometimes one hyper-active wallet will execute 5–6 trades in a row. If that single wallet triggers multiple bot signals, you end up with highly correlated risk — you're effectively making one big bet dressed up as several small ones. I override and skip those clusters.</p>
+
+<h2>3. Market resolution is within 48 hours</h2>
+<p>The bot has a resolution filter, but sometimes it misses markets with ambiguous end dates. I check manually. Never enter a market that resolves in less than 2 days unless the price is below 15 cents — the risk/reward isn't there at higher prices.</p>
+
+<h2>4. You've had 3+ losses in a row</h2>
+<p>This isn't superstition — it's Bayesian. If your tracked wallets have been wrong 3 times in a row recently, their current signals deserve more skepticism. I'll raise MIN_COPY_WALLETS from 3 to 4 temporarily, or pause for 24 hours and let the data settle.</p>
+
+<h2>5. A market is thin (under $10k liquidity)</h2>
+<p>The bot checks price but doesn't always have perfect liquidity data. On markets with very thin books, your $15 buy order can move the price 8 cents in the wrong direction. Check the market on Polymarket.com before any large position in a low-volume market.</p>
+    `,
+  },
+  p3: {
+    tag:'tag-results', tagLabel:'💰 Student Results',
+    title:"Marcus's $500 → $981 in 30 days: a full breakdown",
+    date:'Feb 24, 2026', readTime:'11 min read',
+    body: `
+<h2>Marcus's setup</h2>
+<p>Marcus joined with the Pro + Bot tier in late January. He funded with $500 USDC and ran the bot in paper mode for 5 days before going live. He shared his full log files — 74 trades, 30 days, every entry and exit.</p>
+
+<div class="stat-row">
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--text)">$500</div><div class="stat-box-label">Starting budget</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--green)">$981</div><div class="stat-box-label">Ending balance</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--yellow)">+96%</div><div class="stat-box-label">Return in 30 days</div></div>
+</div>
+
+<h2>Breakdown: what worked</h2>
+<p>61 wins out of 74 trades — 82% win rate. But more important than the number is the pattern: every single winning trade was on a market where at least 4 wallets agreed. He had one losing streak (3 in a row) that came entirely from 3-wallet signals in a period of high geopolitical uncertainty.</p>
+
+<h3>His best trade</h3>
+<p>"Ukraine ceasefire before Mar 31?" — entered YES at $0.28, exited at $0.74 after a diplomatic development. +$33.40 on a $15 position. That's +$223% in 11 days.</p>
+
+<h3>His worst trade</h3>
+<p>"Fed rate cut in February?" — entered YES at $0.61. The Fed surprised everyone with a hold. Exited at $0.22. -$11.80. He held too long on this one and the stop loss didn't fire because the price was near his MIN_YES_PRICE floor. Fixed that by adjusting STOP_LOSS from -40% to -35%.</p>
+
+<h2>What he's changing for month 2</h2>
+<ul>
+  <li>Raising MIN_COPY_WALLETS from 3 to 4 — he noticed his worst trades were all 3-wallet signals</li>
+  <li>Adding a manual check on any market that resolves within 7 days</li>
+  <li>Starting to run a second BTC mode instance with $100 of his profits</li>
+  <li>Budget scaling: he's reinvesting 50% of profit, withdrawing 50%</li>
+</ul>
+
+<div class="callout green">
+  <strong>Key takeaway:</strong> Marcus's success wasn't luck — it was patience. He ran paper mode first. He didn't touch the Kelly sizing. He let the bot do its thing. The only real mistake was not tightening the stop loss sooner.
+</div>
+    `,
+  },
+  p4: {
+    tag:'tag-update', tagLabel:'🔧 Bot Update',
+    title:'Bot v1.4 released — Telegram control, Kelly improvements',
+    date:'Feb 18, 2026', readTime:'4 min read',
+    body: `
+<h2>What's new in v1.4</h2>
+<p>This is a meaningful update. Three real changes based on what students have been asking for over the last 6 weeks.</p>
+
+<h2>1. Telegram bot integration</h2>
+<p>The most requested feature by far. Two new files: <code>notifier.py</code> and <code>telegram_bot.py</code>. Full details in the new Module 7 lesson. Short version:</p>
+<ul>
+  <li>Real-time alerts for every signal, buy, and close</li>
+  <li>Commands: /status /pnl /positions /trades /pause /resume</li>
+  <li>Owner-only security (rejects messages from other chat IDs)</li>
+  <li>Zero extra dependencies beyond requests</li>
+</ul>
+
+<h2>2. Fractional Kelly now configurable</h2>
+<p>Previously hard-coded at 25% Kelly. Now you can set it in your .env:</p>
+<p><code>KELLY_FRACTION=0.25</code></p>
+<p>If you're more risk-tolerant and running on a larger budget, you can raise it to 0.35 or 0.40. If you want to be very conservative (good for starting out), 0.15 works. I still recommend 0.25 as the default.</p>
+
+<h2>3. Thin market protection</h2>
+<p>Added a minimum liquidity check before entering. If the order book has less than $500 total on either side, the bot skips the market and logs a warning. This fixes the issue a few students saw where small markets would move significantly on entry.</p>
+
+<div class="callout">
+  <strong>How to update:</strong> Pull the latest files from your members area download. Replace copy_trader.py and add the two new telegram files. No changes to your .env needed unless you want Telegram.
+</div>
+    `,
+  },
+  p5: {
+    tag:'tag-analysis', tagLabel:'📊 Market Analysis',
+    title:'BTC prediction markets: how they behave around news events',
+    date:'Feb 11, 2026', readTime:'9 min read',
+    body: `
+<h2>The data set</h2>
+<p>I looked at every BTC-related Polymarket market over the last 6 months — 34 markets, 892 trades by the top wallet cohort. The goal: understand when signals are reliable vs noisy.</p>
+
+<h2>The key finding: post-event windows are gold</h2>
+<p>The best-performing signals come in a specific window: <strong>24–72 hours after a major macro event</strong> (Fed decision, CPI print, major Bitcoin ETF news). Not before — the top wallets don't seem to front-run news better than the market at large. But after the initial reaction settles, they consistently position correctly for the next 7–14 days.</p>
+
+<div class="stat-row">
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--green)">84%</div><div class="stat-box-label">Win rate: signals in post-event window</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--yellow)">61%</div><div class="stat-box-label">Win rate: signals pre-event</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--accent)">+$127</div><div class="stat-box-label">Avg P&L per post-event signal</div></div>
+</div>
+
+<h2>What this means for your bot</h2>
+<p>You don't need to change anything in the code. But if you're monitoring the bot manually, be aware that signals in the 72 hours after a macro event are historically your highest-quality opportunities. Consider sizing up slightly (not more than 0.35 Kelly) in those windows if you're comfortable doing so.</p>
+
+<div class="callout pink">
+  <strong>The counterpoint:</strong> The 24h before a Fed decision is the worst time to enter BTC markets. The top wallets go quiet. Price movements are driven by speculation, not informed positioning. The bot should be paused or on reduced settings going into big macro events.
+</div>
+    `,
+  },
+  p6: {
+    tag:'tag-strategy', tagLabel:'🧠 Strategy',
+    title:"What to do during a drawdown — my actual playbook",
+    date:'Feb 4, 2026', readTime:'7 min read',
+    body: `
+<h2>It will happen</h2>
+<p>If you run this bot long enough, you will have a week where it loses 3, 4, maybe 5 in a row. That's not a sign the strategy is broken. That's variance. Kelly sizing keeps those losses small. But the psychological pressure is real, and how you respond matters more than the losses themselves.</p>
+
+<h2>What I did wrong the first time</h2>
+<p>First time I had a bad run (4 losses, -$68 on a $200 budget), I did what most people do: I manually overrode the bot and tried to pick winners myself to "get back to even." I went 1 for 3 manually. Made the hole bigger. Classic tilt.</p>
+
+<h2>My playbook now</h2>
+<ol style="margin-left:20px;line-height:2.2;color:#c9d1d9;font-size:0.92rem;">
+  <li>After 3 consecutive losses, type /pause and step away for 24 hours.</li>
+  <li>Come back and read the logs. Were these all 3-wallet signals or 4+? Did they cluster around one market type?</li>
+  <li>If they were all 3-wallet signals, temporarily raise MIN_COPY_WALLETS to 4.</li>
+  <li>Check if the wallet list needs refreshing — I run the scoring script monthly but sometimes I do it more often during volatile periods.</li>
+  <li>Resume with the same Kelly fraction. Do not change the budget. Do not change the fraction.</li>
+</ol>
+
+<div class="callout green">
+  <strong>The most important rule:</strong> Never change your Kelly fraction during a drawdown. You're not thinking clearly, and reducing it "because you're losing" is just locking in a smaller position size at the exact time the bot is most likely to mean-revert back to winners.
+</div>
+
+<h2>The math is on your side</h2>
+<p>With a 75% win rate and half-Kelly, you need a 7-loss streak to halve your account. The probability of that happening with proper sizing is less than 0.01%. What feels catastrophic emotionally is statistically rare and recoverable. Trust the math, not your gut during a losing streak.</p>
+    `,
+  },
+  p7: {
+    tag:'tag-results', tagLabel:'💰 Student Results',
+    title:'February community leaderboard — top 5 student results',
+    date:'Mar 1, 2026', readTime:'5 min read',
+    body: `
+<h2>February by the numbers</h2>
+<p>Best month for the group since we launched. 83 active students running the bot in live mode. Here are the highlights.</p>
+
+<div class="stat-row">
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--green)">73%</div><div class="stat-box-label">Students profitable in Feb</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--yellow)">5</div><div class="stat-box-label">Students over $1k profit</div></div>
+  <div class="stat-box"><div class="stat-box-val" style="color:var(--accent)">$4,200</div><div class="stat-box-label">Top student profit (Feb)</div></div>
+</div>
+
+<h2>Top 5 results (self-reported + log-verified)</h2>
+
+<h3>1. Alex M. — +$4,200 on $2,000 budget (+210%)</h3>
+<p>Running Pro + Bot, war mode + BTC mode simultaneously. His big win: "Will BTC hit $85k before Feb 28?" — entered at 0.44, exited at 0.89. $480 position, +$490 profit. He was patient and held for 19 days.</p>
+
+<h3>2. Sarah K. — +$1,840 on $800 budget (+230%)</h3>
+<p>Only ran war mode. Her best month yet. She credits the Telegram alerts: "I paused the bot manually twice when I saw news breaking before the signals fired. Both times the market moved against where the wallets were positioned."</p>
+
+<h3>3. Marcus T. — +$981 on $500 budget (+96%)</h3>
+<p>Full breakdown in the previous post. 82% win rate, 74 trades. Scaling to $700 in March.</p>
+
+<h3>4. Jake R. — +$1,120 on $600 budget (+187%)</h3>
+<p>New student — started Feb 1. Paper mode for 3 days, then live. Had one rough week (3 losses in a row) and paused correctly. Came back the following week with 8 wins in a row.</p>
+
+<h3>5. Priya N. — +$680 on $400 budget (+170%)</h3>
+<p>Running the bot on a VPS in Mumbai, 24/7 uptime. Caught several overnight signals that most students on laptops missed. Big proponent of the VPS setup from Module 7.</p>
+
+<div class="callout">
+  <strong>Common thread:</strong> Every top performer ran paper mode first, didn't touch the Kelly sizing, and either had Telegram alerts or checked logs at least twice daily. None of them overrode the bot out of impatience.
+</div>
+    `,
+  },
+};
+
+let currentCat = 'all';
+
+function filterCat(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const cards = document.querySelectorAll('.post-card, .featured');
+  cards.forEach(card => {
+    const show = cat === 'all' || card.dataset.cat === cat;
+    card.style.display = show ? '' : 'none';
+  });
+}
+
+function openPost(id) {
+  const p = POSTS[id];
+  if (!p) return;
+  const inner = document.getElementById('post-modal-inner');
+  inner.innerHTML = `
+    <span class="post-tag ${p.tag}" style="display:inline-block;margin-bottom:16px;">${p.tagLabel}</span>
+    <h1 class="article-title">${p.title}</h1>
+    <div class="article-meta">
+      <span>📅 ${p.date}</span>
+      <span>⏱ ${p.readTime}</span>
+    </div>
+    <div class="article-body">${p.body}</div>
+  `;
+  document.getElementById('post-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  inner.scrollTop = 0;
+  document.querySelector('.post-modal').scrollTop = 0;
+}
+
+function closePost() {
+  document.getElementById('post-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePost(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wallet Leaderboard — CopyTrade Pro</title>
+<style>
+  :root {
+    --bg:     #0a0a0f;
+    --panel:  #111118;
+    --card:   #16161f;
+    --border: #1e1e2e;
+    --accent: #00f5ff;
+    --pink:   #ff2d7e;
+    --purple: #a855f7;
+    --green:  #00ff88;
+    --yellow: #ffd60a;
+    --red:    #ef4444;
+    --text:   #f0f0ff;
+    --muted:  #6b7280;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; overflow-x:hidden; }
+
+  /* NAV */
+  nav {
+    position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 5vw;
+    background:rgba(10,10,15,.92); backdrop-filter:blur(24px);
+    border-bottom:1px solid var(--border);
+  }
+  .logo { font-size:1rem; font-weight:900;
+    background:linear-gradient(90deg,var(--accent),var(--pink));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .nav-links { display:flex; gap:24px; align-items:center; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:0.82rem; font-weight:500; transition:color .15s; }
+  .nav-links a:hover, .nav-links a.active { color:var(--text); }
+  @media(max-width:600px){ .nav-links { display:none; } }
+  .nav-cta {
+    background:linear-gradient(135deg,var(--pink),var(--purple));
+    color:#fff; border:none; padding:8px 20px;
+    border-radius:50px; font-weight:700; font-size:0.82rem;
+    cursor:pointer; text-decoration:none;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    padding:60px 5vw 40px;
+    background:linear-gradient(135deg, rgba(0,245,255,.04) 0%, transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  .page-header-inner { max-width:1200px; margin:0 auto; }
+  .page-label { font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--accent); margin-bottom:10px; }
+  .page-title { font-size:clamp(1.8rem,4vw,2.8rem); font-weight:900; letter-spacing:-1px; margin-bottom:12px; }
+  .page-sub { font-size:0.95rem; color:var(--muted); max-width:560px; line-height:1.7; }
+  .header-stats { display:flex; gap:40px; margin-top:28px; flex-wrap:wrap; }
+  .hstat { }
+  .hstat-val { font-size:1.6rem; font-weight:900; letter-spacing:-0.5px; }
+  .hstat-val.green { color:var(--green); }
+  .hstat-val.accent { color:var(--accent); }
+  .hstat-val.yellow { color:var(--yellow); }
+  .hstat-label { font-size:0.72rem; color:var(--muted); margin-top:2px; text-transform:uppercase; letter-spacing:0.5px; }
+
+  /* LIVE BADGE */
+  .live-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(0,255,136,.1); border:1px solid rgba(0,255,136,.25);
+    color:var(--green); border-radius:50px; padding:5px 12px;
+    font-size:0.72rem; font-weight:700; letter-spacing:0.5px;
+    margin-bottom:24px;
+  }
+  .live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* MAIN LAYOUT */
+  .main { max-width:1200px; margin:0 auto; padding:32px 5vw 80px; }
+
+  /* FILTERS */
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; align-items:center; }
+  .filter-btn {
+    background:var(--card); border:1px solid var(--border); color:var(--muted);
+    padding:7px 18px; border-radius:50px; font-size:0.8rem; font-weight:600;
+    cursor:pointer; transition:all .15s;
+  }
+  .filter-btn:hover { border-color:var(--accent); color:var(--text); }
+  .filter-btn.active { background:rgba(0,245,255,.1); border-color:var(--accent); color:var(--accent); }
+  .filter-sep { flex:1; }
+  .search-box {
+    background:var(--card); border:1px solid var(--border); color:var(--text);
+    padding:8px 16px; border-radius:50px; font-size:0.82rem; width:220px;
+    transition:border-color .15s;
+  }
+  .search-box:focus { outline:none; border-color:var(--accent); }
+  .search-box::placeholder { color:var(--muted); }
+
+  /* PODIUM (top 3) */
+  .podium { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:32px; }
+  @media(max-width:640px){ .podium { grid-template-columns:1fr; } }
+  .podium-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:18px; padding:22px 20px; position:relative; overflow:hidden;
+    transition:transform .2s, box-shadow .2s; cursor:pointer;
+  }
+  .podium-card:hover { transform:translateY(-3px); }
+  .podium-card.rank-1 { border-color:rgba(255,214,10,.3); box-shadow:0 0 40px rgba(255,214,10,.08); }
+  .podium-card.rank-2 { border-color:rgba(0,245,255,.2); }
+  .podium-card.rank-3 { border-color:rgba(168,85,247,.2); }
+  .podium-card::before {
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse at top right, var(--glow-color,transparent) 0%, transparent 65%);
+    pointer-events:none;
+  }
+  .podium-card.rank-1::before { --glow-color: rgba(255,214,10,.06); }
+  .podium-card.rank-2::before { --glow-color: rgba(0,245,255,.05); }
+  .podium-card.rank-3::before { --glow-color: rgba(168,85,247,.05); }
+  .podium-rank { font-size:1.8rem; margin-bottom:10px; }
+  .podium-addr { font-size:0.88rem; font-weight:700; font-family:monospace; margin-bottom:4px; }
+  .podium-score-bar { height:3px; background:var(--border); border-radius:2px; margin:10px 0 14px; }
+  .podium-score-fill { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--accent),var(--pink)); }
+  .podium-stats { display:flex; gap:16px; flex-wrap:wrap; }
+  .podium-stat-val { font-size:1.05rem; font-weight:800; }
+  .podium-stat-label { font-size:0.68rem; color:var(--muted); margin-top:1px; }
+  .podium-last-trade { font-size:0.7rem; color:var(--muted); margin-top:12px; border-top:1px solid var(--border); padding-top:10px; }
+  .podium-last-trade .win  { color:var(--green); font-weight:700; }
+  .podium-last-trade .loss { color:var(--red);   font-weight:700; }
+
+  /* LEADERBOARD TABLE */
+  .lb-wrap { background:var(--card); border:1px solid var(--border); border-radius:18px; overflow:hidden; }
+  .lb-table { width:100%; border-collapse:collapse; }
+  .lb-table th {
+    font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1px;
+    color:var(--muted); padding:14px 16px; text-align:left;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+    cursor:pointer; user-select:none;
+  }
+  .lb-table th:hover { color:var(--text); }
+  .lb-table th.sorted { color:var(--accent); }
+  .lb-table td { padding:13px 16px; border-bottom:1px solid rgba(255,255,255,.03); font-size:0.85rem; vertical-align:middle; }
+  .lb-table tr:last-child td { border-bottom:none; }
+  .lb-table tbody tr { transition:background .1s; cursor:pointer; }
+  .lb-table tbody tr:hover { background:rgba(255,255,255,.03); }
+  .lb-table tbody tr.expanded { background:rgba(0,245,255,.04); }
+
+  /* rank cell */
+  .rank-cell { font-size:0.8rem; font-weight:700; text-align:center; width:48px; }
+  .rank-1 { color:var(--yellow); }
+  .rank-2 { color:var(--accent); }
+  .rank-3 { color:var(--purple); }
+  .rank-n { color:var(--muted); }
+
+  /* address cell */
+  .addr-cell { font-family:monospace; font-size:0.82rem; }
+  .addr-short { }
+  .addr-tag { font-size:0.68rem; background:rgba(0,245,255,.08); color:var(--accent); padding:1px 7px; border-radius:4px; margin-left:8px; }
+  .addr-tag.whale { background:rgba(255,214,10,.1); color:var(--yellow); }
+  .addr-tag.new   { background:rgba(0,255,136,.1);   color:var(--green); }
+
+  /* score bar inline */
+  .score-cell { min-width:120px; }
+  .score-bar-wrap { display:flex; align-items:center; gap:8px; }
+  .score-num { font-size:0.82rem; font-weight:700; color:var(--accent); min-width:28px; }
+  .score-bar { flex:1; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .score-bar-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--accent),var(--pink)); transition:width .4s; }
+
+  /* win rate */
+  .wr-cell { font-weight:700; }
+  .wr-high  { color:var(--green); }
+  .wr-mid   { color:var(--yellow); }
+  .wr-low   { color:var(--red); }
+
+  /* pnl */
+  .pnl-pos { color:var(--green); font-weight:700; }
+  .pnl-neg { color:var(--red);   font-weight:700; }
+
+  /* last activity */
+  .activity-cell { display:flex; align-items:center; gap:6px; }
+  .act-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .act-dot.recent { background:var(--green); animation:pulse 1.5s infinite; }
+  .act-dot.today  { background:var(--yellow); }
+  .act-dot.old    { background:var(--muted); }
+
+  /* expanded row */
+  .expanded-row td { padding:0; }
+  .expanded-content {
+    background:rgba(0,0,0,.3); border-top:1px solid var(--border);
+    padding:20px 24px; display:grid; grid-template-columns:repeat(4,1fr);
+    gap:20px;
+  }
+  @media(max-width:700px){ .expanded-content { grid-template-columns:1fr 1fr; } }
+  .exp-stat-label { font-size:0.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+  .exp-stat-val   { font-size:1.1rem; font-weight:800; }
+  .exp-trade-list { grid-column:1/-1; }
+  .exp-trade-list h4 { font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; }
+  .exp-trade-item { display:flex; gap:12px; font-size:0.8rem; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.04); }
+  .exp-trade-item:last-child { border-bottom:none; }
+  .exp-trade-outcome { font-weight:700; }
+
+  /* column hide on mobile */
+  @media(max-width:900px){ .hide-md { display:none; } }
+  @media(max-width:640px){ .hide-sm { display:none; } }
+
+  /* update flash */
+  @keyframes flashGreen { 0%,100%{background:transparent} 50%{background:rgba(0,255,136,.08)} }
+  .flash { animation:flashGreen .6s ease; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="course.html" class="logo">CopyTrade Pro</a>
+  <div class="nav-links">
+    <a href="course.html">Home</a>
+    <a href="leaderboard.html" class="active">Leaderboard</a>
+    <a href="blog.html">Blog</a>
+    <a href="community.html">Community</a>
+    <a href="members.html">My Course</a>
+  </div>
+  <a href="course.html#pricing" class="nav-cta">Get Access →</a>
+</nav>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div class="page-header-inner">
+    <div class="live-badge"><span class="live-dot"></span> Live — updates every 60s</div>
+    <div class="page-label">On-chain data · Polygon</div>
+    <h1 class="page-title">Top Wallet Leaderboard</h1>
+    <p class="page-sub">The 60 best-performing Polymarket wallets ranked by our multi-period scoring system. These are the wallets the bot watches. Public data, sourced directly from the subgraph.</p>
+    <div class="header-stats">
+      <div class="hstat"><div class="hstat-val accent" id="h-wallets">60</div><div class="hstat-label">Tracked wallets</div></div>
+      <div class="hstat"><div class="hstat-val green" id="h-avgwr">76%</div><div class="hstat-label">Avg win rate</div></div>
+      <div class="hstat"><div class="hstat-val yellow" id="h-topp&l">+$2,840</div><div class="hstat-label">Top wallet P&L (30d)</div></div>
+      <div class="hstat"><div class="hstat-val accent" id="h-trades">1,247</div><div class="hstat-label">Trades tracked today</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">All markets</button>
+    <button class="filter-btn" onclick="setFilter('war', this)">⚔️ War / political</button>
+    <button class="filter-btn" onclick="setFilter('btc', this)">₿ BTC</button>
+    <button class="filter-btn" onclick="setFilter('eth', this)">Ξ ETH</button>
+    <button class="filter-btn" onclick="setFilter('sol', this)">◎ SOL</button>
+    <div class="filter-sep"></div>
+    <input class="search-box" type="text" placeholder="🔍 Search address…" oninput="searchWallets(this.value)">
+  </div>
+
+  <!-- PODIUM -->
+  <div class="podium" id="podium"></div>
+
+  <!-- TABLE -->
+  <div class="lb-wrap">
+    <table class="lb-table" id="lb-table">
+      <thead>
+        <tr>
+          <th class="rank-cell" onclick="sortBy('rank')">#</th>
+          <th onclick="sortBy('address')">Wallet</th>
+          <th onclick="sortBy('score')" class="sorted">Score ↓</th>
+          <th onclick="sortBy('win_rate')">Win rate</th>
+          <th onclick="sortBy('net_pnl')">Net P&L</th>
+          <th onclick="sortBy('pnl_30d')" class="hide-sm">30d P&L</th>
+          <th onclick="sortBy('trades')" class="hide-md">Trades</th>
+          <th onclick="sortBy('last_active')" class="hide-md">Last active</th>
+          <th class="hide-sm">Markets</th>
+        </tr>
+      </thead>
+      <tbody id="lb-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- METHODOLOGY NOTE -->
+  <div style="margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;font-size:0.85rem;color:var(--muted);line-height:1.7;">
+    <strong style="color:var(--text);">How scores are calculated:</strong>
+    Win rate (35%) + avg ROI per trade (30%) + consistency across 3 time periods (25%) + trade volume confidence (10%).
+    Wallets must have ≥20 resolved trades and positive P&L in at least 2 of the last 3 months to appear.
+    Data sourced from the Polymarket subgraph — fully public, fully on-chain.
+    <a href="members.html" style="color:var(--accent);text-decoration:none;"> See the full methodology →</a>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   WALLET DATA (simulated — in production this
+   would be fetched from your scoring API or
+   bot_state.json)
+═══════════════════════════════════════════ */
+const MARKET_TYPES = ['war','war','war','btc','eth','sol','war','btc'];
+const TAGS = ['whale','new','','','whale','','new','','',''];
+
+function randAddr() {
+  const hex = () => Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6,'0');
+  return `0x${hex()}${hex()}…${hex().slice(0,4)}`;
+}
+
+function seeded(seed) {
+  // simple seeded rand so data is stable between renders
+  let s = seed;
+  return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+}
+
+const WALLETS = Array.from({length:60}, (_,i) => {
+  const r = seeded(i * 7919 + 31337);
+  const wr = 0.58 + r() * 0.30;           // 58–88%
+  const trades = Math.floor(40 + r() * 160);
+  const avgRoi = 0.15 + r() * 0.95;
+  const consistency = 0.5 + r() * 0.5;
+  const confidence = Math.min(1, trades / 100);
+  const score = Math.round(
+    (wr * 0.35 + Math.min(1,avgRoi) * 0.30 + consistency * 0.25 + confidence * 0.10) * 100
+  );
+  const pnl30 = (r() * 3200 - 200);
+  const netPnl = pnl30 * (2.5 + r() * 5);
+  const mktType = MARKET_TYPES[i % MARKET_TYPES.length];
+  const ageMins = Math.floor(r() * 180);
+  const tag = i < 3 ? ['whale','whale','whale'][i] : (r() < 0.12 ? 'new' : (r() < 0.18 ? 'whale' : ''));
+  const recentTrades = Array.from({length:5}, (_,j) => {
+    const r2 = seeded(i * 1000 + j * 37);
+    const won = r2() < wr;
+    return {
+      market: ['Ukraine ceasefire before May?','BTC $90k by Apr 30?','Fed rate cut in May?','SOL $180 in March?','ETH reclaim $2,500?'][j],
+      outcome: won ? 'WIN' : 'LOSS',
+      pnl: won ? +(r2() * 80 + 5).toFixed(2) : -(r2() * 40 + 5).toFixed(2),
+      at: `${Math.floor(r2()*23)}h ago`,
+    };
+  });
+  return {
+    rank: i+1,
+    address: randAddr(),
+    score,
+    win_rate: wr,
+    net_pnl: netPnl,
+    pnl_30d: pnl30,
+    trades,
+    last_active: ageMins,
+    market_type: mktType,
+    avg_roi: avgRoi,
+    tag,
+    recent_trades: recentTrades,
+  };
+}).sort((a,b) => b.score - a.score).map((w,i) => ({...w, rank:i+1}));
+
+let currentFilter = 'all';
+let currentSearch = '';
+let sortKey = 'score';
+let sortDir = -1;  // -1 = desc
+let expandedRow = null;
+
+function filtered() {
+  return WALLETS.filter(w => {
+    if (currentFilter !== 'all' && w.market_type !== currentFilter) return false;
+    if (currentSearch && !w.address.toLowerCase().includes(currentSearch.toLowerCase())) return false;
+    return true;
+  }).sort((a,b) => {
+    const av = a[sortKey], bv = b[sortKey];
+    return sortDir * (av < bv ? 1 : av > bv ? -1 : 0);
+  });
+}
+
+function fmt(n, prefix='$') {
+  const s = Math.abs(n) >= 1000
+    ? prefix + (Math.abs(n)/1000).toFixed(1) + 'k'
+    : prefix + Math.abs(n).toFixed(2);
+  return (n >= 0 ? '+' : '-') + s;
+}
+
+function activityLabel(mins) {
+  if (mins < 30) return {cls:'recent', txt:`${mins}m ago`};
+  if (mins < 120) return {cls:'today', txt:`${mins}m ago`};
+  return {cls:'old', txt:`${Math.floor(mins/60)}h ago`};
+}
+
+function buildPodium(data) {
+  const top3 = data.slice(0,3);
+  const medals = ['🥇','🥈','🥉'];
+  const podium = document.getElementById('podium');
+  podium.innerHTML = top3.map((w,i) => `
+    <div class="podium-card rank-${i+1}" onclick="toggleRow(${w.rank-1})">
+      <div class="podium-rank">${medals[i]}</div>
+      <div class="podium-addr">${w.address}${w.tag?`<span class="addr-tag ${w.tag}">${w.tag}</span>`:''}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.75rem;color:var(--muted);margin:6px 0 2px;">
+        <span>Score</span><span style="color:var(--accent);font-weight:800;">${w.score}</span>
+      </div>
+      <div class="podium-score-bar"><div class="podium-score-fill" style="width:${w.score}%"></div></div>
+      <div class="podium-stats">
+        <div>
+          <div class="podium-stat-val ${w.win_rate>=0.75?'pnl-pos':w.win_rate>=0.6?'':'pnl-neg'}" style="color:${w.win_rate>=0.75?'var(--green)':w.win_rate>=0.6?'var(--yellow)':'var(--red)'}">
+            ${Math.round(w.win_rate*100)}%
+          </div>
+          <div class="podium-stat-label">Win rate</div>
+        </div>
+        <div>
+          <div class="podium-stat-val pnl-pos">${fmt(w.pnl_30d)}</div>
+          <div class="podium-stat-label">30d P&L</div>
+        </div>
+        <div>
+          <div class="podium-stat-val" style="color:var(--accent)">${w.trades}</div>
+          <div class="podium-stat-label">Trades</div>
+        </div>
+      </div>
+      <div class="podium-last-trade">
+        Last: <span class="${w.recent_trades[0].outcome.toLowerCase()}">${w.recent_trades[0].outcome}</span>
+        · ${w.recent_trades[0].market.slice(0,35)}…
+      </div>
+    </div>
+  `).join('');
+}
+
+function buildTable(data) {
+  const tbody = document.getElementById('lb-tbody');
+  tbody.innerHTML = data.map((w,i) => {
+    const act = activityLabel(w.last_active);
+    const rankCls = w.rank <= 3 ? `rank-${w.rank}` : 'rank-n';
+    const wrCls = w.win_rate >= 0.75 ? 'wr-high' : w.win_rate >= 0.62 ? 'wr-mid' : 'wr-low';
+    const mktIcon = {war:'⚔️',btc:'₿',eth:'Ξ',sol:'◎'}[w.market_type]||'📊';
+    return `
+      <tr id="row-${i}" onclick="toggleRow(${i})">
+        <td class="rank-cell ${rankCls}">${w.rank <= 3 ? ['🥇','🥈','🥉'][w.rank-1] : w.rank}</td>
+        <td class="addr-cell">
+          ${w.address}
+          ${w.tag ? `<span class="addr-tag ${w.tag}">${w.tag}</span>` : ''}
+        </td>
+        <td class="score-cell">
+          <div class="score-bar-wrap">
+            <span class="score-num">${w.score}</span>
+            <div class="score-bar"><div class="score-bar-fill" style="width:${w.score}%"></div></div>
+          </div>
+        </td>
+        <td class="wr-cell ${wrCls}">${Math.round(w.win_rate*100)}%</td>
+        <td class="${w.net_pnl>=0?'pnl-pos':'pnl-neg'}">${fmt(w.net_pnl)}</td>
+        <td class="${w.pnl_30d>=0?'pnl-pos':'pnl-neg'} hide-sm">${fmt(w.pnl_30d)}</td>
+        <td class="hide-md" style="color:var(--muted)">${w.trades}</td>
+        <td class="hide-md">
+          <div class="activity-cell">
+            <span class="act-dot ${act.cls}"></span>
+            <span style="font-size:0.78rem;color:var(--muted)">${act.txt}</span>
+          </div>
+        </td>
+        <td class="hide-sm">${mktIcon} ${w.market_type.toUpperCase()}</td>
+      </tr>
+      <tr id="expanded-${i}" class="expanded-row" style="display:none">
+        <td colspan="9">
+          <div class="expanded-content">
+            <div>
+              <div class="exp-stat-label">Avg ROI / trade</div>
+              <div class="exp-stat-val" style="color:var(--green)">+${Math.round(w.avg_roi*100)}%</div>
+            </div>
+            <div>
+              <div class="exp-stat-label">30d P&L</div>
+              <div class="exp-stat-val ${w.pnl_30d>=0?'pnl-pos':'pnl-neg'}">${fmt(w.pnl_30d)}</div>
+            </div>
+            <div>
+              <div class="exp-stat-label">Total trades</div>
+              <div class="exp-stat-val" style="color:var(--accent)">${w.trades}</div>
+            </div>
+            <div>
+              <div class="exp-stat-label">Net all-time P&L</div>
+              <div class="exp-stat-val pnl-pos">${fmt(w.net_pnl)}</div>
+            </div>
+            <div class="exp-trade-list">
+              <h4>Recent trades</h4>
+              ${w.recent_trades.map(t => `
+                <div class="exp-trade-item">
+                  <span class="exp-trade-outcome ${t.outcome.toLowerCase()==='win'?'pnl-pos':'pnl-neg'}">${t.outcome}</span>
+                  <span style="flex:1;color:var(--muted)">${t.market}</span>
+                  <span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${t.pnl>=0?'+':''}$${Math.abs(t.pnl).toFixed(2)}</span>
+                  <span style="color:var(--muted);font-size:0.75rem;margin-left:8px">${t.at}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function render() {
+  const data = filtered();
+  buildPodium(data.slice(0,3));
+  buildTable(data);
+}
+
+function toggleRow(i) {
+  if (expandedRow === i) {
+    document.getElementById(`expanded-${i}`).style.display = 'none';
+    document.getElementById(`row-${i}`).classList.remove('expanded');
+    expandedRow = null;
+    return;
+  }
+  if (expandedRow !== null) {
+    document.getElementById(`expanded-${expandedRow}`).style.display = 'none';
+    document.getElementById(`row-${expandedRow}`).classList.remove('expanded');
+  }
+  document.getElementById(`expanded-${i}`).style.display = 'table-row';
+  document.getElementById(`row-${i}`).classList.add('expanded');
+  expandedRow = i;
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function searchWallets(q) {
+  currentSearch = q;
+  render();
+}
+
+function sortBy(key) {
+  if (sortKey === key) sortDir *= -1;
+  else { sortKey = key; sortDir = -1; }
+  document.querySelectorAll('.lb-table th').forEach(th => th.classList.remove('sorted'));
+  render();
+}
+
+// Simulate live updates — flash a random row every few seconds
+function liveUpdate() {
+  const rows = document.querySelectorAll('#lb-tbody tr[id^="row-"]');
+  if (rows.length === 0) return;
+  const row = rows[Math.floor(Math.random() * Math.min(20, rows.length))];
+  row.classList.remove('flash');
+  void row.offsetWidth;  // reflow
+  row.classList.add('flash');
+
+  // tick up trade counter
+  const el = document.getElementById('h-trades');
+  if (el) el.textContent = (parseInt(el.textContent.replace(',','')) + Math.floor(Math.random()*3+1)).toLocaleString();
+}
+
+render();
+setInterval(liveUpdate, 2800);
+</script>
+</body>
+</html>

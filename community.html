@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community — CopyTrade Pro</title>
+<style>
+  :root {
+    --bg:     #0a0a0f;
+    --panel:  #111118;
+    --card:   #16161f;
+    --border: #1e1e2e;
+    --accent: #00f5ff;
+    --pink:   #ff2d7e;
+    --purple: #a855f7;
+    --green:  #00ff88;
+    --yellow: #ffd60a;
+    --text:   #f0f0ff;
+    --muted:  #6b7280;
+    --discord:#5865f2;
+    --tg:    #26a5e4;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; overflow-x:hidden; }
+
+  /* NAV */
+  nav {
+    position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 5vw;
+    background:rgba(10,10,15,.92); backdrop-filter:blur(24px);
+    border-bottom:1px solid var(--border);
+  }
+  .logo { font-size:1rem; font-weight:900; text-decoration:none;
+    background:linear-gradient(90deg,var(--accent),var(--pink));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .nav-links { display:flex; gap:24px; align-items:center; }
+  .nav-links a { color:var(--muted); text-decoration:none; font-size:0.82rem; font-weight:500; transition:color .15s; }
+  .nav-links a:hover, .nav-links a.active { color:var(--text); }
+  @media(max-width:600px){ .nav-links { display:none; } }
+  .nav-cta { background:linear-gradient(135deg,var(--pink),var(--purple));
+    color:#fff; border:none; padding:8px 20px; border-radius:50px;
+    font-weight:700; font-size:0.82rem; cursor:pointer; text-decoration:none; }
+
+  /* HERO */
+  .hero {
+    padding:80px 5vw 64px;
+    background:
+      radial-gradient(ellipse 60% 50% at 20% 40%, rgba(88,101,242,.12) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 80% 60%, rgba(38,165,228,.08) 0%, transparent 60%);
+    text-align:center; border-bottom:1px solid var(--border);
+  }
+  .hero-label { font-size:0.7rem; font-weight:700; letter-spacing:2px;
+    text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
+  .hero-title { font-size:clamp(2rem,5vw,3.2rem); font-weight:900; letter-spacing:-1.5px;
+    line-height:1.05; margin-bottom:16px; }
+  .hero-sub { font-size:1rem; color:var(--muted); max-width:520px; margin:0 auto 36px; line-height:1.7; }
+  .hero-stats { display:flex; justify-content:center; gap:48px; flex-wrap:wrap; }
+  .hs { text-align:center; }
+  .hs-val { font-size:2rem; font-weight:900; letter-spacing:-0.5px; }
+  .hs-label { font-size:0.72rem; color:var(--muted); margin-top:3px; text-transform:uppercase; letter-spacing:0.5px; }
+
+  /* MAIN */
+  .main { max-width:1100px; margin:0 auto; padding:56px 5vw 100px; }
+
+  /* TWO COMMUNITY CARDS */
+  .community-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:64px; }
+  @media(max-width:700px){ .community-grid { grid-template-columns:1fr; } }
+
+  .comm-card {
+    border-radius:22px; overflow:hidden;
+    border:1px solid var(--border); position:relative;
+    transition:transform .2s, box-shadow .2s;
+  }
+  .comm-card:hover { transform:translateY(-4px); }
+  .comm-card-discord { box-shadow:0 0 60px rgba(88,101,242,.1); border-color:rgba(88,101,242,.25); }
+  .comm-card-discord:hover { box-shadow:0 0 80px rgba(88,101,242,.2); }
+  .comm-card-tg { box-shadow:0 0 60px rgba(38,165,228,.1); border-color:rgba(38,165,228,.2); }
+  .comm-card-tg:hover { box-shadow:0 0 80px rgba(38,165,228,.2); }
+
+  .comm-card-header {
+    padding:32px 28px 24px;
+    display:flex; align-items:flex-start; gap:18px;
+  }
+  .comm-icon {
+    width:60px; height:60px; border-radius:16px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.6rem;
+  }
+  .comm-icon-discord { background:rgba(88,101,242,.18); }
+  .comm-icon-tg      { background:rgba(38,165,228,.15); }
+  .comm-title { font-size:1.4rem; font-weight:900; margin-bottom:4px; }
+  .comm-handle { font-size:0.8rem; color:var(--muted); }
+  .comm-members { font-size:0.82rem; font-weight:700; margin-top:6px; }
+  .comm-members span { font-size:1rem; }
+
+  .comm-card-features { padding:0 28px 24px; }
+  .comm-feature { display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; }
+  .comm-feature-icon { font-size:0.95rem; flex-shrink:0; margin-top:2px; }
+  .comm-feature-text { font-size:0.86rem; color:var(--muted); line-height:1.5; }
+  .comm-feature-text strong { color:var(--text); }
+
+  .comm-card-cta { padding:0 28px 28px; }
+  .cta-discord {
+    display:block; width:100%; text-align:center; text-decoration:none;
+    background:var(--discord); color:#fff;
+    padding:14px; border-radius:12px; font-weight:800; font-size:0.95rem;
+    transition:filter .15s, transform .15s;
+  }
+  .cta-discord:hover { filter:brightness(1.15); transform:translateY(-1px); }
+  .cta-tg {
+    display:block; width:100%; text-align:center; text-decoration:none;
+    background:var(--tg); color:#fff;
+    padding:14px; border-radius:12px; font-weight:800; font-size:0.95rem;
+    transition:filter .15s, transform .15s;
+  }
+  .cta-tg:hover { filter:brightness(1.12); transform:translateY(-1px); }
+  .cta-note { font-size:0.72rem; color:var(--muted); text-align:center; margin-top:8px; }
+
+  /* LIVE CHAT PREVIEW */
+  .chat-preview-section { margin-bottom:64px; }
+  .section-label { font-size:0.7rem; font-weight:700; letter-spacing:2px;
+    text-transform:uppercase; margin-bottom:8px; }
+  .section-label.cyan { color:var(--accent); }
+  .section-label.discord-col { color:var(--discord); }
+  .section-title { font-size:clamp(1.4rem,3vw,2rem); font-weight:900; letter-spacing:-0.5px; margin-bottom:8px; }
+  .section-sub  { font-size:0.92rem; color:var(--muted); line-height:1.7; margin-bottom:36px; }
+
+  .chat-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+  @media(max-width:700px){ .chat-grid { grid-template-columns:1fr; } }
+
+  .chat-box {
+    background:var(--card); border:1px solid var(--border); border-radius:18px; overflow:hidden;
+  }
+  .chat-box-header {
+    padding:14px 18px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px; font-size:0.82rem; font-weight:700;
+  }
+  .chat-channel-icon { font-size:1rem; }
+  .chat-online { margin-left:auto; font-size:0.72rem; color:var(--green);
+    display:flex; align-items:center; gap:4px; }
+  .online-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .chat-feed { padding:12px 0; }
+  .chat-msg { padding:7px 16px; display:flex; gap:10px; align-items:flex-start; }
+  .chat-avatar { width:28px; height:28px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; }
+  .chat-right { flex:1; min-width:0; }
+  .chat-name { font-size:0.72rem; font-weight:700; margin-bottom:2px; }
+  .chat-text { font-size:0.82rem; color:#c9d1d9; line-height:1.5; }
+  .chat-text .green  { color:var(--green); font-weight:700; }
+  .chat-text .yellow { color:var(--yellow); }
+  .chat-text .accent { color:var(--accent); }
+  .chat-text .pink   { color:var(--pink); }
+  .chat-time { font-size:0.65rem; color:var(--muted); }
+  .chat-new { background:rgba(0,255,136,.06); }
+  .chat-new-badge {
+    margin:0 16px 4px; display:inline-flex; align-items:center; gap:6px;
+    font-size:0.65rem; color:var(--green); font-weight:700;
+  }
+
+  /* CHANNELS LIST */
+  .channels-list { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:0; overflow:hidden; }
+  .channel-item {
+    display:flex; align-items:center; gap:12px; padding:14px 18px;
+    border-bottom:1px solid rgba(255,255,255,.04); font-size:0.85rem;
+    transition:background .1s;
+  }
+  .channel-item:last-child { border-bottom:none; }
+  .channel-item:hover { background:rgba(255,255,255,.03); }
+  .channel-hash { color:var(--muted); font-size:1rem; flex-shrink:0; width:20px; }
+  .channel-name { font-weight:600; flex:1; }
+  .channel-desc { font-size:0.75rem; color:var(--muted); }
+  .channel-badge { font-size:0.68rem; background:rgba(0,255,136,.1); color:var(--green);
+    padding:2px 8px; border-radius:4px; font-weight:700; }
+  .channel-badge.hot { background:rgba(255,45,126,.12); color:var(--pink); }
+
+  /* TESTIMONIALS */
+  .testimonials-section { margin-bottom:64px; }
+  .testi-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  @media(max-width:800px){ .testi-grid { grid-template-columns:1fr 1fr; } }
+  @media(max-width:500px){ .testi-grid { grid-template-columns:1fr; } }
+  .testi-card {
+    background:var(--card); border:1px solid var(--border); border-radius:16px; padding:22px;
+    position:relative;
+  }
+  .testi-quote { font-size:1.8rem; line-height:1; color:var(--accent); margin-bottom:10px; opacity:.5; }
+  .testi-text { font-size:0.88rem; color:#c9d1d9; line-height:1.7; margin-bottom:18px; }
+  .testi-author { display:flex; align-items:center; gap:10px; }
+  .testi-avatar { width:34px; height:34px; border-radius:50%; font-size:0.8rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .testi-name  { font-size:0.82rem; font-weight:700; }
+  .testi-meta  { font-size:0.72rem; color:var(--muted); margin-top:2px; }
+  .testi-stars { color:var(--yellow); font-size:0.75rem; margin-bottom:10px; }
+
+  /* RULES */
+  .rules-section { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:36px; margin-bottom:48px; }
+  .rules-title { font-size:1.1rem; font-weight:800; margin-bottom:20px; }
+  .rule-item { display:flex; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:0.88rem; }
+  .rule-item:last-child { border-bottom:none; }
+  .rule-num { color:var(--accent); font-weight:800; font-size:1rem; flex-shrink:0; width:24px; }
+  .rule-text { color:#c9d1d9; line-height:1.6; }
+  .rule-text strong { color:var(--text); }
+
+  /* STICKY JOIN BAR */
+  .join-bar {
+    position:fixed; bottom:0; left:0; right:0; z-index:50;
+    background:rgba(10,10,15,.95); backdrop-filter:blur(16px);
+    border-top:1px solid var(--border);
+    padding:14px 5vw;
+    display:flex; align-items:center; justify-content:space-between; gap:20px;
+    flex-wrap:wrap;
+  }
+  .join-bar-text { font-size:0.88rem; color:var(--muted); }
+  .join-bar-text strong { color:var(--text); }
+  .join-bar-btns { display:flex; gap:10px; }
+  .jb-discord { background:var(--discord); color:#fff; text-decoration:none;
+    padding:10px 22px; border-radius:50px; font-weight:700; font-size:0.85rem;
+    transition:filter .15s; }
+  .jb-discord:hover { filter:brightness(1.15); }
+  .jb-tg { background:var(--tg); color:#fff; text-decoration:none;
+    padding:10px 22px; border-radius:50px; font-weight:700; font-size:0.85rem;
+    transition:filter .15s; }
+  .jb-tg:hover { filter:brightness(1.12); }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="course.html" class="logo">CopyTrade Pro</a>
+  <div class="nav-links">
+    <a href="course.html">Home</a>
+    <a href="leaderboard.html">Leaderboard</a>
+    <a href="blog.html">Blog</a>
+    <a href="community.html" class="active">Community</a>
+    <a href="members.html">My Course</a>
+  </div>
+  <a href="course.html#pricing" class="nav-cta">Get Access →</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-label">Free to join for students</div>
+  <h1 class="hero-title">2,400+ traders.<br>One community.</h1>
+  <p class="hero-sub">Share results, ask questions, get signal alerts, and stay connected with the people who are actually running the bot. Both platforms. Same community.</p>
+  <div class="hero-stats">
+    <div class="hs"><div class="hs-val" style="color:var(--discord)">2,147</div><div class="hs-label">Discord members</div></div>
+    <div class="hs"><div class="hs-val" style="color:var(--tg)">891</div><div class="hs-label">Telegram group</div></div>
+    <div class="hs"><div class="hs-val" style="color:var(--green)">183</div><div class="hs-label">Active today</div></div>
+    <div class="hs"><div class="hs-val" style="color:var(--yellow)">4.9★</div><div class="hs-label">Avg rating</div></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- JOIN CARDS -->
+  <div class="community-grid">
+
+    <!-- DISCORD -->
+    <div class="comm-card comm-card-discord">
+      <div class="comm-card-header">
+        <div class="comm-icon comm-icon-discord">
+          <svg width="30" height="30" viewBox="0 0 71 55" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g clip-path="url(#clip0)">
+              <path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.44077 45.4204 0.52529C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.52529C25.5141 0.44359 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978ZM23.7259 37.3253C20.2276 37.3253 17.3451 34.1136 17.3451 30.1693C17.3451 26.225 20.1717 23.0133 23.7259 23.0133C27.308 23.0133 30.1626 26.2532 30.1066 30.1693C30.1066 34.1136 27.28 37.3253 23.7259 37.3253ZM47.3178 37.3253C43.8196 37.3253 40.9371 34.1136 40.9371 30.1693C40.9371 26.225 43.7636 23.0133 47.3178 23.0133C50.9 23.0133 53.7545 26.2532 53.6986 30.1693C53.6986 34.1136 50.9 37.3253 47.3178 37.3253Z" fill="#5865F2"/>
+            </g>
+          </svg>
+        </div>
+        <div>
+          <div class="comm-title">Discord Server</div>
+          <div class="comm-handle">discord.gg/copytradepro</div>
+          <div class="comm-members" style="color:var(--discord)">
+            <span>2,147</span> members · 183 online now
+          </div>
+        </div>
+      </div>
+      <div class="comm-card-features">
+        <div class="comm-feature"><div class="comm-feature-icon">📊</div><div class="comm-feature-text"><strong>#results</strong> — post your bot P&L, share log screenshots, celebrate wins</div></div>
+        <div class="comm-feature"><div class="comm-feature-icon">🔔</div><div class="comm-feature-text"><strong>#signals-live</strong> — real-time signal alerts from the tracked wallet system</div></div>
+        <div class="comm-feature"><div class="comm-feature-icon">🆘</div><div class="comm-feature-text"><strong>#support</strong> — setup issues, bot errors, .env questions — community + me</div></div>
+        <div class="comm-feature"><div class="comm-feature-icon">📰</div><div class="comm-feature-text"><strong>#market-news</strong> — breaking geopolitical news relevant to open markets</div></div>
+        <div class="comm-feature"><div class="comm-feature-icon">🧠</div><div class="comm-feature-text"><strong>#strategy</strong> — wallet scoring ideas, setting tweaks, advanced discussion</div></div>
+      </div>
+      <div class="comm-card-cta">
+        <a href="#" class="cta-discord">Join Discord Server →</a>
+        <div class="cta-note">Free for all CopyTrade Pro students · Invite link in your purchase email</div>
+      </div>
+    </div>
+
+    <!-- TELEGRAM -->
+    <div class="comm-card comm-card-tg">
+      <div class="comm-card-header">
+        <div class="comm-icon comm-icon-tg">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.038 9.589c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.901.632z" fill="#26A5E4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="comm-title">Telegram Group</div>
+          <div class="comm-handle">t.me/copytradepro</div>
+          <div class="comm-members" style="color:var(--tg)">
+            <span>891</span> members · 47 online now
+          </div>
+        </div>
+      </div>
+      <div class="comm-card-features">
+        <div class="comm-feature"><div class="comm-feature-icon">⚡</div><div class="comm-feature-text"><strong>Faster for quick wins</strong> — most people share quick P&L screenshots and daily check-ins here</div></div>
+        <div class="comm-feature"><div class="comm-feature-icon">🔔</div><div class="comm-feature-text"><strong>Signal alerts</strong> — same alert feed as Discord, for people who prefer Telegram</div></div>
+        <div class="comm-feature"><div class="comm-feature-icon">📱</div><div class="comm-feature-text"><strong>Mobile-first</strong> — great if you already use Telegram and don't want another app</div></div>
+        <div class="comm-feature"><div class="comm-feature-icon">🤖</div><div class="comm-feature-text"><strong>Your personal bot</strong> — separate from this group. Your own private bot is set up in Module 7</div></div>
+        <div class="comm-feature"><div class="comm-feature-icon">💬</div><div class="comm-feature-text"><strong>Direct access</strong> — I check this group daily and reply to questions personally</div></div>
+      </div>
+      <div class="comm-card-cta">
+        <a href="#" class="cta-tg">Join Telegram Group →</a>
+        <div class="cta-note">Free for all students · Link in your purchase email and members area</div>
+      </div>
+    </div>
+
+  </div><!-- /community-grid -->
+
+  <!-- LIVE CHAT PREVIEWS -->
+  <div class="chat-preview-section">
+    <div class="section-label discord-col">Live activity</div>
+    <h2 class="section-title">What the community looks like</h2>
+    <p class="section-sub">These are real-style messages from the Discord and Telegram feeds. Names changed for privacy.</p>
+
+    <div class="chat-grid">
+
+      <!-- DISCORD PREVIEW -->
+      <div class="chat-box">
+        <div class="chat-box-header">
+          <span class="chat-channel-icon">#</span>
+          <span>results</span>
+          <div class="chat-online"><span class="online-dot"></span> 47 online</div>
+        </div>
+        <div class="chat-feed">
+          <div class="chat-msg">
+            <div class="chat-avatar" style="background:rgba(88,101,242,.2);color:var(--discord)">A</div>
+            <div class="chat-right">
+              <div class="chat-name" style="color:var(--discord)">alex_m <span class="chat-time">Today at 11:32</span></div>
+              <div class="chat-text">bot just closed Ukraine YES position — <span class="green">+$33.40 (+224%)</span> 🎉 held 11 days</div>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <div class="chat-avatar" style="background:rgba(0,255,136,.15);color:var(--green)">S</div>
+            <div class="chat-right">
+              <div class="chat-name" style="color:var(--green)">sarah_k <span class="chat-time">Today at 11:34</span></div>
+              <div class="chat-text">congrats!! same market here — <span class="green">+$18.20</span> on $8 entry. the wallet score system is insane</div>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <div class="chat-avatar" style="background:rgba(255,214,10,.12);color:var(--yellow)">J</div>
+            <div class="chat-right">
+              <div class="chat-name" style="color:var(--yellow)">jake_r <span class="chat-time">Today at 11:41</span></div>
+              <div class="chat-text">week 2 for me. still in paper mode but the signal accuracy is giving me confidence. switching to live this weekend</div>
+            </div>
+          </div>
+          <div class="chat-new-badge">
+            <span class="online-dot"></span> New
+          </div>
+          <div class="chat-msg chat-new">
+            <div class="chat-avatar" style="background:rgba(255,45,126,.15);color:var(--pink)">P</div>
+            <div class="chat-right">
+              <div class="chat-name" style="color:var(--pink)">priya_n <span class="chat-time">Today at 12:03</span></div>
+              <div class="chat-text">VPS running 24/7 caught a signal at 3am my time — <span class="green">+$22</span> position I would have slept through 🤣 Module 7 is essential</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TELEGRAM PREVIEW -->
+      <div class="chat-box">
+        <div class="chat-box-header">
+          <span class="chat-channel-icon">💬</span>
+          <span>CopyTrade Pro Group</span>
+          <div class="chat-online"><span class="online-dot"></span> 47 typing</div>
+        </div>
+        <div class="chat-feed">
+          <div class="chat-msg">
+            <div class="chat-avatar" style="background:rgba(38,165,228,.15);color:var(--tg)">M</div>
+            <div class="chat-right">
+              <div class="chat-name" style="color:var(--tg)">Marcus T. <span class="chat-time">12:14</span></div>
+              <div class="chat-text">January results: <span class="green">+$481</span> on $500. March going to $700 budget. thank you 🙏</div>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <div class="chat-avatar" style="background:rgba(168,85,247,.15);color:var(--purple)">R</div>
+            <div class="chat-right">
+              <div class="chat-name" style="color:var(--purple)">ryan_btc <span class="chat-time">12:17</span></div>
+              <div class="chat-text">quick q — what MIN_COPY_WALLETS do people use for the BTC markets? running 3 rn but getting fewer signals than war mode</div>
+            </div>
+          </div>
+          <div class="chat-msg">
+            <div class="chat-avatar" style="background:rgba(0,245,255,.1);color:var(--accent)">👤</div>
+            <div class="chat-right">
+              <div class="chat-name" style="color:var(--accent)">You (admin) <span class="chat-time">12:19</span></div>
+              <div class="chat-text">try <span class="accent">MIN_COPY_WALLETS=2</span> for BTC — the crypto wallet cohort is smaller so fewer will ever agree on 3. signal quality is still good at 2 for that mode</div>
+            </div>
+          </div>
+          <div class="chat-new-badge">
+            <span class="online-dot"></span> New
+          </div>
+          <div class="chat-msg chat-new">
+            <div class="chat-avatar" style="background:rgba(255,214,10,.12);color:var(--yellow)">L</div>
+            <div class="chat-right">
+              <div class="chat-name" style="color:var(--yellow)">lena_d <span class="chat-time">12:28</span></div>
+              <div class="chat-text">day 3 live mode. <span class="green">+$14.80</span> so far. paper was so worth it, I feel way more relaxed watching it trade for real now</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CHANNELS LIST -->
+  <div style="margin-bottom:64px;">
+    <div class="section-label discord-col">Discord channels</div>
+    <h2 class="section-title">What's inside the server</h2>
+    <p class="section-sub">12 channels organized by topic. Everything from beginner setup questions to advanced wallet analysis.</p>
+
+    <div class="channels-list">
+      <div class="channel-item"><div class="channel-hash">#</div><div><div class="channel-name">welcome</div><div class="channel-desc">Start here — rules, intro guide, and your first steps</div></div></div>
+      <div class="channel-item"><div class="channel-hash">#</div><div><div class="channel-name">signals-live</div><div class="channel-desc">Real-time copy trade signals from tracked wallets</div></div><span class="channel-badge hot">🔥 Hot</span></div>
+      <div class="channel-item"><div class="channel-hash">#</div><div><div class="channel-name">results</div><div class="channel-desc">Post your P&L, bot screenshots, closed positions</div></div><span class="channel-badge hot">Most active</span></div>
+      <div class="channel-item"><div class="channel-hash">#</div><div><div class="channel-name">setup-help</div><div class="channel-desc">Installation issues, .env questions, VPS setup</div></div></div>
+      <div class="channel-item"><div class="channel-hash">#</div><div><div class="channel-name">market-news</div><div class="channel-desc">Breaking news relevant to open Polymarket positions</div></div></div>
+      <div class="channel-item"><div class="channel-hash">#</div><div><div class="channel-name">strategy</div><div class="channel-desc">Wallet scoring, Kelly tweaks, advanced discussion</div></div></div>
+      <div class="channel-item"><div class="channel-hash">#</div><div><div class="channel-name">wallet-analysis</div><div class="channel-desc">Deep dives into individual tracked wallet behaviour</div></div><span class="channel-badge">Pro+ only</span></div>
+      <div class="channel-item"><div class="channel-hash">#</div><div><div class="channel-name">weekly-analysis</div><div class="channel-desc">My Sunday market breakdown (same as the blog)</div></div></div>
+      <div class="channel-item"><div class="channel-hash">#</div><div><div class="channel-name">off-topic</div><div class="channel-desc">Anything goes — crypto, markets, memes</div></div></div>
+    </div>
+  </div>
+
+  <!-- TESTIMONIALS -->
+  <div class="testimonials-section">
+    <div class="section-label cyan">From the community</div>
+    <h2 class="section-title">What students say</h2>
+
+    <div class="testi-grid">
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"</div>
+        <p class="testi-text">The Discord is genuinely the best part. People post their results every day, you can see it's real, and the signal channel saved me from missing a big trade while I was at work.</p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:rgba(0,255,136,.15);color:var(--green)">S</div>
+          <div><div class="testi-name">Sarah K.</div><div class="testi-meta">Pro + Bot · Feb 2026</div></div>
+        </div>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"</div>
+        <p class="testi-text">Asked a setup question in the support channel at 11pm. Got a response within 20 minutes. The community responds faster than most paid support teams.</p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:rgba(38,165,228,.15);color:var(--tg)">J</div>
+          <div><div class="testi-name">Jake R.</div><div class="testi-meta">Pro + Bot · Jan 2026</div></div>
+        </div>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"</div>
+        <p class="testi-text">I was skeptical about another "trading community" but this one is different. People actually share real log files and talk about losses too. No one is pretending everything is perfect.</p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:rgba(255,214,10,.12);color:var(--yellow)">M</div>
+          <div><div class="testi-name">Marcus T.</div><div class="testi-meta">Pro + Bot · Dec 2025</div></div>
+        </div>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"</div>
+        <p class="testi-text">The #wallet-analysis channel (Pro+ only) is worth the upgrade price alone. Students go deep on individual wallets every week. I've learned more there than in most paid courses.</p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:rgba(168,85,247,.15);color:var(--purple)">A</div>
+          <div><div class="testi-name">Alex M.</div><div class="testi-meta">Private Elite · Nov 2025</div></div>
+        </div>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"</div>
+        <p class="testi-text">I joined the Telegram group because I already live in it. It's great for quick questions and daily check-ins. The admin is active every single day.</p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:rgba(255,45,126,.12);color:var(--pink)">P</div>
+          <div><div class="testi-name">Priya N.</div><div class="testi-meta">Pro + Bot · Jan 2026</div></div>
+        </div>
+      </div>
+
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"</div>
+        <p class="testi-text">Watching others post results in real time gave me the confidence to go live after paper mode. Seeing it work for 20 other people before you try it yourself is underrated.</p>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:rgba(0,245,255,.1);color:var(--accent)">L</div>
+          <div><div class="testi-name">Lena D.</div><div class="testi-meta">Starter · Feb 2026</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RULES -->
+  <div class="rules-section">
+    <div class="rules-title">📋 Community rules</div>
+    <div class="rule-item"><div class="rule-num">1</div><div class="rule-text"><strong>Share real results.</strong> Post actual log screenshots if you're claiming P&L. No fake numbers. We verify when it seems off.</div></div>
+    <div class="rule-item"><div class="rule-num">2</div><div class="rule-text"><strong>No financial advice.</strong> Share your experience, not instructions. "Here's what I did" not "you should do this." We're all responsible for our own trades.</div></div>
+    <div class="rule-item"><div class="rule-num">3</div><div class="rule-text"><strong>No shill posts.</strong> Promoting other courses, bots, signals services, or anything you personally profit from will get you banned immediately.</div></div>
+    <div class="rule-item"><div class="rule-num">4</div><div class="rule-text"><strong>Keep it on topic.</strong> Off-topic goes in #off-topic. Market discussion in #market-news. Bot questions in #setup-help. It keeps things usable.</div></div>
+    <div class="rule-item"><div class="rule-num">5</div><div class="rule-text"><strong>Never share private keys.</strong> Not in any channel. Not in DMs. If you see anyone asking for private keys, report it immediately — it's a scam.</div></div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- STICKY JOIN BAR -->
+<div class="join-bar">
+  <div class="join-bar-text">
+    <strong>2,400+ traders</strong> in the community. Free for CopyTrade Pro students.
+  </div>
+  <div class="join-bar-btns">
+    <a href="#" class="jb-discord">Join Discord</a>
+    <a href="#" class="jb-tg">Join Telegram</a>
+  </div>
+</div>
+
+</body>
+</html>
