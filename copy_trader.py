@@ -84,9 +84,9 @@ SLIPPAGE      = float(os.getenv('SLIPPAGE', '0.02'))          # max acceptable s
 
 DATA_FILE = {
     'war': 'data/war_data.json',
-    'btc': 'data/crypto_data.json',
-    'eth': 'data/crypto_data.json',
-    'sol': 'data/crypto_data.json',
+    'btc': 'data/crypto_wallets.json',
+    'eth': 'data/crypto_wallets.json',
+    'sol': 'data/crypto_wallets.json',
 }.get(MODE, 'data/war_data.json')
 
 CHAIN_ID = 137   # Polygon mainnet
@@ -184,16 +184,29 @@ def load_tracked_wallets():
             if r.get('address') and r.get('net_pnl', 0) > 0
         ]
     else:
-        # Crypto mode — use wallets from the relevant coin
+        # Crypto mode — load from crypto_wallets.json (written by wallet_scout.py)
         coin = MODE.upper()
         coin_data = data.get('coins', {}).get(coin, {})
-        rows = coin_data.get('mp_wallets') or coin_data.get('top50') or []
+        rows = coin_data.get('top_wallets') or []
+
+        # Fallback: if wallet_scout.py hasn't run yet, try legacy crypto_data.json keys
+        if not rows:
+            rows = coin_data.get('mp_wallets') or coin_data.get('top50') or []
+
+        if not rows:
+            log.warning(
+                f'No wallets found for {coin} in {DATA_FILE}. '
+                f'Run:  python wallet_scout.py --coin {coin}'
+            )
+            return []
+
+        log.info(f'Loaded {len(rows)} {coin} wallets from {DATA_FILE}')
         return [
             {
                 'address':      r.get('address', '').lower(),
                 'win_rate':     r.get('win_rate', 0),
                 'net_pnl':      r.get('net_pnl', 0),
-                'period_score': r.get('period_score', 0),
+                'period_score': r.get('score', r.get('period_score', 0)),
             }
             for r in rows
             if r.get('address') and r.get('net_pnl', 0) > 0
@@ -214,7 +227,8 @@ def load_tracked_markets():
         mkts = data.get('markets', [])
     else:
         coin = MODE.upper()
-        mkts = data.get('coins', {}).get(coin, {}).get('markets', [])
+        coin_data = data.get('coins', {}).get(coin, {})
+        mkts = coin_data.get('markets', [])
 
     result = {}
     for m in mkts:
