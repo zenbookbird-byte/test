@@ -33,6 +33,13 @@ import os, json, time, logging, sys, math, requests
 from datetime import datetime, timezone
 from collections import defaultdict
 
+# Optional Telegram notifier — silently disabled if not configured
+try:
+    import notifier as _tg
+    _TG = True
+except ImportError:
+    _TG = False
+
 # ─────────────────────────────────────────────────────────────
 #  Logging
 # ─────────────────────────────────────────────────────────────
@@ -478,6 +485,8 @@ class CopyTrader:
             f'COPY SIGNAL  BUY  {len(buyers)} wallets agree  '
             f'price={price:.3f}  size=${usdc:.2f}  ──  {title[:50]}'
         )
+        if _TG:
+            _tg.notify_signal(title, len(buyers), price, usdc)
         ok = place_buy(market_id, title, price, usdc)
         if ok:
             shares = round(usdc / price, 2)
@@ -487,6 +496,9 @@ class CopyTrader:
                 'price':  price,
                 'title':  title,
             }
+            if _TG:
+                _tg.notify_buy(title, price, usdc, PAPER_TRADE)
+                _tg.record_buy(market_id, title, price, usdc, shares)
             # Reset votes after acting
             self.buy_votes[market_id].clear()
 
@@ -512,6 +524,9 @@ class CopyTrader:
                 f'Position closed  |  cost=${pos["cost"]:.2f}'
                 f'  pnl={"+$" if pnl>=0 else "-$"}{abs(pnl):.2f}  ──  {title[:40]}'
             )
+            if _TG:
+                _tg.notify_sell(title, pos['cost'], pnl, PAPER_TRADE)
+                _tg.record_sell(market_id, pnl)
             del self.our_positions[market_id]
             self.sell_votes[market_id].clear()
 
@@ -547,6 +562,13 @@ class CopyTrader:
                 # Reload config every 10 cycles (~2-3 min) to pick up new wallets/markets
                 if cycle % 10 == 0:
                     self.reload_config()
+
+                # Check if paused via Telegram
+                if _TG and _tg.is_paused():
+                    if cycle % 20 == 0:
+                        log.info('Bot is PAUSED via Telegram — skipping signal checks')
+                    time.sleep(POLL_SECS)
+                    continue
 
                 if self.tracked_wallets and self.tracked_markets:
                     trades = poll_trades(
@@ -593,5 +615,8 @@ if __name__ == '__main__':
         sys.exit(0)
 
     init_clob()
+    if _TG:
+        _tg.init(PAPER_TRADE, MODE, BUDGET_USDC)
+        _tg.notify_start(PAPER_TRADE, MODE, BUDGET_USDC)
     bot = CopyTrader()
     bot.run()
