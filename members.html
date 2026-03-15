@@ -367,6 +367,26 @@
   .cp-cta-discord { background:#5865f2; }
   .cp-cta-tg      { background:#26a5e4; }
   .cp-invite-note { font-size:0.72rem; color:var(--muted); text-align:center; margin-bottom:20px; }
+
+  /* bot status dashboard */
+  .bsd-stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+  @media(max-width:600px){ .bsd-stat-row { grid-template-columns:1fr 1fr; } }
+  .bsd-stat-card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 16px; text-align:center; }
+  .bsd-stat-val  { font-size:1.55rem; font-weight:900; color:var(--text); }
+  .bsd-stat-label{ font-size:0.68rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-top:5px; }
+  .bsd-pill { display:inline-flex; align-items:center; gap:5px;
+    background:rgba(255,255,255,.05); border:1px solid var(--border);
+    border-radius:99px; padding:5px 13px; font-size:0.78rem; color:var(--muted); }
+  .bsd-section-head { font-size:0.72rem; font-weight:700; letter-spacing:2px;
+    text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .bsd-table { width:100%; border-collapse:collapse; font-size:0.84rem; }
+  .bsd-table th { font-size:0.68rem; font-weight:700; letter-spacing:1.5px;
+    text-transform:uppercase; color:var(--muted); padding:8px 10px; text-align:left;
+    border-bottom:1px solid var(--border); }
+  .bsd-table td { padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.04);
+    color:#c9d1d9; }
+  .bsd-table tr:last-child td { border-bottom:none; }
+  .bsd-table tr:hover td { background:rgba(255,255,255,.02); }
 </style>
 </head>
 <body>
@@ -1053,6 +1073,178 @@ const COMMUNITY_HTML = `
   </div>
 `;
 
+/* ════════════════════════════════════════════
+   BOT STATUS DASHBOARD HTML
+════════════════════════════════════════════ */
+const BOT_STATUS_HTML = `
+<div id="bsd-wrap">
+  <div style="font-size:.7rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Live data</div>
+  <h1 style="font-size:clamp(1.4rem,3vw,2rem);font-weight:900;letter-spacing:-.5px;margin-bottom:6px;">Bot Status &amp; P&amp;L</h1>
+  <p id="bsd-source" style="font-size:.82rem;color:var(--muted);margin-bottom:28px;">Connecting to bot…</p>
+
+  <!-- stat row -->
+  <div class="bsd-stat-row">
+    <div class="bsd-stat-card">
+      <div class="bsd-stat-val green" id="bsd-pnl">+$0.00</div>
+      <div class="bsd-stat-label">Today's P&amp;L</div>
+    </div>
+    <div class="bsd-stat-card">
+      <div class="bsd-stat-val" id="bsd-wins">0</div>
+      <div class="bsd-stat-label">Wins</div>
+    </div>
+    <div class="bsd-stat-card">
+      <div class="bsd-stat-val pink" id="bsd-losses">0</div>
+      <div class="bsd-stat-label">Losses</div>
+    </div>
+    <div class="bsd-stat-card">
+      <div class="bsd-stat-val yellow" id="bsd-open">0</div>
+      <div class="bsd-stat-label">Open Positions</div>
+    </div>
+  </div>
+
+  <!-- status pill row -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px;">
+    <div class="bsd-pill" id="bsd-mode-pill">Mode: —</div>
+    <div class="bsd-pill" id="bsd-paper-pill">—</div>
+    <div class="bsd-pill" id="bsd-paused-pill" style="display:none;background:rgba(239,68,68,.15);color:#ef4444;">⏸ Paused</div>
+    <div class="bsd-pill" id="bsd-uptime-pill">Uptime: —</div>
+  </div>
+
+  <!-- open positions table -->
+  <div class="bsd-section-head">Open Positions</div>
+  <div id="bsd-positions-wrap">
+    <div style="color:var(--muted);font-size:.85rem;padding:16px 0;">No open positions</div>
+  </div>
+
+  <!-- recent trades -->
+  <div class="bsd-section-head" style="margin-top:28px;">Recent Closed Trades</div>
+  <div id="bsd-trades-wrap">
+    <div style="color:var(--muted);font-size:.85rem;padding:16px 0;">No closed trades yet</div>
+  </div>
+
+  <p style="font-size:.75rem;color:var(--muted);margin-top:24px;">
+    Data sourced from <code style="background:rgba(0,245,255,.08);padding:1px 6px;border-radius:4px;color:var(--accent)">bot_state.json</code>
+    via <code style="background:rgba(0,245,255,.08);padding:1px 6px;border-radius:4px;color:var(--accent)">server.py</code>.
+    Refreshes every 5 seconds. Run <code style="background:rgba(0,245,255,.08);padding:1px 6px;border-radius:4px;color:var(--accent)">python server.py</code> on your VPS to enable live data.
+  </p>
+</div>
+`;
+
+/* ════════════════════════════════
+   BOT STATUS POLLING
+════════════════════════════════ */
+let _botPollTimer = null;
+
+function startBotStatusPolling() {
+  if (_botPollTimer) { clearTimeout(_botPollTimer); _botPollTimer = null; }
+  _pollBotState();
+}
+
+async function _pollBotState() {
+  const srcEl = document.getElementById('bsd-source');
+  if (!srcEl) return; // navigated away
+
+  try {
+    const res = await fetch('/state', { cache: 'no-store' });
+    if (!res.ok) throw new Error('non-200');
+    const s = await res.json();
+    if (s.error) throw new Error(s.error);
+
+    // status label
+    if (srcEl) srcEl.innerHTML = '<span style="color:var(--green)">● Live</span> — bot data, refreshing every 5s';
+
+    // nav dot
+    const dot = document.getElementById('bot-nav-dot');
+    if (dot) { dot.style.background = 'var(--green)'; dot.style.animation = 'pulse 1s infinite'; }
+
+    // P&L / stat row
+    const pnl = s.today_pnl ?? 0;
+    const pnlEl = document.getElementById('bsd-pnl');
+    if (pnlEl) {
+      pnlEl.textContent = (pnl >= 0 ? '+$' : '-$') + Math.abs(pnl).toFixed(2);
+      pnlEl.style.color = pnl >= 0 ? 'var(--green)' : '#ef4444';
+    }
+    _setText('bsd-wins',   s.wins   ?? 0);
+    _setText('bsd-losses', s.losses ?? 0);
+    const positions = s.positions ?? {};
+    _setText('bsd-open', Object.keys(positions).length);
+
+    // pill row
+    _setText('bsd-mode-pill',  'Mode: ' + (s.mode ?? '—').toUpperCase());
+    const paperPill = document.getElementById('bsd-paper-pill');
+    if (paperPill) {
+      paperPill.textContent = s.paper ? '📋 Paper mode' : '⚡ Live trading';
+      paperPill.style.background = s.paper ? 'rgba(255,214,10,.1)' : 'rgba(0,245,255,.1)';
+      paperPill.style.color = s.paper ? 'var(--yellow)' : 'var(--accent)';
+    }
+    const pausedPill = document.getElementById('bsd-paused-pill');
+    if (pausedPill) pausedPill.style.display = s.paused ? '' : 'none';
+    if (s.started_at) {
+      const ms = Date.now() - new Date(s.started_at + 'Z').getTime();
+      const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
+      _setText('bsd-uptime-pill', `Uptime: ${h}h ${m}m`);
+    }
+
+    // open positions table
+    const posWrap = document.getElementById('bsd-positions-wrap');
+    if (posWrap) {
+      const posEntries = Object.entries(positions);
+      if (posEntries.length === 0) {
+        posWrap.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:16px 0;">No open positions</div>';
+      } else {
+        posWrap.innerHTML = `
+          <table class="bsd-table">
+            <thead><tr><th>Market</th><th>Size</th><th>Price</th><th>Tokens</th><th>Opened</th></tr></thead>
+            <tbody>${posEntries.map(([, p]) => `
+              <tr>
+                <td>${(p.title ?? '—').slice(0, 60)}</td>
+                <td style="color:var(--pink)">$${(p.size ?? 0).toFixed(2)}</td>
+                <td>${p.price?.toFixed(3) ?? '—'}</td>
+                <td>${(p.tokens ?? 0).toFixed(1)}</td>
+                <td style="color:var(--muted)">${p.opened_at ? new Date(p.opened_at+'Z').toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>`;
+      }
+    }
+
+    // recent trades
+    const trades = s.last_trades ?? [];
+    const trWrap = document.getElementById('bsd-trades-wrap');
+    if (trWrap) {
+      if (trades.length === 0) {
+        trWrap.innerHTML = '<div style="color:var(--muted);font-size:.85rem;padding:16px 0;">No closed trades yet</div>';
+      } else {
+        trWrap.innerHTML = `
+          <table class="bsd-table">
+            <thead><tr><th>Market</th><th>P&amp;L</th><th>Time</th></tr></thead>
+            <tbody>${trades.map(t => {
+              const win = t.pnl >= 0;
+              return `<tr>
+                <td>${(t.title ?? '—').slice(0, 60)}</td>
+                <td style="color:${win ? 'var(--green)' : '#ef4444'};font-weight:700">${win ? '+' : ''}$${t.pnl?.toFixed(2) ?? 0}</td>
+                <td style="color:var(--muted)">${t.at ? new Date(t.at+'Z').toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+              </tr>`;
+            }).join('')}
+            </tbody>
+          </table>`;
+      }
+    }
+
+  } catch {
+    if (srcEl) srcEl.textContent = 'Bot offline — run python server.py on your VPS to see live data';
+    const dot = document.getElementById('bot-nav-dot');
+    if (dot) { dot.style.background = 'var(--muted)'; dot.style.animation = ''; }
+  }
+
+  _botPollTimer = setTimeout(_pollBotState, 5000);
+}
+
+function _setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
 /* ════════════════════════════════
    STATE
 ════════════════════════════════ */
@@ -1150,6 +1342,23 @@ function buildSidebar() {
     nav.appendChild(item);
   });
 
+  // ── Bot Status section ───────────────────────────
+  const divBot = document.createElement('div');
+  divBot.className = 'sidebar-section-divider';
+  divBot.textContent = 'Live Bot';
+  nav.appendChild(divBot);
+
+  const botItem = document.createElement('div');
+  const isBotCurrent = currentLessonId === 'bot-status';
+  botItem.className = 'lesson-nav-item' + (isBotCurrent ? ' active' : '');
+  botItem.innerHTML = `
+    <span class="lni-check" style="font-size:.85rem">📡</span>
+    <span style="flex:1">Bot Status &amp; P&amp;L</span>
+    <span id="bot-nav-dot" style="width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0"></span>
+  `;
+  botItem.onclick = () => loadLesson('bot-status');
+  nav.appendChild(botItem);
+
   // ── Community section ────────────────────────────
   const div2 = document.createElement('div');
   div2.className = 'sidebar-section-divider';
@@ -1172,6 +1381,19 @@ function buildSidebar() {
 ════════════════════════════════ */
 function loadLesson(id) {
   currentLessonId = id;
+  // stop any running bot-status poll when navigating away
+  if (id !== 'bot-status' && _botPollTimer) { clearTimeout(_botPollTimer); _botPollTimer = null; }
+
+  // ── Bot Status dashboard ─────────────────────────
+  if (id === 'bot-status') {
+    document.getElementById('topbar-bc').innerHTML = `<span>Live Bot · Status &amp; P&amp;L</span>`;
+    document.getElementById('btn-done').style.display = 'none';
+    document.getElementById('lesson-area').innerHTML = BOT_STATUS_HTML;
+    buildSidebar();
+    startBotStatusPolling();
+    window.scrollTo(0,0);
+    return;
+  }
 
   // ── Community page ──────────────────────────────
   if (id === 'community') {
