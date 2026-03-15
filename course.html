@@ -1888,8 +1888,8 @@
      ══════════════════════════════════════════════════════════════ */
 
   const STATE_URL = '/state';          // server.py endpoint
-  const POLL_MS   = 5000;             // poll interval when live
-  const SIM_MS    = [3000, 5000];     // sim interval range
+  const POLL_MS   = 15000;            // poll every 15s — matches bot's own cycle
+  const SIM_MS    = [3000, 5000];     // sim interval range (unchanged)
 
   const feed    = document.getElementById('trade-feed-body');
   const pnlEl   = document.getElementById('pnl-counter');

@@ -1237,7 +1237,7 @@ async function _pollBotState() {
     if (dot) { dot.style.background = 'var(--muted)'; dot.style.animation = ''; }
   }
 
-  _botPollTimer = setTimeout(_pollBotState, 5000);
+  _botPollTimer = setTimeout(_pollBotState, 15000);  // every 15s — matches bot cycle
 }
 
 function _setText(id, val) {
