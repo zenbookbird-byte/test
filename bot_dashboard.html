@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polymarket — Bot Dashboard</title>
+<style>
+/* ── Reset ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:         #080808;
+  --panel:      #0e0e0e;
+  --panel2:     #131313;
+  --border:     #1c1c1c;
+  --border2:    #282828;
+  --green:      #00ff6a;
+  --green-dim:  rgba(0,255,106,.1);
+  --green-glow: rgba(0,255,106,.3);
+  --red:        #ff3b3b;
+  --red-dim:    rgba(255,59,59,.12);
+  --yellow:     #ffd000;
+  --yellow-dim: rgba(255,208,0,.12);
+  --blue:       #38bdf8;
+  --text:       #efefef;
+  --muted:      #484848;
+  --muted2:     #252525;
+  --font:       'Inter', system-ui, -apple-system, sans-serif;
+  --mono:       'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── Page ─────────────────────────────────────────────────── */
+.page {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  padding: 14px 16px;
+  gap: 12px;
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ───────────────────────────────────────────────── */
+.hdr {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.logo {
+  font-size: 1.25rem; font-weight: 900; letter-spacing: -0.5px;
+  color: #fff; white-space: nowrap; flex-shrink: 0;
+}
+.logo em { color: var(--green); font-style: normal; }
+
+.tab-row { display: flex; gap: 6px; }
+.tab {
+  font-size: 0.65rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+  padding: 5px 13px; border-radius: 6px; cursor: pointer; user-select: none;
+  border: 1px solid var(--border2); color: var(--muted); background: transparent;
+  transition: all .12s;
+}
+.tab.active { background: var(--green-dim); color: var(--green); border-color: rgba(0,255,106,.25); }
+.tab.sm { padding: 4px 10px; font-size: 0.6rem; }
+.vline { width: 1px; height: 22px; background: var(--border2); align-self: center; }
+
+.hdr-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.bot-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.65rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 99px;
+  border: 1px solid var(--border2); color: var(--muted);
+}
+.bot-pill.live { color: var(--green); border-color: rgba(0,255,106,.25); background: var(--green-dim); }
+.bot-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.bot-dot.live { background: var(--green); box-shadow: 0 0 8px var(--green-glow); animation: pdot 2s infinite; }
+@keyframes pdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.55;transform:scale(1.4)} }
+.mode-badge {
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 4px 10px; border-radius: 5px;
+}
+.mode-badge.paper { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(255,208,0,.2); }
+.mode-badge.live  { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(0,255,106,.2); }
+
+/* ── MAIN GRID ─────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  grid-template-rows: auto auto 1fr;
+  gap: 12px;
+}
+@media(max-width:880px){ .grid { grid-template-columns: 1fr; } }
+
+/* ── PANEL BASE ────────────────────────────────────────────── */
+.panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden;
+}
+.ph {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.ptitle {
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text);
+}
+.psub { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+.phright { font-size: 0.6rem; color: var(--muted); }
+
+/* ── PULSE BOARD ───────────────────────────────────────────── */
+.pulse { grid-column: 1; grid-row: 1; }
+.pulse-body { padding: 18px 16px; }
+.pulse-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.pulse-row:last-child { margin-bottom: 0; }
+.cell-label {
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 5px;
+}
+.cell-val {
+  font-size: 1.85rem; font-weight: 900; letter-spacing: -1.5px; line-height: 1;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+.cell-val.g  { color: var(--green); }
+.cell-val.r  { color: var(--red); }
+.cell-val.sm { font-size: 1.35rem; }
+.cell-cap { font-size: 0.65rem; color: var(--muted); margin-top: 5px; }
+.cell-cap.g { color: var(--green); opacity: .75; }
+.hr { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* Win-rate gauge */
+.wr-row { display: flex; align-items: center; gap: 18px; }
+.gauge-wrap { position: relative; flex-shrink: 0; }
+.gauge-svg { display: block; transform: rotate(-90deg); }
+.gauge-inner {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.gauge-pct { font-size: 1rem; font-weight: 900; color: var(--green); letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.gauge-lbl { font-size: 0.5rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
+.wr-stats { display: flex; flex-direction: column; gap: 7px; }
+.wr-stat { display: flex; align-items: baseline; gap: 7px; }
+.wr-num { font-size: 1.4rem; font-weight: 900; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.wr-slbl { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+
+/* ── WINDOW TIMER ──────────────────────────────────────────── */
+.timer { grid-column: 1; grid-row: 2; }
+.timer-body {
+  padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.tbadge-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.tbadge {
+  font-size: 0.58rem; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 4px;
+}
+.tbadge.waiting  { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(255,208,0,.2); }
+.tbadge.scanning { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(0,255,106,.2);
+  animation: sblink .8s ease-in-out infinite alternate; }
+.tbadge.paused   { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,59,59,.2); }
+@keyframes sblink { from{opacity:1} to{opacity:.4} }
+.twmode { font-size: 0.6rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; }
+.tdigits {
+  font-size: 3.4rem; font-weight: 900; letter-spacing: -3px; color: var(--text);
+  font-variant-numeric: tabular-nums; font-family: var(--mono); line-height: 1;
+}
+.tcap  { font-size: 0.65rem; color: var(--muted); text-align: center; }
+.tsync { font-size: 0.65rem; font-weight: 700; color: var(--green); display: flex; align-items: center; gap: 4px; opacity: .8; }
+
+/* ── MARKET CANVAS ─────────────────────────────────────────── */
+.market { grid-column: 2; grid-row: 1 / span 3; display: flex; flex-direction: column; }
+@media(max-width:880px){ .market { grid-column: 1; grid-row: auto; } }
+.market-scroll { flex: 1; overflow-y: auto; }
+
+.coin-card {
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+  transition: background .1s; position: relative;
+  border-left: 3px solid transparent;
+}
+.coin-card:hover { background: rgba(255,255,255,.012); }
+.coin-card.has-pos { border-left-color: var(--green); }
+.coin-card:last-child { border-bottom: none; }
+
+.cc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.cc-sym  { font-size: 0.65rem; font-weight: 800; letter-spacing: 2.5px; color: var(--muted); }
+.cc-badge {
+  font-size: 0.58rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 4px;
+}
+.cc-badge.up   { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,255,106,.2); }
+.cc-badge.down { background: var(--red-dim);   color: var(--red);   border: 1px solid rgba(255,59,59,.2); }
+.cc-badge.flat { background: rgba(255,255,255,.04); color: var(--muted); border: 1px solid var(--border2); }
+
+.cc-price { font-size: 1.9rem; font-weight: 900; letter-spacing: -1.5px; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.cc-change { font-size: 0.75rem; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.cc-change.pos { color: var(--green); }
+.cc-change.neg { color: var(--red); }
+.cc-change.flat{ color: var(--muted); }
+
+.cc-spark { height: 2px; background: var(--border); border-radius: 1px; margin: 9px 0; overflow: hidden; }
+.cc-spark-fill { height: 100%; border-radius: 1px; transition: width .5s; }
+
+.cc-bot { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.cc-open {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+}
+.cc-open.yes { color: var(--green); }
+.cc-open.no  { color: var(--muted2); }
+.cc-open .od { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.cc-mktprice { font-size: 0.65rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* section heads inside market canvas */
+.canvas-sh {
+  padding: 12px 18px 5px; border-top: 1px solid var(--border);
+  font-size: 0.58rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Positions list */
+.pos-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,.03); font-size: 0.78rem;
+}
+.pos-item:last-child { border-bottom: none; }
+.pos-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; box-shadow: 0 0 5px var(--green-glow); }
+.pos-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pos-meta { display: flex; gap: 10px; flex-shrink: 0; font-size: 0.7rem; }
+.pos-size { color: var(--muted); }
+.pos-tag  { font-weight: 700; color: var(--green); letter-spacing: 1px; font-size: 0.62rem; }
+.empty-msg { padding: 14px 18px; font-size: 0.75rem; color: var(--muted); }
+
+/* Trade feed */
+.tf-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 18px; border-bottom: 1px solid rgba(255,255,255,.025);
+  animation: tslide .3s ease-out both;
+}
+@keyframes tslide { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
+.tf-item:last-child { border-bottom: none; }
+.tf-badge {
+  font-size: 0.56rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 3px 7px; border-radius: 4px; flex-shrink: 0;
+}
+.tf-badge.win  { background: var(--green-dim); color: var(--green); }
+.tf-badge.loss { background: var(--red-dim);   color: var(--red); }
+.tf-badge.buy  { background: rgba(56,189,248,.1); color: var(--blue); }
+.tf-title { flex: 1; font-size: 0.76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tf-pnl   { font-size: 0.76rem; font-weight: 700; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.tf-pnl.pos { color: var(--green); }
+.tf-pnl.neg { color: var(--red); }
+.tf-time  { font-size: 0.62rem; color: var(--muted); flex-shrink: 0; }
+
+/* ── BOTTOM STATS BAR ──────────────────────────────────────── */
+.sbar {
+  display: flex; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.sbc {
+  flex: 1; padding: 10px 14px; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+}
+.sbc:last-child { border-right: none; }
+.sbc-l { font-size: 0.55rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.sbc-v { font-size: 0.82rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sbc-v.g  { color: var(--green); }
+.sbc-v.r  { color: var(--red); }
+.sbc-v.y  { color: var(--yellow); }
+
+/* ── Flash animation ───────────────────────────────────────── */
+@keyframes flashbg { 0%,100%{background:transparent} 40%{background:rgba(0,255,106,.05)} }
+.flash { animation: flashbg .5s ease-out; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ─── HEADER ────────────────────────────────────────────── -->
+<header class="hdr">
+  <div class="logo">POLY<em>MARKET</em></div>
+
+  <div class="tab-row">
+    <div class="tab active" id="tab-copy"   onclick="setMode('copy')">Copy Trading</div>
+    <div class="tab"        id="tab-sniper" onclick="setMode('sniper')">Sniper</div>
+  </div>
+
+  <div class="vline"></div>
+
+  <div class="tab-row">
+    <div class="tab sm active" id="tab-15" onclick="setWin(15)">15-MIN</div>
+    <div class="tab sm"        id="tab-5"  onclick="setWin(5)">5-MIN</div>
+  </div>
+
+  <div class="hdr-right">
+    <span class="mode-badge paper" id="mode-badge">PAPER</span>
+    <div class="bot-pill" id="bot-pill">
+      <span class="bot-dot" id="bot-dot"></span>
+      <span id="bot-lbl">Offline</span>
+    </div>
+  </div>
+</header>
+
+<!-- ─── MAIN GRID ─────────────────────────────────────────── -->
+<div class="grid">
+
+  <!-- PULSE BOARD -->
+  <div class="panel pulse" id="pulse-panel">
+    <div class="ph">
+      <div><div class="ptitle">Pulse Board</div></div>
+      <div class="phright" id="pulse-ts">—</div>
+    </div>
+    <div class="pulse-body">
+
+      <!-- Row 1 -->
+      <div class="pulse-row">
+        <div>
+          <div class="cell-label">Balance</div>
+          <div class="cell-val" id="v-balance">$—</div>
+          <div class="cell-cap g">Available USDC</div>
+        </div>
+        <div>
+          <div class="cell-label">Today P&amp;L</div>
+          <div class="cell-val g" id="v-pnl">+$0.00</div>
+          <div class="cell-cap" id="v-pnl-wl">0W / 0L</div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- Row 2 -->
+      <div class="pulse-row" style="align-items:center">
+        <div>
+          <div class="cell-label">All-Time Record</div>
+          <div class="cell-val sm" id="v-record">0W / 0L</div>
+          <div class="cell-cap" id="v-total">Total trades: 0</div>
+        </div>
+        <div class="wr-row">
+          <div class="gauge-wrap">
+            <svg class="gauge-svg" width="90" height="90" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="37" fill="none" stroke="#1a1a1a" stroke-width="7"/>
+              <circle id="gauge-arc" cx="45" cy="45" r="37" fill="none"
+                stroke="var(--green)" stroke-width="7" stroke-linecap="round"
+                stroke-dasharray="0 232.5"
+                style="transition:stroke-dasharray .8s ease"/>
+            </svg>
+            <div class="gauge-inner">
+              <div class="gauge-pct" id="v-wr">—%</div>
+              <div class="gauge-lbl">Win Rate</div>
+            </div>
+          </div>
+          <div class="wr-stats">
+            <div class="wr-stat">
+              <div class="wr-num" id="v-ttrades">0</div>
+              <div class="wr-slbl">Trades</div>
+            </div>
+            <div class="wr-stat">
+              <div class="wr-num" id="v-open" style="color:var(--yellow)">0</div>
+              <div class="wr-slbl">Open</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- WINDOW TIMER -->
+  <div class="panel timer">
+    <div class="ph">
+      <div class="ptitle">Window Timer</div>
+      <div class="phright" id="timer-wlbl">15-MIN WINDOW</div>
+    </div>
+    <div class="timer-body">
+      <div class="tbadge-row" style="width:100%">
+        <div class="tbadge waiting" id="tbadge">WAITING</div>
+        <div class="twmode" id="twmode">15-MIN WINDOW</div>
+      </div>
+      <div class="tdigits" id="tdigits">15:00</div>
+      <div class="tcap" id="tcap">Remaining in current window</div>
+      <div class="tsync">✓ Synchronized with clock</div>
+    </div>
+  </div>
+
+  <!-- MARKET CANVAS -->
+  <div class="panel market">
+    <div class="ph">
+      <div>
+        <div class="ptitle">Market Canvas</div>
+        <div class="psub">Live prices · momentum · open positions</div>
+      </div>
+      <div class="phright" id="price-ts">—</div>
+    </div>
+    <div class="market-scroll" id="market-scroll">
+
+      <!-- BTC -->
+      <div class="coin-card" id="cc-btc">
+        <div class="cc-top">
+          <div class="cc-sym">BTC · Bitcoin</div>
+          <div class="cc-badge flat" id="badge-btc">—</div>
+        </div>
+        <div class="cc-price" id="price-btc">$—</div>
+        <div class="cc-change flat" id="chg-btc">—</div>
+        <div class="cc-spark"><div class="cc-spark-fill" id="sp-btc" style="width:50%;background:var(--muted)"></div></div>
+        <div class="cc-bot">
+          <div class="cc-open no" id="op-btc"><span class="od"></span>No position</div>
+          <div class="cc-mktprice" id="mp-btc"></div>
+        </div>
+      </div>
+
+      <!-- ETH -->
+      <div class="coin-card" id="cc-eth">
+        <div class="cc-top">
+          <div class="cc-sym">ETH · Ethereum</div>
+          <div class="cc-badge flat" id="badge-eth">—</div>
+        </div>
+        <div class="cc-price" id="price-eth">$—</div>
+        <div class="cc-change flat" id="chg-eth">—</div>
+        <div class="cc-spark"><div class="cc-spark-fill" id="sp-eth" style="width:50%;background:var(--muted)"></div></div>
+        <div class="cc-bot">
+          <div class="cc-open no" id="op-eth"><span class="od"></span>No position</div>
+          <div class="cc-mktprice" id="mp-eth"></div>
+        </div>
+      </div>
+
+      <!-- SOL -->
+      <div class="coin-card" id="cc-sol">
+        <div class="cc-top">
+          <div class="cc-sym">SOL · Solana</div>
+          <div class="cc-badge flat" id="badge-sol">—</div>
+        </div>
+        <div class="cc-price" id="price-sol">$—</div>
+        <div class="cc-change flat" id="chg-sol">—</div>
+        <div class="cc-spark"><div class="cc-spark-fill" id="sp-sol" style="width:50%;background:var(--muted)"></div></div>
+        <div class="cc-bot">
+          <div class="cc-open no" id="op-sol"><span class="od"></span>No position</div>
+          <div class="cc-mktprice" id="mp-sol"></div>
+        </div>
+      </div>
+
+      <!-- Open Positions -->
+      <div class="canvas-sh">Open Positions</div>
+      <div id="pos-list"><div class="empty-msg">No open positions</div></div>
+
+      <!-- Trade Feed -->
+      <div class="canvas-sh">Recent Trades</div>
+      <div id="tf-list"><div class="empty-msg">Watching for signals…</div></div>
+
+    </div>
+  </div>
+
+</div><!-- /grid -->
+
+<!-- ─── STATS BAR ──────────────────────────────────────────── -->
+<div class="sbar">
+  <div class="sbc"><div class="sbc-l">Mode</div><div class="sbc-v" id="sb-mode">—</div></div>
+  <div class="sbc"><div class="sbc-l">Budget</div><div class="sbc-v" id="sb-budget">—</div></div>
+  <div class="sbc"><div class="sbc-l">Poll Cycles</div><div class="sbc-v" id="sb-polls">0</div></div>
+  <div class="sbc"><div class="sbc-l">Last Poll</div><div class="sbc-v" id="sb-poll">—</div></div>
+  <div class="sbc"><div class="sbc-l">Uptime</div><div class="sbc-v" id="sb-uptime">—</div></div>
+  <div class="sbc"><div class="sbc-l">Wallets</div><div class="sbc-v" id="sb-wallets">—</div></div>
+  <div class="sbc"><div class="sbc-l">Server</div><div class="sbc-v g" id="sb-server">—</div></div>
+</div>
+
+</div><!-- /page -->
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════════════════ */
+const STATE_URL     = '/state';
+const CG_URL        = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true';
+const BOT_POLL_MS   = 15000;
+const PRICE_POLL_MS = 15000;
+
+/* ══════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════ */
+let winMins   = 15;
+let botOnline = false;
+let botState  = null;
+let prevPx    = {};   // {btc,eth,sol}
+
+/* ══════════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════════ */
+const $  = id => document.getElementById(id);
+const px = (v, d = 2) => {
+  if (v == null) return '$—';
+  const n = typeof v === 'string' ? parseFloat(v) : v;
+  if (n >= 1000) return '$' + n.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+  if (n >= 1)    return '$' + n.toFixed(Math.max(d, 2));
+  return '$' + n.toFixed(4);
+};
+const pnlStr = v => {
+  if (v == null) return '+$0.00';
+  return (v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(2);
+};
+const hhmm = iso => {
+  if (!iso) return '—';
+  try { const d = new Date(iso + (iso.includes('Z') ? '' : 'Z')); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
+  catch { return '—'; }
+};
+const uptime = start => {
+  if (!start) return '—';
+  const ms = Date.now() - new Date(start + (start.includes('Z') ? '' : 'Z')).getTime();
+  if (ms < 0) return '—';
+  const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000), s = Math.floor((ms % 60000) / 1000);
+  return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+};
+
+function setGauge(wr) {
+  const c = 2 * Math.PI * 37; // r=37 → 232.5
+  const d = Math.max(0, Math.min(1, wr || 0)) * c;
+  $('gauge-arc').setAttribute('stroke-dasharray', `${d.toFixed(1)} ${c.toFixed(1)}`);
+  $('v-wr').textContent = wr > 0 ? (wr * 100).toFixed(1) + '%' : '—%';
+}
+
+function flash(id) {
+  const el = $(id); if (!el) return;
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TABS
+══════════════════════════════════════════════════════════════ */
+function setMode(m) {
+  $('tab-copy').classList.toggle('active',   m === 'copy');
+  $('tab-sniper').classList.toggle('active', m === 'sniper');
+}
+function setWin(w) {
+  winMins = w;
+  $('tab-15').classList.toggle('active', w === 15);
+  $('tab-5').classList.toggle('active',  w === 5);
+  $('timer-wlbl').textContent = `${w}-MIN WINDOW`;
+  $('twmode').textContent     = `${w}-MIN WINDOW`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WINDOW TIMER
+══════════════════════════════════════════════════════════════ */
+function tickTimer() {
+  const now   = new Date();
+  const into  = (now.getMinutes() % winMins) * 60 + now.getSeconds();
+  const rem   = winMins * 60 - into;
+  const m     = Math.floor(rem / 60), s = rem % 60;
+  $('tdigits').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+
+  const badge = $('tbadge');
+  if (botState && botState.paused) {
+    badge.textContent = 'PAUSED'; badge.className = 'tbadge paused';
+    $('tcap').textContent = 'Bot paused — send /resume via Telegram';
+  } else if (rem <= 12) {
+    badge.textContent = 'SCANNING'; badge.className = 'tbadge scanning';
+    $('tcap').textContent = 'Window closing — bot polling subgraph now';
+  } else if (botOnline) {
+    badge.textContent = 'ACTIVE'; badge.className = 'tbadge scanning';
+    $('tcap').textContent = 'Remaining in current window';
+  } else {
+    badge.textContent = 'WAITING'; badge.className = 'tbadge waiting';
+    $('tcap').textContent = 'Start copy_trader.py to begin';
+  }
+}
+setInterval(tickTimer, 1000);
+tickTimer();
+
+/* ══════════════════════════════════════════════════════════════
+   BOT STATE
+══════════════════════════════════════════════════════════════ */
+async function pollBot() {
+  try {
+    const r = await fetch(STATE_URL, { cache: 'no-store' });
+    if (!r.ok) throw 0;
+    const s = await r.json();
+    if (s.error) throw 0;
+    botState = s;
+    botOnline = true;
+    renderBot(s);
+    $('sb-server').textContent = 'Connected'; $('sb-server').className = 'sbc-v g';
+  } catch {
+    botOnline = false; botState = null;
+    setBotStatus(false);
+    $('sb-server').textContent = 'Offline'; $('sb-server').className = 'sbc-v r';
+  }
+  setTimeout(pollBot, BOT_POLL_MS);
+}
+
+function setBotStatus(online) {
+  const dot  = $('bot-dot'), pill = $('bot-pill'), lbl = $('bot-lbl');
+  if (online) {
+    dot.className  = 'bot-dot live';
+    pill.className = 'bot-pill live';
+    lbl.textContent = botState?.paused ? 'Paused' : 'Bot Active';
+  } else {
+    dot.className  = 'bot-dot';
+    pill.className = 'bot-pill';
+    lbl.textContent = 'Offline';
+  }
+}
+
+function renderBot(s) {
+  setBotStatus(true);
+
+  // mode badge
+  const mb = $('mode-badge');
+  mb.textContent  = s.paper ? 'PAPER' : 'LIVE';
+  mb.className    = 'mode-badge ' + (s.paper ? 'paper' : 'live');
+
+  // balance
+  const budget = s.budget || 50;
+  const spent  = Object.values(s.positions || {}).reduce((a, p) => a + (p.size || 0), 0);
+  $('v-balance').textContent = '$' + Math.max(0, budget - spent).toFixed(2);
+
+  // today P&L
+  const pnl  = s.today_pnl ?? 0;
+  const wins = s.wins   ?? 0, losses = s.losses ?? 0;
+  const pnlEl = $('v-pnl');
+  pnlEl.textContent = pnlStr(pnl);
+  pnlEl.className   = 'cell-val ' + (pnl >= 0 ? 'g' : 'r');
+  $('v-pnl-wl').textContent = `${wins}W / ${losses}L`;
+
+  // all-time
+  const aw = s.all_wins   ?? wins,  al = s.all_losses ?? losses;
+  $('v-record').textContent = `${aw}W / ${al}L`;
+  $('v-total').textContent  = `Total trades: ${aw + al}`;
+
+  // gauge
+  const tot = aw + al;
+  setGauge(tot > 0 ? aw / tot : 0);
+  $('v-ttrades').textContent = tot;
+  $('v-open').textContent    = Object.keys(s.positions || {}).length;
+
+  // pulse timestamp
+  $('pulse-ts').textContent = 'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  // stats bar
+  $('sb-mode').textContent    = (s.mode || '—').toUpperCase();
+  $('sb-budget').textContent  = `$${budget}`;
+  $('sb-polls').textContent   = (s.poll_count || 0).toLocaleString();
+  $('sb-poll').textContent    = s.last_poll ? hhmm(s.last_poll) : '—';
+  $('sb-uptime').textContent  = uptime(s.started_at);
+  $('sb-wallets').textContent = (s.mode || 'war').toUpperCase() + ' wallets';
+
+  // open positions
+  renderPositions(s.positions || {});
+
+  // trade feed
+  renderTrades(s.last_trades || []);
+
+  // coin open-position indicators
+  highlightCoins(s.positions || {});
+
+  flash('pulse-panel');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   POSITIONS
+══════════════════════════════════════════════════════════════ */
+function renderPositions(positions) {
+  const list = $('pos-list');
+  const entries = Object.entries(positions);
+  if (!entries.length) { list.innerHTML = '<div class="empty-msg">No open positions</div>'; return; }
+  list.innerHTML = entries.map(([, p]) => `
+    <div class="pos-item">
+      <div class="pos-dot"></div>
+      <div class="pos-title">${p.title || '—'}</div>
+      <div class="pos-meta">
+        <span class="pos-size">$${(p.size||0).toFixed(2)} @ ${(p.price||0).toFixed(3)}</span>
+        <span class="pos-tag">OPEN</span>
+      </div>
+    </div>`).join('');
+}
+
+function highlightCoins(positions) {
+  const titles = Object.values(positions).map(p => (p.title || '').toLowerCase());
+  const coinMap = { btc: ['bitcoin', 'btc'], eth: ['ethereum', 'eth'], sol: ['solana', 'sol'] };
+  for (const [coin, kw] of Object.entries(coinMap)) {
+    const has = titles.some(t => kw.some(k => t.includes(k)));
+    const card = $(`cc-${coin}`), opEl = $(`op-${coin}`);
+    if (has) {
+      card.classList.add('has-pos');
+      opEl.className = 'cc-open yes';
+      opEl.innerHTML = '<span class="od"></span>Open ✓';
+    } else {
+      card.classList.remove('has-pos');
+      opEl.className = 'cc-open no';
+      opEl.innerHTML = '<span class="od"></span>No position';
+    }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TRADE FEED
+══════════════════════════════════════════════════════════════ */
+function renderTrades(trades) {
+  const list = $('tf-list');
+  if (!trades.length) { list.innerHTML = '<div class="empty-msg">Watching for signals…</div>'; return; }
+  list.innerHTML = trades.slice(0, 14).map(t => {
+    const w = t.pnl >= 0;
+    return `
+      <div class="tf-item">
+        <div class="tf-badge ${w ? 'win' : 'loss'}">${w ? 'WIN' : 'EXIT'}</div>
+        <div class="tf-title">${t.title || '—'}</div>
+        <div class="tf-pnl ${w ? 'pos' : 'neg'}">${pnlStr(t.pnl)}</div>
+        <div class="tf-time">${hhmm(t.at)}</div>
+      </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PRICE FEED (CoinGecko)
+══════════════════════════════════════════════════════════════ */
+async function fetchPrices() {
+  try {
+    const d = await fetch(CG_URL, { cache: 'no-store' }).then(r => r.json());
+    const now = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    $('price-ts').textContent = `Updated ${now}`;
+    updCoin('btc', d.bitcoin);
+    updCoin('eth', d.ethereum);
+    updCoin('sol', d.solana);
+  } catch {
+    $('price-ts').textContent = 'Price feed offline';
+  }
+  setTimeout(fetchPrices, PRICE_POLL_MS);
+}
+
+function updCoin(coin, data) {
+  if (!data) return;
+  const price  = data.usd;
+  const change = data.usd_24h_change;
+  const prev   = prevPx[coin];
+
+  // direction from price movement, fallback to 24h change
+  let dir = 'flat';
+  if (prev != null) dir = price > prev ? 'up' : price < prev ? 'down' : 'flat';
+  else if (change != null) dir = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+  prevPx[coin] = price;
+
+  $(`price-${coin}`).textContent = px(price);
+
+  const chEl = $(`chg-${coin}`);
+  chEl.textContent = change != null ? (change >= 0 ? '+' : '') + change.toFixed(3) + '%' : '—';
+  chEl.className   = 'cc-change ' + (change == null ? 'flat' : change >= 0 ? 'pos' : 'neg');
+
+  const badge = $(`badge-${coin}`);
+  badge.textContent = dir === 'up' ? 'UP' : dir === 'down' ? 'DOWN' : '—';
+  badge.className   = 'cc-badge ' + dir;
+
+  const fill = Math.min(100, Math.max(0, 50 + (change ?? 0) * 8));
+  const sp = $(`sp-${coin}`);
+  sp.style.width      = fill + '%';
+  sp.style.background = dir === 'up' ? 'var(--green)' : dir === 'down' ? 'var(--red)' : 'var(--muted)';
+
+  flash(`cc-${coin}`);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════════════════════════ */
+pollBot();
+fetchPrices();
+</script>
+</body>
+</html>

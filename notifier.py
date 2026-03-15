@@ -41,7 +41,11 @@ _state: dict = {
     'today_pnl':   0.0,
     'wins':        0,
     'losses':      0,
-    'last_trades': [],      # last 10 closed trades
+    'all_wins':    0,       # all-time (persists across restarts via state file)
+    'all_losses':  0,
+    'last_trades': [],      # last 20 closed trades
+    'poll_count':  0,       # total subgraph polls this session
+    'last_poll':   '',      # ISO timestamp of last poll
 }
 
 
@@ -75,19 +79,40 @@ def _send(text: str) -> None:
 #  Public state API  (called by copy_trader.py)
 # ─────────────────────────────────────────────────────────────────────────────
 def init(paper: bool, mode: str, budget: float) -> None:
-    """Call once at bot startup."""
+    """Call once at bot startup. Preserves all-time counters from previous run."""
+    # Read existing state to carry forward all-time counters
+    prev_all_wins = prev_all_losses = 0
+    try:
+        with open(STATE_FILE) as f:
+            prev = json.load(f)
+            prev_all_wins   = int(prev.get('all_wins',  0))
+            prev_all_losses = int(prev.get('all_losses', 0))
+    except Exception:
+        pass
+
     _state.update({
-        'paper':      paper,
-        'mode':       mode,
-        'budget':     budget,
-        'started_at': datetime.utcnow().isoformat(),
-        'paused':     False,
-        'positions':  {},
-        'today_pnl':  0.0,
-        'wins':       0,
-        'losses':     0,
+        'paper':       paper,
+        'mode':        mode,
+        'budget':      budget,
+        'started_at':  datetime.utcnow().isoformat(),
+        'paused':      False,
+        'positions':   {},
+        'today_pnl':   0.0,
+        'wins':        0,
+        'losses':      0,
+        'all_wins':    prev_all_wins,
+        'all_losses':  prev_all_losses,
         'last_trades': [],
+        'poll_count':  0,
+        'last_poll':   '',
     })
+    _flush()
+
+
+def record_poll() -> None:
+    """Call each subgraph poll cycle so the dashboard can show activity."""
+    _state['poll_count'] = _state.get('poll_count', 0) + 1
+    _state['last_poll']  = datetime.utcnow().isoformat()
     _flush()
 
 
@@ -118,16 +143,19 @@ def record_buy(market_id: str, title: str, price: float,
 def record_sell(market_id: str, pnl: float) -> None:
     pos = _state['positions'].pop(market_id, {})
     if pnl >= 0:
-        _state['wins'] += 1
+        _state['wins']      += 1
+        _state['all_wins']  += 1
     else:
-        _state['losses'] += 1
+        _state['losses']     += 1
+        _state['all_losses'] += 1
     _state['today_pnl'] = round(_state['today_pnl'] + pnl, 2)
     _state['last_trades'].insert(0, {
         'title': pos.get('title', market_id[:40]),
         'pnl':   round(pnl, 2),
+        'cost':  round(pos.get('size', 0), 2),
         'at':    datetime.utcnow().isoformat(),
     })
-    _state['last_trades'] = _state['last_trades'][:10]
+    _state['last_trades'] = _state['last_trades'][:20]
     _flush()
 
 

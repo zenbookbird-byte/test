@@ -584,6 +584,9 @@ class CopyTrader:
                     time.sleep(POLL_SECS)
                     continue
 
+                if _TG:
+                    _tg.record_poll()   # timestamp each cycle for dashboard liveness
+
                 if self.tracked_wallets and self.tracked_markets:
                     trades = poll_trades(
                         self.tracked_wallets,
