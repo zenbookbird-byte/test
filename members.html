@@ -298,9 +298,14 @@
   /* sidebar section dividers */
   .sidebar-section-divider {
     margin: 8px 0 0; padding: 18px 24px 4px;
-    font-size: 0.65rem; font-weight: 700; letter-spacing: 2px;
-    text-transform: uppercase; color: rgba(255,255,255,.15);
+    font-size: 0.68rem; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--muted);
     border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar-section-divider::after {
+    content: ''; flex: 1; height: 1px;
+    background: var(--border);
   }
 
   /* update post styles (inside members) */
