@@ -4,3 +4,7 @@ py-clob-client>=0.16.0
 
 # Telegram bot (optional — only needed if you set TELEGRAM_BOT_TOKEN)
 # No extra packages required — uses the requests library above
+
+# AI Analyst (optional — enables the /agent endpoint in server.py)
+# Set ANTHROPIC_API_KEY in your .env file to activate
+anthropic>=0.40.0

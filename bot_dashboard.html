@@ -35,7 +35,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 /* ── Page ─────────────────────────────────────────────────── */
 .page {
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr auto auto;  /* +1 row for agent panel */
   min-height: 100vh;
   padding: 14px 16px;
   gap: 12px;
@@ -268,6 +268,120 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 /* ── Flash animation ───────────────────────────────────────── */
 @keyframes flashbg { 0%,100%{background:transparent} 40%{background:rgba(0,255,106,.05)} }
 .flash { animation: flashbg .5s ease-out; }
+
+/* ═══════════════════════════════════════════════════════════
+   AI ANALYST PANEL
+═══════════════════════════════════════════════════════════ */
+.ai-panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  overflow: hidden; transition: border-color .15s;
+}
+.ai-panel.open { border-color: rgba(0,255,106,.2); }
+
+/* Header (always visible, click to toggle) */
+.ai-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 16px; cursor: pointer; user-select: none;
+  transition: background .1s;
+}
+.ai-hdr:hover { background: rgba(255,255,255,.02); }
+.ai-hdr-l { display: flex; align-items: center; gap: 10px; }
+.ai-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--muted);
+  flex-shrink: 0; transition: all .2s;
+}
+.ai-dot.on { background: var(--green); box-shadow: 0 0 7px var(--green-glow); animation: pdot 2s infinite; }
+.ai-title { font-size: 0.62rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; }
+.ai-model-tag {
+  font-size: 0.58rem; color: var(--muted); padding: 2px 7px;
+  background: var(--muted2); border-radius: 4px; letter-spacing: .5px;
+}
+.ai-hdr-r { display: flex; align-items: center; gap: 10px; }
+.ai-hint { font-size: 0.62rem; color: var(--muted); }
+.ai-clear-btn {
+  font-size: 0.6rem; color: var(--muted); background: none; border: 1px solid var(--border2);
+  border-radius: 5px; padding: 3px 8px; cursor: pointer; transition: all .1s; display: none;
+}
+.ai-clear-btn:hover { color: var(--red); border-color: rgba(255,59,59,.3); }
+.ai-chevron { font-size: 0.65rem; color: var(--muted); transition: transform .2s; }
+.ai-chevron.open { transform: rotate(180deg); }
+
+/* Body (hidden by default) */
+.ai-body { display: none; flex-direction: column; border-top: 1px solid var(--border); }
+.ai-body.open { display: flex; }
+
+/* Quick-command chips */
+.ai-cmds {
+  display: flex; gap: 6px; padding: 10px 14px;
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.ai-chip {
+  font-size: 0.63rem; font-weight: 600; padding: 4px 12px; border-radius: 99px;
+  background: var(--muted2); color: var(--text); border: 1px solid var(--border2);
+  cursor: pointer; white-space: nowrap; transition: all .1s;
+}
+.ai-chip:hover { background: var(--green-dim); color: var(--green); border-color: rgba(0,255,106,.25); }
+.ai-chip:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Messages */
+.ai-msgs {
+  min-height: 100px; max-height: 320px; overflow-y: auto;
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.ai-welcome {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; background: var(--muted2); border-radius: 8px;
+  border: 1px solid var(--border2);
+}
+.ai-welcome-icon { font-size: 1.1rem; flex-shrink: 0; line-height: 1; margin-top: 1px; }
+.ai-welcome-text { font-size: 0.74rem; color: var(--muted); line-height: 1.55; }
+.ai-welcome-text strong { color: var(--text); font-weight: 700; }
+
+.ai-msg { font-size: 0.8rem; line-height: 1.55; max-width: 88%; word-break: break-word; }
+.ai-msg-u {
+  align-self: flex-end;
+  background: var(--green-dim); color: var(--green);
+  border: 1px solid rgba(0,255,106,.18);
+  padding: 7px 12px; border-radius: 10px 10px 3px 10px;
+}
+.ai-msg-a {
+  align-self: flex-start; color: var(--text);
+  background: var(--muted2); padding: 8px 13px; border-radius: 10px 10px 10px 3px;
+}
+.ai-msg-a code {
+  background: rgba(0,0,0,.5); padding: 1px 5px; border-radius: 3px;
+  font-family: var(--mono); font-size: 0.76rem; color: var(--green);
+}
+.ai-msg-a strong { color: var(--text); font-weight: 700; }
+.ai-msg-a em { color: var(--yellow); font-style: normal; font-weight: 600; }
+.ai-msg-err {
+  align-self: flex-start; color: var(--red); font-size: 0.74rem;
+  background: var(--red-dim); border: 1px solid rgba(255,59,59,.2);
+  padding: 7px 12px; border-radius: 8px;
+}
+.ai-cursor { display: inline-block; color: var(--green); animation: blink .65s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* Input row */
+.ai-input-row {
+  display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border);
+}
+.ai-input {
+  flex: 1; background: var(--muted2); border: 1px solid var(--border2);
+  color: var(--text); border-radius: 8px; padding: 8px 12px;
+  font-size: 0.8rem; font-family: var(--font); outline: none;
+  transition: border-color .12s;
+}
+.ai-input:focus { border-color: rgba(0,255,106,.3); }
+.ai-input::placeholder { color: var(--muted); }
+.ai-send {
+  background: var(--green-dim); color: var(--green);
+  border: 1px solid rgba(0,255,106,.25); border-radius: 8px;
+  padding: 8px 16px; cursor: pointer; font-size: 0.9rem; font-weight: 700;
+  transition: all .1s; letter-spacing: 0;
+}
+.ai-send:hover  { background: rgba(0,255,106,.18); }
+.ai-send:disabled { opacity: .35; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -290,6 +404,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   </div>
 
   <div class="hdr-right">
+    <button class="tab sm" id="ai-toggle-btn" onclick="aiToggle()" style="display:flex;align-items:center;gap:6px;">
+      <span id="ai-btn-dot" style="width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0"></span>
+      AI Analyst
+    </button>
     <span class="mode-badge paper" id="mode-badge">PAPER</span>
     <div class="bot-pill" id="bot-pill">
       <span class="bot-dot" id="bot-dot"></span>
@@ -457,6 +575,56 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   <div class="sbc"><div class="sbc-l">Uptime</div><div class="sbc-v" id="sb-uptime">—</div></div>
   <div class="sbc"><div class="sbc-l">Wallets</div><div class="sbc-v" id="sb-wallets">—</div></div>
   <div class="sbc"><div class="sbc-l">Server</div><div class="sbc-v g" id="sb-server">—</div></div>
+</div>
+
+<!-- ─── AI ANALYST PANEL ────────────────────────────────────── -->
+<div class="ai-panel" id="ai-panel">
+  <div class="ai-hdr" onclick="aiToggle()">
+    <div class="ai-hdr-l">
+      <div class="ai-dot" id="ai-dot"></div>
+      <span class="ai-title">AI Analyst</span>
+      <span class="ai-model-tag">claude-opus-4-6 · adaptive thinking</span>
+    </div>
+    <div class="ai-hdr-r">
+      <span class="ai-hint" id="ai-hint">Ask about performance, trades, signals…</span>
+      <button class="ai-clear-btn" id="ai-clear-btn" onclick="aiClear(event)">Clear</button>
+      <span class="ai-chevron" id="ai-chevron">▲</span>
+    </div>
+  </div>
+
+  <div class="ai-body" id="ai-body">
+
+    <!-- Quick commands -->
+    <div class="ai-cmds" id="ai-cmds">
+      <button class="ai-chip" onclick="aiQuick('Summarize my trading performance today with key metrics')">📊 Performance</button>
+      <button class="ai-chip" onclick="aiQuick('Analyse my open positions — any concerns?')">🔍 Open Positions</button>
+      <button class="ai-chip" onclick="aiQuick('What trends do you see in my recent trades?')">📈 Trade Patterns</button>
+      <button class="ai-chip" onclick="aiQuick('Should I adjust my position sizing or pause the bot?')">⚙️ Sizing Advice</button>
+      <button class="ai-chip" onclick="aiQuick('Are there any risk concerns I should address right now?')">⚠️ Risk Check</button>
+      <button class="ai-chip" onclick="aiQuick('What is my current win rate and how does it compare to a good benchmark?')">🏆 Win Rate</button>
+    </div>
+
+    <!-- Message history -->
+    <div class="ai-msgs" id="ai-msgs">
+      <div class="ai-welcome" id="ai-welcome">
+        <div class="ai-welcome-icon">⚡</div>
+        <div class="ai-welcome-text">
+          <strong>AI Analyst ready.</strong> I have live access to your bot state — ask me about
+          performance, open positions, trade patterns, or anything else about the bot.
+          Type below or click a quick command.
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="ai-input-row">
+      <input type="text" class="ai-input" id="ai-input"
+        placeholder="Ask about P&amp;L, positions, signals, risk…"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend()}">
+      <button class="ai-send" id="ai-send" onclick="aiSend()">→</button>
+    </div>
+
+  </div>
 </div>
 
 </div><!-- /page -->
@@ -753,10 +921,210 @@ function updCoin(coin, data) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   AI ANALYST
+══════════════════════════════════════════════════════════════ */
+let aiOpen      = false;
+let aiHistory   = [];   // [{role:'user'|'assistant', content:'…'}, …]
+let aiStreaming  = false;
+let aiAvailable = null; // null=unchecked, true/false
+
+// ── Check /health for AI availability ─────────────────────
+async function checkAiHealth() {
+  try {
+    const h = await fetch('/health').then(r => r.json());
+    aiAvailable = h.ai_available && h.api_key_set;
+    const dot = $('ai-dot'), bdot = $('ai-btn-dot');
+    if (aiAvailable) {
+      dot.className  = 'ai-dot on';
+      bdot.style.background = 'var(--green)';
+      bdot.style.boxShadow  = '0 0 6px var(--green-glow)';
+    } else {
+      dot.className  = 'ai-dot';
+      bdot.style.background = 'var(--muted)';
+      bdot.style.boxShadow  = 'none';
+    }
+  } catch { aiAvailable = false; }
+}
+
+// ── Toggle panel open/closed ───────────────────────────────
+function aiToggle() {
+  aiOpen = !aiOpen;
+  const panel   = $('ai-panel'),
+        body    = $('ai-body'),
+        chevron = $('ai-chevron'),
+        hint    = $('ai-hint'),
+        btn     = $('ai-toggle-btn');
+  panel.classList.toggle('open', aiOpen);
+  body.classList.toggle('open', aiOpen);
+  chevron.classList.toggle('open', aiOpen);
+  hint.style.display    = aiOpen ? 'none' : '';
+  btn.classList.toggle('active', aiOpen);
+  if (aiOpen) {
+    $('ai-input').focus();
+    if (aiAvailable === null) checkAiHealth();
+  }
+}
+
+// ── Clear conversation ─────────────────────────────────────
+function aiClear(e) {
+  e.stopPropagation();
+  aiHistory = [];
+  const msgs = $('ai-msgs');
+  msgs.innerHTML = `
+    <div class="ai-welcome" id="ai-welcome">
+      <div class="ai-welcome-icon">⚡</div>
+      <div class="ai-welcome-text">
+        <strong>Conversation cleared.</strong> Ask me anything about your bot.
+      </div>
+    </div>`;
+  $('ai-clear-btn').style.display = 'none';
+  $('ai-input').focus();
+}
+
+// ── Send a quick-command prompt ────────────────────────────
+function aiQuick(prompt) {
+  if (aiStreaming) return;
+  if (!aiOpen) aiToggle();
+  $('ai-input').value = prompt;
+  aiSend();
+}
+
+// ── Main send function ─────────────────────────────────────
+async function aiSend() {
+  const input = $('ai-input');
+  const msg   = input.value.trim();
+  if (!msg || aiStreaming) return;
+  input.value = '';
+
+  // Remove welcome box on first message
+  const welcome = document.getElementById('ai-welcome');
+  if (welcome) welcome.remove();
+
+  // Show clear button
+  $('ai-clear-btn').style.display = '';
+
+  // Append user bubble
+  aiAddMsg('user', msg);
+  aiHistory.push({ role: 'user', content: msg });
+
+  // Create streaming assistant bubble
+  const msgId = 'aimsg-' + Date.now();
+  aiAddMsg('assistant', '', msgId);
+
+  // Disable inputs while streaming
+  aiStreaming = true;
+  _aiSetChipsDisabled(true);
+  $('ai-send').disabled = true;
+
+  let fullText = '';
+
+  try {
+    const res = await fetch('/agent', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        message: msg,
+        history: aiHistory.slice(0, -1),  // exclude current user turn (already sent)
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      aiUpdateMsg(msgId, null, err.error || 'Server error');
+      return;
+    }
+
+    // Read SSE stream
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer    = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();   // keep potentially incomplete last line
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const ev = JSON.parse(line.slice(6));
+          if (ev.done)  { break; }
+          if (ev.error) { aiUpdateMsg(msgId, null, ev.error); return; }
+          if (ev.text)  { fullText += ev.text; aiUpdateMsg(msgId, fullText, null, true); }
+        } catch { /* ignore parse errors */ }
+      }
+    }
+
+    // Finalise — remove cursor
+    aiUpdateMsg(msgId, fullText);
+    aiHistory.push({ role: 'assistant', content: fullText });
+
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      aiUpdateMsg(msgId, null, 'Connection failed — is server.py running?');
+    }
+  } finally {
+    aiStreaming = false;
+    _aiSetChipsDisabled(false);
+    $('ai-send').disabled = false;
+    input.focus();
+  }
+}
+
+// ── DOM helpers ────────────────────────────────────────────
+function aiAddMsg(role, text, id) {
+  const msgs = $('ai-msgs');
+  const div  = document.createElement('div');
+  if (id)   div.id        = id;
+  if (role === 'user') {
+    div.className   = 'ai-msg ai-msg-u';
+    div.textContent = text;
+  } else {
+    div.className = 'ai-msg ai-msg-a';
+    div.innerHTML = text
+      ? _aiMarkdown(text)
+      : '<span class="ai-cursor">▋</span>';
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function aiUpdateMsg(id, text, errText, streaming = false) {
+  const el = $(id);
+  if (!el) return;
+  if (errText) {
+    el.className = 'ai-msg ai-msg-err';
+    el.textContent = '⚠ ' + errText;
+  } else {
+    el.className = 'ai-msg ai-msg-a';
+    el.innerHTML = _aiMarkdown(text || '') +
+      (streaming ? '<span class="ai-cursor">▋</span>' : '');
+  }
+  el.closest('#ai-msgs').scrollTop = el.closest('#ai-msgs').scrollHeight;
+}
+
+function _aiMarkdown(t) {
+  // Minimal safe markdown: escape HTML first, then apply formatting
+  return t
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,     '<em>$1</em>')
+    .replace(/`([^`]+)`/g,     '<code>$1</code>')
+    .replace(/\n/g,            '<br>');
+}
+
+function _aiSetChipsDisabled(val) {
+  $('ai-cmds').querySelectorAll('.ai-chip').forEach(b => b.disabled = val);
+}
+
+/* ══════════════════════════════════════════════════════════════
    BOOT
 ══════════════════════════════════════════════════════════════ */
 pollBot();
 fetchPrices();
+checkAiHealth();
 </script>
 </body>
 </html>
