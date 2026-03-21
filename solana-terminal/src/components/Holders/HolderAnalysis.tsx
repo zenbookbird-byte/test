@@ -5,11 +5,11 @@ import clsx from 'clsx'
 
 // Jeet Score color mapping
 function jeetColor(score: number) {
-  if (score >= 80) return 'bg-accent-green text-bg-base'
-  if (score >= 60) return 'bg-accent-green/70 text-bg-base'
-  if (score >= 40) return 'bg-accent-yellow text-bg-base'
-  if (score >= 20) return 'bg-accent-orange text-bg-base'
-  return 'bg-accent-red text-white'
+  if (score >= 80) return 'bg-green-DEFAULT text-bg-base'
+  if (score >= 60) return 'bg-green-DEFAULT/70 text-bg-base'
+  if (score >= 40) return 'bg-yellow-DEFAULT text-bg-base'
+  if (score >= 20) return 'bg-yellow-DEFAULT text-bg-base'
+  return 'bg-red-DEFAULT text-white'
 }
 
 // Derive a pseudo-jeet score from on-chain data we have
@@ -111,16 +111,16 @@ export function HolderAnalysis() {
   return (
     <div className="flex flex-col gap-3 p-3 overflow-y-auto h-full">
       {/* Jeet Score */}
-      <div className="bg-bg-tertiary border border-border rounded-xl p-3">
+      <div className="bg-ax-card border border-ax-border rounded-xl p-3">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Jeet Score™</span>
           <div className={clsx('text-xs font-bold px-2 py-0.5 rounded-full', jeetColor(jeetScore))}>
             {jeetScore}/100
           </div>
         </div>
-        <div className="h-2 bg-bg-card rounded-full overflow-hidden">
+        <div className="h-2 bg-ax-card rounded-full overflow-hidden">
           <div
-            className={clsx('h-full rounded-full transition-all', jeetScore >= 60 ? 'bg-accent-green' : jeetScore >= 40 ? 'bg-accent-yellow' : 'bg-accent-red')}
+            className={clsx('h-full rounded-full transition-all', jeetScore >= 60 ? 'bg-green-DEFAULT' : jeetScore >= 40 ? 'bg-yellow-DEFAULT' : 'bg-red-DEFAULT')}
             style={{ width: `${jeetScore}%` }}
           />
         </div>
@@ -138,11 +138,11 @@ export function HolderAnalysis() {
         <div className="grid grid-cols-4 gap-1.5">
           {gridCells.map(cell => {
             const buyRatio = cell.buy
-            const bg = buyRatio >= 65 ? 'bg-accent-green/20 border-accent-green/30' :
-                       buyRatio >= 50 ? 'bg-accent-green/10 border-accent-green/20' :
-                       buyRatio >= 35 ? 'bg-accent-red/10 border-accent-red/20' :
-                                        'bg-accent-red/20 border-accent-red/30'
-            const textColor = buyRatio >= 50 ? 'text-accent-green' : 'text-accent-red'
+            const bg = buyRatio >= 65 ? 'bg-green-DEFAULT/20 border-green-DEFAULT/30' :
+                       buyRatio >= 50 ? 'bg-green-DEFAULT/10 border-green-DEFAULT/20' :
+                       buyRatio >= 35 ? 'bg-red-DEFAULT/10 border-red-DEFAULT/20' :
+                                        'bg-red-DEFAULT/20 border-red-DEFAULT/30'
+            const textColor = buyRatio >= 50 ? 'text-green-DEFAULT' : 'text-red-DEFAULT'
             return (
               <div key={cell.label} className={clsx('rounded-lg border p-2 text-center', bg)}>
                 <div className="text-xs text-text-muted mb-0.5">{cell.label}</div>
@@ -155,7 +155,7 @@ export function HolderAnalysis() {
       </div>
 
       {/* Buy/Sell bars */}
-      <div className="bg-bg-tertiary border border-border rounded-xl p-3 space-y-2.5">
+      <div className="bg-ax-card border border-ax-border rounded-xl p-3 space-y-2.5">
         <div className="text-xs text-text-muted uppercase tracking-wider font-semibold mb-1">Transaction Flow</div>
         {[
           { label: '5m', buys: buys5m, sells: sells5m, total: total5m },
@@ -167,12 +167,12 @@ export function HolderAnalysis() {
             <div key={row.label} className="space-y-0.5">
               <div className="flex justify-between text-xs">
                 <span className="text-text-muted w-6">{row.label}</span>
-                <span className="text-accent-green">{row.buys}B</span>
+                <span className="text-green-DEFAULT">{row.buys}B</span>
                 <span className="text-text-muted flex-1 text-center">{row.total} total</span>
-                <span className="text-accent-red">{row.sells}S</span>
+                <span className="text-red-DEFAULT">{row.sells}S</span>
               </div>
-              <div className="flex h-1.5 rounded-full overflow-hidden bg-accent-red/30">
-                <div className="bg-accent-green rounded-full" style={{ width: `${bp}%` }} />
+              <div className="flex h-1.5 rounded-full overflow-hidden bg-red-DEFAULT/30">
+                <div className="bg-green-DEFAULT rounded-full" style={{ width: `${bp}%` }} />
               </div>
             </div>
           )
@@ -180,14 +180,14 @@ export function HolderAnalysis() {
       </div>
 
       {/* Risk flags */}
-      <div className="bg-bg-tertiary border border-border rounded-xl p-3">
+      <div className="bg-ax-card border border-ax-border rounded-xl p-3">
         <div className="text-xs text-text-muted uppercase tracking-wider font-semibold mb-2">Risk Analysis</div>
         <div className="space-y-2">
           {flags.map(flag => (
             <div key={flag.label} className="flex items-start gap-2">
               {flag.ok
-                ? <Shield size={12} className="text-accent-green mt-0.5 shrink-0" />
-                : <AlertTriangle size={12} className="text-accent-orange mt-0.5 shrink-0" />
+                ? <Shield size={12} className="text-green-DEFAULT mt-0.5 shrink-0" />
+                : <AlertTriangle size={12} className="text-yellow-DEFAULT mt-0.5 shrink-0" />
               }
               <div>
                 <div className="text-xs text-text-primary">{flag.label}</div>
@@ -211,7 +211,7 @@ export function HolderAnalysis() {
 
 function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-bg-tertiary border border-border rounded-lg p-2">
+    <div className="bg-ax-card border border-ax-border rounded-lg p-2">
       <div className="flex items-center gap-1 text-xs text-text-muted mb-0.5">
         {icon}{label}
       </div>

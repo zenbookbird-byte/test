@@ -109,7 +109,7 @@ export function TradesFeed() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="grid grid-cols-[40px_1fr_70px_70px_50px] gap-1 px-3 py-1.5 border-b border-border text-xs text-text-muted shrink-0">
+      <div className="grid grid-cols-[40px_1fr_70px_70px_50px] gap-1 px-3 py-1.5 border-b border-ax-border text-xs text-text-muted shrink-0">
         <div>Time</div>
         <div>Type</div>
         <div className="text-right">Price</div>
@@ -122,7 +122,7 @@ export function TradesFeed() {
         {loading && trades.length === 0 ? (
           <div className="p-3 space-y-1.5">
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="h-7 rounded bg-bg-tertiary animate-pulse" />
+              <div key={i} className="h-7 rounded bg-ax-card animate-pulse" />
             ))}
           </div>
         ) : trades.length === 0 ? (
@@ -132,12 +132,12 @@ export function TradesFeed() {
             <div
               key={trade.signature + i}
               className={clsx(
-                'grid grid-cols-[40px_1fr_70px_70px_50px] gap-1 items-center px-3 py-1 border-b border-border/40 text-xs transition-colors hover:bg-bg-hover animate-fade-in',
-                trade.type === 'buy' ? 'border-l-2 border-l-accent-green/30' : 'border-l-2 border-l-accent-red/30'
+                'grid grid-cols-[40px_1fr_70px_70px_50px] gap-1 items-center px-3 py-1 border-b border-ax-border/40 text-xs transition-colors hover:bg-ax-hover animate-fade-in',
+                trade.type === 'buy' ? 'border-l-2 border-l-green-DEFAULT/30' : 'border-l-2 border-l-red-DEFAULT/30'
               )}
             >
               <span className="text-text-muted font-mono">{timeAgo(trade.timestamp)}</span>
-              <div className={clsx('flex items-center gap-1 font-semibold', trade.type === 'buy' ? 'text-accent-green' : 'text-accent-red')}>
+              <div className={clsx('flex items-center gap-1 font-semibold', trade.type === 'buy' ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
                 {trade.type === 'buy'
                   ? <ArrowUpRight size={11} />
                   : <ArrowDownRight size={11} />
@@ -147,7 +147,7 @@ export function TradesFeed() {
               <span className="text-right font-mono text-text-secondary">
                 ${trade.priceUsd < 0.001 ? trade.priceUsd.toFixed(8) : trade.priceUsd.toFixed(4)}
               </span>
-              <span className={clsx('text-right font-mono font-medium', trade.type === 'buy' ? 'text-accent-green' : 'text-accent-red')}>
+              <span className={clsx('text-right font-mono font-medium', trade.type === 'buy' ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
                 {formatUsd(trade.amountUsd)}
               </span>
               <a
@@ -155,7 +155,7 @@ export function TradesFeed() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={e => e.stopPropagation()}
-                className="text-right text-text-muted hover:text-cyan-DEFAULT transition-colors flex items-center justify-end gap-0.5"
+                className="text-right text-text-muted hover:text-blue-accent transition-colors flex items-center justify-end gap-0.5"
               >
                 {trade.maker}
                 <ExternalLink size={9} />

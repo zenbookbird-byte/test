@@ -78,12 +78,12 @@ export function WalletTracker() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="p-3 border-b border-border shrink-0">
+      <div className="p-3 border-b border-ax-border shrink-0">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-text-primary">Wallet Tracker</span>
           <button
             onClick={() => setAdding(!adding)}
-            className="flex items-center gap-1 text-xs text-cyan-DEFAULT bg-cyan/10 border border-cyan/20 px-2 py-1 rounded-lg hover:bg-cyan/20 transition-colors"
+            className="flex items-center gap-1 text-xs text-blue-accent bg-cyan/10 border border-cyan/20 px-2 py-1 rounded-lg hover:bg-cyan/20 transition-colors"
           >
             <Plus size={11} />
             Track Wallet
@@ -97,7 +97,7 @@ export function WalletTracker() {
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="Wallet address (base58)"
-              className="w-full bg-bg-tertiary border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary placeholder-text-muted outline-none focus:border-cyan/40"
+              className="w-full bg-ax-card border border-ax-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary placeholder-text-muted outline-none focus:border-cyan/40"
             />
             <div className="flex gap-1.5">
               <input
@@ -105,12 +105,12 @@ export function WalletTracker() {
                 value={label}
                 onChange={e => setLabel(e.target.value)}
                 placeholder="Label (optional)"
-                className="flex-1 bg-bg-tertiary border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary placeholder-text-muted outline-none focus:border-cyan/40"
+                className="flex-1 bg-ax-card border border-ax-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary placeholder-text-muted outline-none focus:border-cyan/40"
               />
               <button
                 onClick={handleAdd}
                 disabled={input.trim().length < 32}
-                className="px-3 py-1.5 bg-cyan/10 text-cyan-DEFAULT border border-cyan/30 rounded-lg text-xs font-medium hover:bg-cyan/20 transition-colors disabled:opacity-40"
+                className="px-3 py-1.5 bg-cyan/10 text-blue-accent border border-cyan/30 rounded-lg text-xs font-medium hover:bg-cyan/20 transition-colors disabled:opacity-40"
               >
                 Add
               </button>
@@ -135,13 +135,13 @@ export function WalletTracker() {
             const pnl = history.filter(t => !t.isBuy).reduce((s, t) => s + t.pnl, 0)
 
             return (
-              <div key={w.address} className="border-b border-border">
+              <div key={w.address} className="border-b border-ax-border">
                 {/* Wallet row */}
                 <div
-                  className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-bg-hover transition-colors"
+                  className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-ax-hover transition-colors"
                   onClick={() => setExpanded(isExpanded ? null : w.address)}
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan/20 to-accent-purple/20 flex items-center justify-center text-xs font-bold text-cyan-DEFAULT shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-accent/20 to-purple-DEFAULT/20 flex items-center justify-center text-xs font-bold text-blue-accent shrink-0">
                     {w.label[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -151,7 +151,7 @@ export function WalletTracker() {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className={clsx('text-xs font-mono font-semibold', pnl >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+                    <div className={clsx('text-xs font-mono font-semibold', pnl >= 0 ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
                       {pnl >= 0 ? '+' : ''}{pnl.toFixed(0)}%
                     </div>
                     <div className="text-xs text-text-muted">est PnL</div>
@@ -162,13 +162,13 @@ export function WalletTracker() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={e => e.stopPropagation()}
-                      className="text-text-muted hover:text-cyan-DEFAULT transition-colors"
+                      className="text-text-muted hover:text-blue-accent transition-colors"
                     >
                       <ExternalLink size={11} />
                     </a>
                     <button
                       onClick={e => { e.stopPropagation(); remove(w.address) }}
-                      className="text-text-muted hover:text-accent-red transition-colors"
+                      className="text-text-muted hover:text-red-DEFAULT transition-colors"
                     >
                       <X size={11} />
                     </button>
@@ -177,21 +177,21 @@ export function WalletTracker() {
 
                 {/* Expanded trade history */}
                 {isExpanded && (
-                  <div className="bg-bg-secondary border-t border-border animate-slide-in">
-                    <div className="px-3 py-1.5 text-xs text-text-muted border-b border-border">Recent trades</div>
+                  <div className="bg-ax-sidebar border-t border-ax-border animate-slide-in">
+                    <div className="px-3 py-1.5 text-xs text-text-muted border-b border-ax-border">Recent trades</div>
                     {history.map((trade, i) => (
                       <button
                         key={i}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-bg-hover transition-colors text-left border-b border-border/40"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-ax-hover transition-colors text-left border-b border-ax-border/40"
                         onClick={() => onTokenClick(trade.sym)}
                       >
-                        <span className={clsx('shrink-0 font-bold', trade.isBuy ? 'text-accent-green' : 'text-accent-red')}>
+                        <span className={clsx('shrink-0 font-bold', trade.isBuy ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
                           {trade.isBuy ? '▲' : '▼'}
                         </span>
                         <span className="font-semibold text-text-primary">{trade.sym}</span>
                         <span className="text-text-muted">{trade.amount.toFixed(2)} SOL</span>
                         {!trade.isBuy && (
-                          <span className={clsx('ml-auto font-mono', trade.pnl >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+                          <span className={clsx('ml-auto font-mono', trade.pnl >= 0 ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
                             {trade.pnl >= 0 ? '+' : ''}{trade.pnl.toFixed(0)}%
                           </span>
                         )}

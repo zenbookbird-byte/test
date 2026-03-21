@@ -10,7 +10,7 @@ function Avatar({ pair, size = 30 }: { pair: TokenPair; size?: number }) {
   const [err, setErr] = useState(false)
   const img = pair.info?.imageUrl
   const sym = pair.baseToken?.symbol ?? '?'
-  const colors = ['from-cyan/30 to-accent-purple/30', 'from-accent-purple/30 to-accent-orange/30', 'from-accent-green/30 to-cyan/30']
+  const colors = ['from-blue-accent/30 to-purple-DEFAULT/30', 'from-purple-DEFAULT/30 to-yellow-DEFAULT/30', 'from-green-DEFAULT/30 to-blue-accent/30']
   const colorIdx = sym.charCodeAt(0) % colors.length
   if (!img || err) {
     return (
@@ -94,9 +94,9 @@ export function TokenList() {
   }
 
   return (
-    <div className="flex flex-col w-64 xl:w-72 shrink-0 bg-bg-primary border-r border-border overflow-hidden">
+    <div className="flex flex-col w-64 xl:w-72 shrink-0 bg-ax-base border-r border-ax-border overflow-hidden">
       {/* Tab bar */}
-      <div className="flex border-b border-border shrink-0">
+      <div className="flex border-b border-ax-border shrink-0">
         {([
           { id: 'trending', icon: Flame, label: 'Hot' },
           { id: 'new',      icon: Zap,   label: 'New' },
@@ -120,7 +120,7 @@ export function TokenList() {
       </div>
 
       {/* Filter presets */}
-      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border">
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-ax-border">
         {FILTER_PRESETS.map((p, i) => (
           <button
             key={p.label}
@@ -128,7 +128,7 @@ export function TokenList() {
             className={clsx(
               'text-xs px-1.5 py-0.5 rounded transition-colors whitespace-nowrap',
               activePreset === i
-                ? 'bg-cyan/10 text-cyan-DEFAULT border border-cyan/20'
+                ? 'bg-cyan/10 text-blue-accent border border-cyan/20'
                 : 'text-text-muted hover:text-text-secondary'
             )}
           >
@@ -137,7 +137,7 @@ export function TokenList() {
         ))}
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={clsx('ml-auto shrink-0 text-text-muted hover:text-text-primary transition-colors', showFilters && 'text-cyan-DEFAULT')}
+          className={clsx('ml-auto shrink-0 text-text-muted hover:text-text-primary transition-colors', showFilters && 'text-blue-accent')}
         >
           <SlidersHorizontal size={12} />
         </button>
@@ -150,24 +150,24 @@ export function TokenList() {
       </div>
 
       {showFilters && (
-        <div className="px-2 py-2 border-b border-border bg-bg-secondary space-y-2 animate-slide-in">
+        <div className="px-2 py-2 border-b border-ax-border bg-ax-sidebar space-y-2 animate-slide-in">
           <FilterSlider label="Min Liquidity" value={minLiquidity} onChange={setMinLiquidity} options={[0, 1000, 5000, 25000, 100000]} />
           <FilterSlider label="Min Vol 24h" value={minVolume} onChange={setMinVolume} options={[0, 1000, 10000, 50000, 250000]} />
         </div>
       )}
 
       {/* Column headers */}
-      <div className="grid grid-cols-[26px_1fr_44px_44px_52px] gap-0 px-2 py-1 border-b border-border text-xs text-text-muted">
+      <div className="grid grid-cols-[26px_1fr_44px_44px_52px] gap-0 px-2 py-1 border-b border-ax-border text-xs text-text-muted">
         <div />
         <div>Token</div>
         <button onClick={() => toggleSort('change5m')} className="text-right hover:text-text-primary flex items-center justify-end gap-0.5">
-          5m{sortField === 'change5m' && <span className="text-cyan-DEFAULT">{sortDir === 'desc' ? '↓' : '↑'}</span>}
+          5m{sortField === 'change5m' && <span className="text-blue-accent">{sortDir === 'desc' ? '↓' : '↑'}</span>}
         </button>
         <button onClick={() => toggleSort('change1h')} className="text-right hover:text-text-primary flex items-center justify-end gap-0.5">
-          1h{sortField === 'change1h' && <span className="text-cyan-DEFAULT">{sortDir === 'desc' ? '↓' : '↑'}</span>}
+          1h{sortField === 'change1h' && <span className="text-blue-accent">{sortDir === 'desc' ? '↓' : '↑'}</span>}
         </button>
         <button onClick={() => toggleSort('volume')} className="text-right hover:text-text-primary flex items-center justify-end gap-0.5">
-          Vol{sortField === 'volume' && <span className="text-cyan-DEFAULT">{sortDir === 'desc' ? '↓' : '↑'}</span>}
+          Vol{sortField === 'volume' && <span className="text-blue-accent">{sortDir === 'desc' ? '↓' : '↑'}</span>}
         </button>
       </div>
 
@@ -176,7 +176,7 @@ export function TokenList() {
         {isLoading ? (
           <div className="p-2 space-y-1.5">
             {Array.from({ length: 14 }).map((_, i) => (
-              <div key={i} className="h-10 rounded-lg bg-bg-tertiary animate-pulse" />
+              <div key={i} className="h-10 rounded-lg bg-ax-card animate-pulse" />
             ))}
           </div>
         ) : pairs.length === 0 ? (
@@ -198,7 +198,7 @@ export function TokenList() {
       </div>
 
       {/* Footer count */}
-      <div className="px-3 py-1.5 border-t border-border text-xs text-text-muted">
+      <div className="px-3 py-1.5 border-t border-ax-border text-xs text-text-muted">
         {pairs.length} tokens
       </div>
     </div>
@@ -221,25 +221,25 @@ function TokenRow({ pair, selected, onSelect }: {
   return (
     <div
       onClick={() => onSelect(pair)}
-      className={clsx('token-row grid grid-cols-[26px_1fr_44px_44px_52px] gap-0 items-center px-2 py-1.5 cursor-pointer border-b border-border/40', selected && 'active')}
+      className={clsx('token-row grid grid-cols-[26px_1fr_44px_44px_52px] gap-0 items-center px-2 py-1.5 cursor-pointer border-b border-ax-border/40', selected && 'active')}
     >
       <div className="relative">
         <Avatar pair={pair} size={22} />
-        {isNew && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent-green border border-bg-base" />}
+        {isNew && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-DEFAULT border border-bg-base" />}
       </div>
 
       <div className="min-w-0 px-1.5">
         <div className="flex items-center gap-1">
           <span className="text-xs font-semibold text-text-primary truncate leading-none">{pair.baseToken.symbol}</span>
-          {isHot && <Flame size={9} className="text-accent-orange shrink-0" />}
+          {isHot && <Flame size={9} className="text-yellow-DEFAULT shrink-0" />}
         </div>
         <div className="text-xs text-text-muted leading-none mt-0.5 font-mono">{formatAge(pair.pairCreatedAt)}</div>
       </div>
 
-      <div className={clsx('text-xs font-mono text-right', c5m >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+      <div className={clsx('text-xs font-mono text-right', c5m >= 0 ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
         {c5m >= 0 ? '+' : ''}{c5m.toFixed(1)}%
       </div>
-      <div className={clsx('text-xs font-mono text-right', c1h >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+      <div className={clsx('text-xs font-mono text-right', c1h >= 0 ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
         {c1h >= 0 ? '+' : ''}{c1h.toFixed(1)}%
       </div>
       <div className="text-xs font-mono text-right text-text-secondary">
@@ -259,7 +259,7 @@ function FilterSlider({ label, value, onChange, options }: {
         {options.map(o => (
           <button key={o} onClick={() => onChange(o)}
             className={clsx('flex-1 text-xs py-0.5 rounded border transition-colors',
-              value === o ? 'border-cyan/40 text-cyan-DEFAULT bg-cyan/5' : 'border-border text-text-muted hover:border-border-light'
+              value === o ? 'border-cyan/40 text-blue-accent bg-cyan/5' : 'border-ax-border text-text-muted hover:border-ax-border-light'
             )}>
             {o === 0 ? 'Any' : o >= 1000 ? `${o / 1000}K` : o}
           </button>

@@ -44,13 +44,13 @@ export function TokenInfoPanel() {
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Price header */}
-      <div className="p-3 border-b border-border">
+      <div className="p-3 border-b border-ax-border">
         <div className="flex items-center gap-2 mb-2">
           <TokenImg pair={p} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-bold text-text-primary">{p.baseToken.symbol}</span>
-              <span className="text-xs text-text-muted bg-bg-tertiary border border-border px-1.5 rounded">{p.dexId}</span>
+              <span className="text-xs text-text-muted bg-ax-card border border-ax-border px-1.5 rounded">{p.dexId}</span>
             </div>
             <div className="text-xs text-text-muted truncate">{p.baseToken.name}</div>
           </div>
@@ -58,38 +58,38 @@ export function TokenInfoPanel() {
 
         <div className="flex items-baseline gap-2 mb-1.5">
           <span className="text-xl font-bold font-mono text-text-primary">{fmt(price)}</span>
-          <span className={clsx('text-xs font-mono flex items-center gap-0.5', c24 >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+          <span className={clsx('text-xs font-mono flex items-center gap-0.5', c24 >= 0 ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
             {c24 >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
             {formatPercent(c24)}
           </span>
         </div>
 
         {/* Address */}
-        <div className="flex items-center gap-1.5 bg-bg-tertiary border border-border rounded-lg px-2 py-1">
+        <div className="flex items-center gap-1.5 bg-ax-card border border-ax-border rounded-lg px-2 py-1">
           <span className="text-xs font-mono text-text-muted flex-1 truncate">{address.slice(0, 16)}...{address.slice(-6)}</span>
-          <button onClick={copyAddress} className="text-text-muted hover:text-cyan-DEFAULT transition-colors shrink-0">
-            {copied ? <Check size={11} className="text-accent-green" /> : <Copy size={11} />}
+          <button onClick={copyAddress} className="text-text-muted hover:text-blue-accent transition-colors shrink-0">
+            {copied ? <Check size={11} className="text-green-DEFAULT" /> : <Copy size={11} />}
           </button>
           <a href={`https://solscan.io/token/${address}`} target="_blank" rel="noopener noreferrer"
-            className="text-text-muted hover:text-cyan-DEFAULT transition-colors shrink-0">
+            className="text-text-muted hover:text-blue-accent transition-colors shrink-0">
             <ExternalLink size={11} />
           </a>
           <a href={`https://dexscreener.com/solana/${p.pairAddress}`} target="_blank" rel="noopener noreferrer"
-            className="text-text-muted hover:text-cyan-DEFAULT transition-colors text-xs shrink-0">DS</a>
+            className="text-text-muted hover:text-blue-accent transition-colors text-xs shrink-0">DS</a>
         </div>
       </div>
 
       {/* Change grid */}
-      <div className="grid grid-cols-4 border-b border-border">
+      <div className="grid grid-cols-4 border-b border-ax-border">
         {[
           { label: '5m', val: p.priceChange?.m5 },
           { label: '1h', val: p.priceChange?.h1 },
           { label: '6h', val: p.priceChange?.h6 },
           { label: '24h', val: p.priceChange?.h24 },
         ].map(c => (
-          <div key={c.label} className="flex flex-col items-center py-2 border-r border-border last:border-0">
+          <div key={c.label} className="flex flex-col items-center py-2 border-r border-ax-border last:border-0">
             <span className="text-xs text-text-muted">{c.label}</span>
-            <span className={clsx('text-xs font-mono font-semibold', (c.val ?? 0) >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+            <span className={clsx('text-xs font-mono font-semibold', (c.val ?? 0) >= 0 ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
               {formatPercent(c.val ?? 0)}
             </span>
           </div>
@@ -97,7 +97,7 @@ export function TokenInfoPanel() {
       </div>
 
       {/* Stats */}
-      <div className="p-3 grid grid-cols-2 gap-2 border-b border-border">
+      <div className="p-3 grid grid-cols-2 gap-2 border-b border-ax-border">
         <StatBox label="Market Cap" value={formatNumber(p.marketCap ?? p.fdv)} icon={<BarChart2 size={11} />} />
         <StatBox label="FDV" value={formatNumber(p.fdv)} icon={<BarChart2 size={11} />} />
         <StatBox label="Liquidity" value={formatNumber(p.liquidity?.usd)} icon={<Droplets size={11} />} />
@@ -107,7 +107,7 @@ export function TokenInfoPanel() {
       </div>
 
       {/* Txn flow */}
-      <div className="p-3 border-b border-border">
+      <div className="p-3 border-b border-ax-border">
         <div className="text-xs text-text-muted uppercase tracking-wider mb-2">Txn Flow</div>
         <div className="space-y-1.5">
           {([
@@ -120,12 +120,12 @@ export function TokenInfoPanel() {
             return (
               <div key={row.label} className="flex items-center gap-2">
                 <span className="text-xs text-text-muted w-5">{row.label}</span>
-                <div className="flex-1 h-1.5 rounded-full bg-accent-red/20 overflow-hidden">
-                  <div className="h-full bg-accent-green rounded-full transition-all" style={{ width: `${bp}%` }} />
+                <div className="flex-1 h-1.5 rounded-full bg-red-DEFAULT/20 overflow-hidden">
+                  <div className="h-full bg-green-DEFAULT rounded-full transition-all" style={{ width: `${bp}%` }} />
                 </div>
-                <span className="text-xs text-accent-green w-6 text-right font-mono">{row.b ?? 0}</span>
+                <span className="text-xs text-green-DEFAULT w-6 text-right font-mono">{row.b ?? 0}</span>
                 <span className="text-xs text-text-muted">/</span>
-                <span className="text-xs text-accent-red w-6 font-mono">{row.s ?? 0}</span>
+                <span className="text-xs text-red-DEFAULT w-6 font-mono">{row.s ?? 0}</span>
               </div>
             )
           })}
@@ -150,7 +150,7 @@ function TokenImg({ pair }: { pair: { info?: { imageUrl?: string }; baseToken: {
   const sym = pair.baseToken.symbol
   if (!img || err) {
     return (
-      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan/30 to-accent-purple/30 flex items-center justify-center font-bold text-text-primary text-sm shrink-0">
+      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-accent/30 to-purple-DEFAULT/30 flex items-center justify-center font-bold text-text-primary text-sm shrink-0">
         {sym[0]}
       </div>
     )
@@ -160,7 +160,7 @@ function TokenImg({ pair }: { pair: { info?: { imageUrl?: string }; baseToken: {
 
 function StatBox({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="bg-bg-tertiary border border-border rounded-lg p-2">
+    <div className="bg-ax-card border border-ax-border rounded-lg p-2">
       <div className="flex items-center gap-1 text-xs text-text-muted mb-0.5">{icon}{label}</div>
       <div className="text-xs font-mono font-semibold text-text-primary">{value}</div>
     </div>
@@ -170,7 +170,7 @@ function StatBox({ label, value, icon }: { label: string; value: string; icon: R
 function SocialLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
   return (
     <a href={href} target="_blank" rel="noopener noreferrer"
-      className="flex items-center gap-1 text-xs text-text-secondary hover:text-cyan-DEFAULT bg-bg-tertiary border border-border hover:border-cyan/30 rounded-lg px-2 py-1 transition-colors">
+      className="flex items-center gap-1 text-xs text-text-secondary hover:text-blue-accent bg-ax-card border border-ax-border hover:border-cyan/30 rounded-lg px-2 py-1 transition-colors">
       {icon}{label}
     </a>
   )

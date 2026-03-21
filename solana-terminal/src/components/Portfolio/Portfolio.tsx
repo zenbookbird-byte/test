@@ -14,8 +14,8 @@ export function Portfolio() {
   if (!publicKey) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 p-8">
-        <div className="w-16 h-16 rounded-full bg-accent-purple/10 border border-accent-purple/20 flex items-center justify-center">
-          <Wallet size={28} className="text-accent-purple" />
+        <div className="w-16 h-16 rounded-full bg-purple-DEFAULT/10 border border-purple-DEFAULT/20 flex items-center justify-center">
+          <Wallet size={28} className="text-purple-DEFAULT" />
         </div>
         <div className="text-center">
           <div className="text-lg font-semibold text-text-primary mb-1">Connect Your Wallet</div>
@@ -43,7 +43,7 @@ export function Portfolio() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-ax-border">
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="text-xs text-text-muted">Total Portfolio Value</div>
@@ -54,7 +54,7 @@ export function Portfolio() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => refetch()}
-              className={clsx('w-7 h-7 rounded-lg bg-bg-tertiary border border-border flex items-center justify-center text-text-muted hover:text-text-primary transition-colors', isFetching && 'animate-spin')}
+              className={clsx('w-7 h-7 rounded-lg bg-ax-card border border-ax-border flex items-center justify-center text-text-muted hover:text-text-primary transition-colors', isFetching && 'animate-spin')}
             >
               <RefreshCw size={12} />
             </button>
@@ -62,13 +62,13 @@ export function Portfolio() {
               href={`https://solscan.io/account/${publicKey.toBase58()}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-7 h-7 rounded-lg bg-bg-tertiary border border-border flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+              className="w-7 h-7 rounded-lg bg-ax-card border border-ax-border flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
             >
               <ExternalLink size={12} />
             </a>
           </div>
         </div>
-        <div className="text-xs font-mono text-text-muted bg-bg-tertiary rounded-lg px-3 py-1.5">
+        <div className="text-xs font-mono text-text-muted bg-ax-card rounded-lg px-3 py-1.5">
           {publicKey.toBase58().slice(0, 12)}...{publicKey.toBase58().slice(-8)}
         </div>
       </div>
@@ -78,7 +78,7 @@ export function Portfolio() {
         {isLoading ? (
           <div className="flex flex-col gap-2 p-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-14 bg-bg-tertiary rounded-xl animate-pulse" />
+              <div key={i} className="h-14 bg-ax-card rounded-xl animate-pulse" />
             ))}
           </div>
         ) : !tokens || tokens.length === 0 ? (
@@ -92,7 +92,7 @@ export function Portfolio() {
               return (
                 <button
                   key={token.mint}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-bg-hover transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-ax-hover transition-colors text-left"
                   onClick={() => onTokenClick(token.mint)}
                 >
                   <TokenAvatar token={token} />
@@ -106,7 +106,7 @@ export function Portfolio() {
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-xs text-text-secondary">{token.balance.toFixed(4)}</span>
                       <div className="flex items-center gap-2">
-                        <span className={clsx('text-xs font-mono', token.change24h >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+                        <span className={clsx('text-xs font-mono', token.change24h >= 0 ? 'text-green-DEFAULT' : 'text-red-DEFAULT')}>
                           {token.change24h >= 0 ? <TrendingUp size={10} className="inline" /> : <TrendingDown size={10} className="inline" />}
                           {' '}{Math.abs(token.change24h).toFixed(2)}%
                         </span>
@@ -114,9 +114,9 @@ export function Portfolio() {
                       </div>
                     </div>
                     {/* Allocation bar */}
-                    <div className="mt-1.5 h-0.5 bg-bg-tertiary rounded-full overflow-hidden">
+                    <div className="mt-1.5 h-0.5 bg-ax-card rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-accent-purple to-accent-blue rounded-full"
+                        className="h-full bg-gradient-to-r from-purple-DEFAULT to-blue-accent rounded-full"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -145,7 +145,7 @@ function TokenAvatar({ token }: { token: { logoURI?: string; symbol: string } })
     )
   }
   return (
-    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent-purple/30 to-accent-blue/30 flex items-center justify-center text-text-primary text-sm font-bold shrink-0">
+    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-DEFAULT/30 to-blue-accent/30 flex items-center justify-center text-text-primary text-sm font-bold shrink-0">
       {token.symbol[0]}
     </div>
   )
