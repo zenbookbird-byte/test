@@ -9,9 +9,13 @@ Usage:
 """
 
 import argparse
+import csv
 import json
 import math
+import os
 import random
+import sqlite3
+import statistics
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -27,6 +31,8 @@ SUBGRAPH   = "https://api.thegraph.com/subgraphs/name/polymarket/matic-markets-5
 MIN_TRADES = 10   # wallets with fewer trades are filtered out
 TOP_N      = 30   # rows to show in the terminal table
 RATE_DELAY = 0.25 # seconds between API pages
+CACHE_DIR  = ".cache"
+CACHE_TTL  = 3600 # seconds before cached data is considered stale
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -77,6 +83,45 @@ def post_gql(query: str, variables: dict = None):
             else:
                 print(f"  [warn] GraphQL query failed: {e}")
                 return None
+
+
+def load_cache(filename: str, ttl: int = CACHE_TTL):
+    """Return cached data if the file exists and is younger than *ttl* seconds."""
+    path = os.path.join(CACHE_DIR, filename)
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path) as f:
+            cached = json.load(f)
+        if time.time() - cached.get("_cached_at", 0) > ttl:
+            return None
+        return cached.get("data")
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def save_cache(data, filename: str):
+    """Persist *data* to a timestamped JSON cache file."""
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    path = os.path.join(CACHE_DIR, filename)
+    with open(path, "w") as f:
+        json.dump({"_cached_at": time.time(), "data": data}, f)
+
+
+def deduplicate_trades(trades: list) -> list:
+    """Remove trades with duplicate IDs. Trades lacking an 'id' field are kept."""
+    seen, result = set(), []
+    for t in trades:
+        tid = t.get("id")
+        if tid is None:
+            result.append(t)
+        elif tid not in seen:
+            seen.add(tid)
+            result.append(t)
+    removed = len(trades) - len(result)
+    if removed:
+        print(f"  [dedup] Removed {removed} duplicate trade(s).")
+    return result
 
 
 # ── Step 1: Find BTC 15-min markets ──────────────────────────────────────────
@@ -306,6 +351,20 @@ def aggregate_wallets_clob(trades: list) -> dict:
 
 
 # ── Step 4: Score & rank ──────────────────────────────────────────────────────
+def detect_strategy(trades_per_day: float, active_days: int) -> str:
+    """Classify a wallet's trading style from its activity pattern.
+
+    bot     – extremely high frequency (likely automated)
+    scalper – high frequency, short holding periods
+    swing   – low frequency, longer holds
+    """
+    if trades_per_day >= 100:
+        return "bot"
+    if trades_per_day >= 10:
+        return "scalper"
+    return "swing"
+
+
 def score_wallets(wallets: dict, min_trades: int = MIN_TRADES) -> list:
     rows = []
     for addr, w in wallets.items():
@@ -323,6 +382,7 @@ def score_wallets(wallets: dict, min_trades: int = MIN_TRADES) -> list:
         else:
             active_days = 1
 
+        tpd = round(w["trades"] / active_days, 1)
         rows.append({
             "address":          addr,
             "trades":           w["trades"],
@@ -334,8 +394,9 @@ def score_wallets(wallets: dict, min_trades: int = MIN_TRADES) -> list:
             "net_pnl_usdc":     round(net_pnl, 2),
             "gross_in_usdc":    round(w["gross_in"], 2),
             "gross_out_usdc":   round(w["gross_out"], 2),
-            "trades_per_day":   round(w["trades"] / active_days, 1),
+            "trades_per_day":   tpd,
             "active_days":      active_days,
+            "strategy":         detect_strategy(tpd, active_days),
         })
 
     rows.sort(key=lambda r: (r["win_rate"], r["net_pnl_usdc"], r["trades"]), reverse=True)
@@ -346,7 +407,7 @@ def score_wallets(wallets: dict, min_trades: int = MIN_TRADES) -> list:
 def print_table(rows: list, top_n: int = TOP_N, min_trades: int = MIN_TRADES):
     header = (
         f"{'#':<4} {'Address':<44} {'Trades':>7} {'T/day':>6} "
-        f"{'Win%':>6} {'W/L':>9} {'Net P&L':>10} {'Days':>5}"
+        f"{'Win%':>6} {'W/L':>9} {'Net P&L':>10} {'Days':>5} {'Strategy':>8}"
     )
     sep = "-" * len(header)
     print(f"\n[4/4] Top {min(top_n, len(rows))} wallets by win rate  (min {min_trades} trades)\n")
@@ -360,7 +421,8 @@ def print_table(rows: list, top_n: int = TOP_N, min_trades: int = MIN_TRADES):
                    else f"{r['net_pnl_usdc']:.2f}")
         print(
             f"{i:<4} {r['address']:<44} {r['trades']:>7} {r['trades_per_day']:>6.1f} "
-            f"{r['win_rate']:>5.1f}% {wl:>9} {pnl_str:>10} {r['active_days']:>5}"
+            f"{r['win_rate']:>5.1f}% {wl:>9} {pnl_str:>10} {r['active_days']:>5} "
+            f"{r.get('strategy', '')!s:>8}"
         )
 
     print(sep)
@@ -371,6 +433,71 @@ def save_json(rows: list, path: str = "wallet_rankings.json"):
     with open(path, "w") as f:
         json.dump(rows, f, indent=2)
     print(f"Full rankings saved to {path}")
+
+
+def export_csv(rows: list, path: str = "wallet_rankings.csv"):
+    """Write rankings to a CSV file."""
+    if not rows:
+        return
+    with open(path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+        writer.writeheader()
+        writer.writerows(rows)
+    print(f"CSV exported to {path}")
+
+
+def print_summary_stats(rows: list):
+    """Print aggregate statistics across all qualifying wallets."""
+    if not rows:
+        return
+    win_rates  = [r["win_rate"]     for r in rows]
+    pnls       = [r["net_pnl_usdc"] for r in rows]
+    volumes    = [r["gross_in_usdc"] for r in rows]
+    strategies = {}
+    for r in rows:
+        strategies[r.get("strategy", "?")] = strategies.get(r.get("strategy", "?"), 0) + 1
+
+    print("\n── Summary Statistics ──────────────────────────────────")
+    print(f"  Qualifying wallets : {len(rows)}")
+    print(f"  Median win rate    : {statistics.median(win_rates):.1f}%")
+    print(f"  Mean win rate      : {statistics.mean(win_rates):.1f}%")
+    print(f"  Median net P&L     : ${statistics.median(pnls):+.2f}")
+    print(f"  Total volume (in)  : ${sum(volumes):,.2f} USDC")
+    print(f"  Strategy breakdown : {strategies}")
+    print("────────────────────────────────────────────────────────\n")
+
+
+def snapshot_rankings(rows: list, db_path: str = "rankings_history.db"):
+    """Append current rankings to a SQLite database for historical tracking."""
+    if not rows:
+        return
+    con = sqlite3.connect(db_path)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS snapshots (
+            snapshot_at TEXT,
+            rank        INTEGER,
+            address     TEXT,
+            trades      INTEGER,
+            win_rate    REAL,
+            net_pnl_usdc REAL,
+            trades_per_day REAL,
+            active_days INTEGER,
+            strategy    TEXT
+        )
+    """)
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    con.executemany(
+        "INSERT INTO snapshots VALUES (?,?,?,?,?,?,?,?,?)",
+        [
+            (ts, i, r["address"], r["trades"], r["win_rate"],
+             r["net_pnl_usdc"], r["trades_per_day"], r["active_days"],
+             r.get("strategy", ""))
+            for i, r in enumerate(rows, 1)
+        ],
+    )
+    con.commit()
+    con.close()
+    print(f"Snapshot saved to {db_path} ({len(rows)} rows at {ts})")
 
 
 # ── Demo mode (offline preview) ───────────────────────────────────────────────
@@ -430,21 +557,26 @@ def run_demo(top_n: int = TOP_N, min_trades: int = MIN_TRADES):
     print(f"  Unique wallets: {len(wallets)}")
     ranked = score_wallets(wallets, min_trades=min_trades)
     print_table(ranked, top_n=top_n, min_trades=min_trades)
+    print_summary_stats(ranked)
     save_json(ranked, "wallet_rankings_demo.json")
+    export_csv(ranked, "wallet_rankings_demo.csv")
+    snapshot_rankings(ranked, "rankings_history.db")
     print("(Demo mode — no real API calls were made.)\n")
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="Polymarket BTC 15-min wallet win-rate analyzer")
-    parser.add_argument("--demo", action="store_true", help="Run offline with synthetic data")
-    parser.add_argument("--top",  type=int, default=TOP_N, help="Rows to display (default 30)")
+    parser.add_argument("--demo",      action="store_true", help="Run offline with synthetic data")
+    parser.add_argument("--top",       type=int, default=TOP_N, help="Rows to display (default 30)")
     parser.add_argument("--min-trades", type=int, default=MIN_TRADES,
                         help="Minimum trades to include a wallet (default 10)")
+    parser.add_argument("--no-cache",  action="store_true", help="Ignore cached API responses")
     args = parser.parse_args()
 
     top_n      = args.top
     min_trades = args.min_trades
+    use_cache  = not args.no_cache
 
     print("=" * 60)
     print("  Polymarket BTC 15-min Wallet Win-Rate Analyzer")
@@ -456,7 +588,11 @@ def main():
         return
 
     # ── Live path ────────────────────────────────────────────────────────────
-    markets = find_btc_markets()
+    markets = (load_cache("markets.json") if use_cache else None) or []
+    if not markets:
+        markets = find_btc_markets()
+        if markets and use_cache:
+            save_cache(markets, "markets.json")
 
     if not markets:
         print("\n[!] No 15-min markets found. Trying broader search...")
@@ -474,7 +610,11 @@ def main():
     condition_ids = extract_condition_ids(markets)
     print(f"\n  Condition IDs to query: {len(condition_ids)}")
 
-    trades = fetch_trades_subgraph(condition_ids) if condition_ids else []
+    trades = (load_cache("trades.json") if use_cache else None) or []
+    if not trades:
+        trades = fetch_trades_subgraph(condition_ids) if condition_ids else []
+        if trades and use_cache:
+            save_cache(trades, "trades.json")
 
     if not trades:
         mids = [m.get("id") or m.get("conditionId") for m in markets
@@ -485,6 +625,8 @@ def main():
         print("\n[!] No trade data retrieved. Run with --demo to preview output.")
         return
 
+    trades = deduplicate_trades(trades)
+
     print("\n[3/4] Aggregating wallet statistics...")
     wallets = (aggregate_wallets_subgraph(trades)
                if "creator" in trades[0]
@@ -493,7 +635,10 @@ def main():
 
     ranked = score_wallets(wallets, min_trades=min_trades)
     print_table(ranked, top_n=top_n, min_trades=min_trades)
+    print_summary_stats(ranked)
     save_json(ranked)
+    export_csv(ranked)
+    snapshot_rankings(ranked)
 
 
 if __name__ == "__main__":
