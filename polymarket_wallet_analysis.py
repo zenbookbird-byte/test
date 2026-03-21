@@ -17,7 +17,7 @@ import random
 import sqlite3
 import statistics
 import time
-from collections import defaultdict
+from collections import defaultdict, deque
 from datetime import datetime, timezone
 
 import requests
@@ -166,7 +166,6 @@ def _broader_btc_search() -> list:
         return []
     if isinstance(data, list):
         return data
-    # dict — guard against empty-list masking as falsy
     return data.get("markets", [])
 
 
@@ -220,7 +219,6 @@ def fetch_trades_subgraph(condition_ids: list) -> list:
         if len(trades) < batch_size:
             break
         skip += batch_size
-        # The Graph caps skip at 5000; switch to timestamp cursor beyond that
         if skip >= 5000:
             oldest_ts = all_trades[-1].get("creationTimestamp", 0)
             print(f"\n  [info] Hit skip=5000 cap; continuing from ts<={oldest_ts}")
@@ -260,6 +258,22 @@ def fetch_trades_clob(market_ids: list) -> list:
     return all_trades
 
 
+# ── Step 2b: Group raw trades by wallet ───────────────────────────────────────
+def group_trades_by_wallet(trades: list) -> dict:
+    """Return {addr: [trade, ...]} preserving raw dicts for position matching."""
+    groups = defaultdict(list)
+    for t in trades:
+        addr = (t.get("creator") or {}).get("id", "").lower()
+        if addr:
+            groups[addr].append(t)
+        else:
+            for field in ("maker_address", "taker_address"):
+                a = (t.get(field) or "").lower()
+                if a and a != "0x" + "0" * 40:
+                    groups[a].append(t)
+    return dict(groups)
+
+
 # ── Step 3: Aggregate per wallet ──────────────────────────────────────────────
 def _new_wallet() -> dict:
     return {
@@ -291,7 +305,6 @@ def aggregate_wallets_subgraph(trades: list) -> dict:
         w["trades"] += 1
         _update_timestamps(w, _to_int(t.get("creationTimestamp", 0)))
 
-        # Both fields arrive as decimal strings from The Graph
         collateral = _to_int(t.get("collateralAmount", 0)) / 1e6
         tokens     = _to_int(t.get("outcomeTokensTraded", 0)) / 1e6
         ttype      = (t.get("type") or "").upper()
@@ -305,7 +318,7 @@ def aggregate_wallets_subgraph(trades: list) -> dict:
             w["gross_out"]    += collateral
             w["tokens_sold"]  += tokens
             if collateral > 0 and tokens > 0:
-                price = collateral / tokens   # USDC received per outcome token
+                price = collateral / tokens
                 if price >= 0.50:
                     w["profitable_exits"] += 1
                 else:
@@ -350,14 +363,117 @@ def aggregate_wallets_clob(trades: list) -> dict:
     return wallets
 
 
+# ── Analytics ─────────────────────────────────────────────────────────────────
+def match_positions(trades: list) -> list:
+    """FIFO buy-to-sell matching per market.
+
+    Returns one dict per completed round trip with entry/exit price, size,
+    P&L, hold time, and a won flag.
+    """
+    by_market = defaultdict(list)
+    for t in sorted(trades, key=lambda x: _to_ts(x.get("creationTimestamp", 0))):
+        mid = (t.get("fpmm") or {}).get("id", "") or t.get("_market", "unknown")
+        by_market[mid].append(t)
+
+    matched = []
+    for market_id, market_trades in by_market.items():
+        buy_queue = deque()
+        for t in market_trades:
+            ttype      = (t.get("type") or "").upper()
+            collateral = _to_int(t.get("collateralAmount", 0)) / 1e6
+            tokens     = _to_int(t.get("outcomeTokensTraded", 0)) / 1e6
+            ts         = _to_ts(t.get("creationTimestamp", 0))
+            if tokens == 0:
+                continue
+            price = collateral / tokens
+
+            if ttype == "BUY":
+                buy_queue.append({"price": price, "size": tokens, "ts": ts})
+            elif ttype == "SELL" and buy_queue:
+                buy  = buy_queue.popleft()
+                size = min(buy["size"], tokens)
+                pnl  = (price - buy["price"]) * size
+                matched.append({
+                    "market":      market_id,
+                    "buy_ts":      buy["ts"],
+                    "sell_ts":     ts,
+                    "entry_price": buy["price"],
+                    "exit_price":  price,
+                    "size":        size,
+                    "pnl":         pnl,
+                    "hold_secs":   max(0, ts - buy["ts"]),
+                    "won":         price > buy["price"],
+                })
+    return matched
+
+
+def binomial_pvalue(wins: int, total: int) -> float:
+    """One-sided p-value: P(X >= wins | p=0.5, n=total) via normal approximation.
+
+    Small values (< 0.05) mean the win rate is unlikely to be random luck.
+    """
+    if total == 0:
+        return 1.0
+    # Continuity correction: subtract 0.5 from wins before standardising
+    z = (wins - 0.5 - total * 0.5) / math.sqrt(total * 0.25)
+    return max(0.0, min(1.0, math.erfc(z / math.sqrt(2)) / 2))
+
+
+def ev_score(matched: list) -> float:
+    """Expected value per unit of collateral risked (average across all trades).
+
+    Positive = edge, negative = losing strategy on average.
+    """
+    if not matched:
+        return 0.0
+    wins   = [m for m in matched if m["won"]]
+    losses = [m for m in matched if not m["won"]]
+    n      = len(matched)
+
+    def _norm(m):
+        denom = m["entry_price"] * m["size"]
+        return m["pnl"] / denom if denom else 0.0
+
+    avg_win  = sum(_norm(m) for m in wins)  / len(wins)   if wins   else 0.0
+    avg_loss = sum(_norm(m) for m in losses) / len(losses) if losses else 0.0
+    win_rate  = len(wins)   / n
+    loss_rate = len(losses) / n
+    return round(win_rate * avg_win + loss_rate * avg_loss, 4)
+
+
+def alpha_decay(matched: list) -> float:
+    """Recent win rate / early win rate.
+
+    < 1.0 means the edge is shrinking over time.
+    > 1.0 means the wallet is improving.
+    Returns 1.0 when there is not enough data to tell.
+    """
+    if len(matched) < 10:
+        return 1.0
+    sorted_m  = sorted(matched, key=lambda m: m["buy_ts"])
+    mid       = len(sorted_m) // 2
+    early     = sorted_m[:mid]
+    recent    = sorted_m[mid:]
+    early_wr  = sum(1 for m in early  if m["won"]) / len(early)
+    recent_wr = sum(1 for m in recent if m["won"]) / len(recent)
+    if early_wr == 0:
+        return 1.0
+    return round(recent_wr / early_wr, 3)
+
+
+def hold_time_stats(matched: list) -> dict:
+    """Median and mean hold time in seconds across all matched round trips."""
+    if not matched:
+        return {"median_hold_secs": 0, "mean_hold_secs": 0}
+    holds = [m["hold_secs"] for m in matched]
+    return {
+        "median_hold_secs": int(statistics.median(holds)),
+        "mean_hold_secs":   int(statistics.mean(holds)),
+    }
+
+
 # ── Step 4: Score & rank ──────────────────────────────────────────────────────
 def detect_strategy(trades_per_day: float, active_days: int) -> str:
-    """Classify a wallet's trading style from its activity pattern.
-
-    bot     – extremely high frequency (likely automated)
-    scalper – high frequency, short holding periods
-    swing   – low frequency, longer holds
-    """
     if trades_per_day >= 100:
         return "bot"
     if trades_per_day >= 10:
@@ -365,7 +481,8 @@ def detect_strategy(trades_per_day: float, active_days: int) -> str:
     return "swing"
 
 
-def score_wallets(wallets: dict, min_trades: int = MIN_TRADES) -> list:
+def score_wallets(wallets: dict, min_trades: int = MIN_TRADES,
+                  trades_by_wallet: dict = None) -> list:
     rows = []
     for addr, w in wallets.items():
         if w["trades"] < min_trades:
@@ -375,7 +492,6 @@ def score_wallets(wallets: dict, min_trades: int = MIN_TRADES) -> list:
         win_rate = (w["profitable_exits"] / exits * 100) if exits > 0 else 0.0
         net_pnl  = w["gross_out"] - w["gross_in"]
 
-        # Active days: ceil so a wallet active across midnight counts as 2 days
         if w["first_trade"] and w["last_trade"]:
             span_secs   = max(0, w["last_trade"] - w["first_trade"])
             active_days = max(1, math.ceil(span_secs / 86400))
@@ -383,6 +499,17 @@ def score_wallets(wallets: dict, min_trades: int = MIN_TRADES) -> list:
             active_days = 1
 
         tpd = round(w["trades"] / active_days, 1)
+
+        # Advanced analytics — only available when raw trades are passed in
+        matched = []
+        if trades_by_wallet and addr in trades_by_wallet:
+            matched = match_positions(trades_by_wallet[addr])
+
+        pvalue = binomial_pvalue(w["profitable_exits"], exits) if exits > 0 else 1.0
+        ev     = ev_score(matched)
+        decay  = alpha_decay(matched)
+        hold   = hold_time_stats(matched)
+
         rows.append({
             "address":          addr,
             "trades":           w["trades"],
@@ -397,9 +524,41 @@ def score_wallets(wallets: dict, min_trades: int = MIN_TRADES) -> list:
             "trades_per_day":   tpd,
             "active_days":      active_days,
             "strategy":         detect_strategy(tpd, active_days),
+            "ev_score":         ev,
+            "pvalue":           round(pvalue, 4),
+            "alpha_decay":      decay,
+            "median_hold_secs": hold["median_hold_secs"],
+            "mean_hold_secs":   hold["mean_hold_secs"],
+            "cluster":          "",   # filled by cluster_wallets()
         })
 
-    rows.sort(key=lambda r: (r["win_rate"], r["net_pnl_usdc"], r["trades"]), reverse=True)
+    # Primary sort: EV score (true skill), then win rate, then net P&L
+    rows.sort(key=lambda r: (r["ev_score"], r["win_rate"], r["net_pnl_usdc"]), reverse=True)
+    return rows
+
+
+def cluster_wallets(rows: list) -> list:
+    """Label each wallet with a behavioural cluster based on edge quality."""
+    for r in rows:
+        pv    = r.get("pvalue", 1.0)
+        ev    = r.get("ev_score", 0.0)
+        decay = r.get("alpha_decay", 1.0)
+        tpd   = r["trades_per_day"]
+
+        if tpd >= 100:
+            label = "hft_bot"
+        elif pv < 0.01 and ev > 0.05 and decay >= 0.9:
+            label = "sharp"        # statistically significant, stable edge
+        elif pv < 0.05 and ev > 0:
+            label = "edge"         # likely skilled
+        elif decay < 0.7:
+            label = "fading"       # edge shrinking
+        elif ev <= 0:
+            label = "noise"        # negative expected value
+        else:
+            label = "developing"   # positive ev but not yet significant
+
+        r["cluster"] = label
     return rows
 
 
@@ -407,26 +566,46 @@ def score_wallets(wallets: dict, min_trades: int = MIN_TRADES) -> list:
 def print_table(rows: list, top_n: int = TOP_N, min_trades: int = MIN_TRADES):
     header = (
         f"{'#':<4} {'Address':<44} {'Trades':>7} {'T/day':>6} "
-        f"{'Win%':>6} {'W/L':>9} {'Net P&L':>10} {'Days':>5} {'Strategy':>8}"
+        f"{'Win%':>6} {'EV':>7} {'p-val':>6} {'Net P&L':>10} {'Cluster':>11}"
     )
     sep = "-" * len(header)
-    print(f"\n[4/4] Top {min(top_n, len(rows))} wallets by win rate  (min {min_trades} trades)\n")
+    print(f"\n[4/4] Top {min(top_n, len(rows))} wallets by EV score  (min {min_trades} trades)\n")
     print(sep)
     print(header)
     print(sep)
 
     for i, r in enumerate(rows[:top_n], 1):
-        wl      = f"{r['profitable_exits']}/{r['total_exits']}"
         pnl_str = (f"+{r['net_pnl_usdc']:.2f}" if r["net_pnl_usdc"] >= 0
                    else f"{r['net_pnl_usdc']:.2f}")
+        ev_str  = f"{r['ev_score']:+.4f}"
+        pv_str  = f"{r['pvalue']:.4f}"
         print(
             f"{i:<4} {r['address']:<44} {r['trades']:>7} {r['trades_per_day']:>6.1f} "
-            f"{r['win_rate']:>5.1f}% {wl:>9} {pnl_str:>10} {r['active_days']:>5} "
-            f"{r.get('strategy', '')!s:>8}"
+            f"{r['win_rate']:>5.1f}% {ev_str:>7} {pv_str:>6} {pnl_str:>10} "
+            f"{r.get('cluster', ''):>11}"
         )
 
     print(sep)
     print(f"\nShowing {min(top_n, len(rows))} of {len(rows)} qualifying wallets.\n")
+
+
+def print_analysis(rows: list, n: int = 5):
+    """Detailed single-wallet breakdown for the top N entries."""
+    count = min(n, len(rows))
+    print(f"── Top {count} Wallet Deep-Dive ──────────────────────────────────────")
+    for i, r in enumerate(rows[:count], 1):
+        hold_h  = r["median_hold_secs"] / 3600
+        decay_s = f"{r['alpha_decay']:.2f}x"
+        sig     = "SIGNIFICANT" if r["pvalue"] < 0.05 else "not significant"
+        print(
+            f"\n  #{i}  {r['address']}\n"
+            f"       Cluster  : {r['cluster']:<12}  Strategy : {r['strategy']}\n"
+            f"       EV/trade : {r['ev_score']:+.4f}       p-value  : {r['pvalue']:.4f}  ({sig})\n"
+            f"       AlphaDecay: {decay_s:<9}      Med hold : {hold_h:.1f}h\n"
+            f"       Win rate : {r['win_rate']:.1f}%  ({r['profitable_exits']}/{r['total_exits']} exits)"
+            f"   Net P&L: ${r['net_pnl_usdc']:+.2f}"
+        )
+    print()
 
 
 def save_json(rows: list, path: str = "wallet_rankings.json"):
@@ -436,7 +615,6 @@ def save_json(rows: list, path: str = "wallet_rankings.json"):
 
 
 def export_csv(rows: list, path: str = "wallet_rankings.csv"):
-    """Write rankings to a CSV file."""
     if not rows:
         return
     with open(path, "w", newline="") as f:
@@ -447,23 +625,27 @@ def export_csv(rows: list, path: str = "wallet_rankings.csv"):
 
 
 def print_summary_stats(rows: list):
-    """Print aggregate statistics across all qualifying wallets."""
     if not rows:
         return
-    win_rates  = [r["win_rate"]     for r in rows]
-    pnls       = [r["net_pnl_usdc"] for r in rows]
-    volumes    = [r["gross_in_usdc"] for r in rows]
-    strategies = {}
+    win_rates = [r["win_rate"]     for r in rows]
+    pnls      = [r["net_pnl_usdc"] for r in rows]
+    volumes   = [r["gross_in_usdc"] for r in rows]
+    ev_scores = [r.get("ev_score", 0) for r in rows]
+    sig_count = sum(1 for r in rows if r.get("pvalue", 1) < 0.05)
+    clusters  = {}
     for r in rows:
-        strategies[r.get("strategy", "?")] = strategies.get(r.get("strategy", "?"), 0) + 1
+        c = r.get("cluster", "?")
+        clusters[c] = clusters.get(c, 0) + 1
 
     print("\n── Summary Statistics ──────────────────────────────────")
-    print(f"  Qualifying wallets : {len(rows)}")
-    print(f"  Median win rate    : {statistics.median(win_rates):.1f}%")
-    print(f"  Mean win rate      : {statistics.mean(win_rates):.1f}%")
-    print(f"  Median net P&L     : ${statistics.median(pnls):+.2f}")
-    print(f"  Total volume (in)  : ${sum(volumes):,.2f} USDC")
-    print(f"  Strategy breakdown : {strategies}")
+    print(f"  Qualifying wallets  : {len(rows)}")
+    print(f"  Statistically sig.  : {sig_count} ({sig_count / len(rows) * 100:.0f}%)")
+    print(f"  Median win rate     : {statistics.median(win_rates):.1f}%")
+    print(f"  Mean win rate       : {statistics.mean(win_rates):.1f}%")
+    print(f"  Median EV score     : {statistics.median(ev_scores):+.4f}")
+    print(f"  Median net P&L      : ${statistics.median(pnls):+.2f}")
+    print(f"  Total volume (in)   : ${sum(volumes):,.2f} USDC")
+    print(f"  Cluster breakdown   : {clusters}")
     print("────────────────────────────────────────────────────────\n")
 
 
@@ -474,24 +656,29 @@ def snapshot_rankings(rows: list, db_path: str = "rankings_history.db"):
     con = sqlite3.connect(db_path)
     con.execute("""
         CREATE TABLE IF NOT EXISTS snapshots (
-            snapshot_at TEXT,
-            rank        INTEGER,
-            address     TEXT,
-            trades      INTEGER,
-            win_rate    REAL,
-            net_pnl_usdc REAL,
+            snapshot_at    TEXT,
+            rank           INTEGER,
+            address        TEXT,
+            trades         INTEGER,
+            win_rate       REAL,
+            ev_score       REAL,
+            pvalue         REAL,
+            alpha_decay    REAL,
+            net_pnl_usdc   REAL,
             trades_per_day REAL,
-            active_days INTEGER,
-            strategy    TEXT
+            active_days    INTEGER,
+            strategy       TEXT,
+            cluster        TEXT
         )
     """)
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     con.executemany(
-        "INSERT INTO snapshots VALUES (?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO snapshots VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
         [
             (ts, i, r["address"], r["trades"], r["win_rate"],
+             r.get("ev_score", 0), r.get("pvalue", 1), r.get("alpha_decay", 1),
              r["net_pnl_usdc"], r["trades_per_day"], r["active_days"],
-             r.get("strategy", ""))
+             r.get("strategy", ""), r.get("cluster", ""))
             for i, r in enumerate(rows, 1)
         ],
     )
@@ -506,57 +693,89 @@ def _fake_address(seed: int) -> str:
     return "0x" + "".join(rng.choices("0123456789abcdef", k=40))
 
 
+def _generate_demo_trades(n_wallets: int = 80, n_markets: int = 10) -> list:
+    """Generate synthetic subgraph-format trades that exercise the full pipeline."""
+    random.seed(42)
+    now        = int(datetime.now(timezone.utc).timestamp())
+    trades     = []
+    trade_id   = 0
+    market_ids = [_fake_address(1000 + i) for i in range(n_markets)]
+
+    for wallet_idx in range(n_wallets):
+        addr       = _fake_address(wallet_idx)
+        is_bot     = wallet_idx < 5
+        n_rounds   = random.randint(800, 2400) if is_bot else random.randint(10, 120)
+        win_rate_t = random.uniform(0.78, 0.91) if is_bot else random.uniform(0.35, 0.68)
+        span_days  = random.randint(7, 21)
+        span_secs  = span_days * 86400
+        first_ts   = now - span_secs
+        # Some wallets exhibit alpha decay (edge fades over time)
+        has_decay  = (not is_bot) and wallet_idx % 7 == 0
+
+        for i in range(n_rounds):
+            market    = random.choice(market_ids)
+            entry_ts  = first_ts + random.randint(0, max(1, span_secs - 3600))
+            hold_secs = random.randint(30, 900) if is_bot else random.randint(300, 7200)
+            exit_ts   = entry_ts + hold_secs
+
+            entry_price    = random.uniform(0.25, 0.38)
+            size           = random.uniform(60, 100)
+            collateral_in  = entry_price * size
+
+            # Alpha decay: win rate falls linearly for flagged wallets
+            progress     = i / n_rounds
+            eff_wr       = win_rate_t * (1 - 0.5 * progress) if has_decay else win_rate_t
+            won          = random.random() < eff_wr
+            exit_price   = random.uniform(0.85, 0.98) if won else random.uniform(0.02, 0.15)
+            collateral_out = exit_price * size
+
+            trades.append({
+                "id":                   f"t{trade_id:07d}",
+                "type":                 "BUY",
+                "creator":              {"id": addr},
+                "fpmm":                 {"id": market},
+                "outcomeIndex":         "0",
+                "outcomeTokensTraded":  str(int(size * 1e6)),
+                "collateralAmount":     str(int(collateral_in * 1e6)),
+                "feeAmount":            "0",
+                "creationTimestamp":    str(entry_ts),
+            })
+            trade_id += 1
+
+            trades.append({
+                "id":                   f"t{trade_id:07d}",
+                "type":                 "SELL",
+                "creator":              {"id": addr},
+                "fpmm":                 {"id": market},
+                "outcomeIndex":         "0",
+                "outcomeTokensTraded":  str(int(size * 1e6)),
+                "collateralAmount":     str(int(collateral_out * 1e6)),
+                "feeAmount":            "0",
+                "creationTimestamp":    str(exit_ts),
+            })
+            trade_id += 1
+
+    return trades
+
+
 def run_demo(top_n: int = TOP_N, min_trades: int = MIN_TRADES):
     """Generate realistic mock data so the output can be previewed offline."""
     print("\n[demo] Generating synthetic trade data for 80 wallets...\n")
-    random.seed(42)
-    now = int(datetime.now(timezone.utc).timestamp())
+    trades = _generate_demo_trades()
+    print(f"  Generated {len(trades)} raw trades.")
+    trades = deduplicate_trades(trades)
 
-    wallets = defaultdict(_new_wallet)
-
-    for wallet_idx in range(80):
-        addr = _fake_address(wallet_idx)
-        # Bot-like wallet: high frequency, high win rate
-        is_bot = wallet_idx < 5
-
-        n_trades    = random.randint(800, 2400) if is_bot else random.randint(10, 120)
-        win_rate_t  = random.uniform(0.78, 0.91) if is_bot else random.uniform(0.35, 0.68)
-        span_days   = random.randint(7, 21)
-        span_secs   = span_days * 86400
-        first_ts    = now - span_secs
-
-        w = wallets[addr]
-        for i in range(n_trades):
-            ts = first_ts + random.randint(0, span_secs)
-            _update_timestamps(w, ts)
-            w["trades"] += 1
-
-            # Each trade: buy then matching sell
-            entry_price = random.uniform(0.25, 0.38)
-            size        = random.uniform(60, 100)   # outcome tokens
-            collateral_in = entry_price * size
-
-            w["buys"]          += 1
-            w["gross_in"]      += collateral_in
-            w["tokens_bought"] += size
-
-            # Decide outcome
-            won = random.random() < win_rate_t
-            exit_price      = random.uniform(0.85, 0.98) if won else random.uniform(0.02, 0.15)
-            collateral_out  = exit_price * size
-
-            w["sells"]        += 1
-            w["gross_out"]    += collateral_out
-            w["tokens_sold"]  += size
-            if exit_price >= 0.50:
-                w["profitable_exits"] += 1
-            else:
-                w["unprofitable_exits"] += 1
+    print("[2/4] Grouping trades by wallet...")
+    trades_by_wallet = group_trades_by_wallet(trades)
 
     print("[3/4] Aggregating wallet statistics...")
+    wallets = aggregate_wallets_subgraph(trades)
     print(f"  Unique wallets: {len(wallets)}")
-    ranked = score_wallets(wallets, min_trades=min_trades)
+
+    ranked = score_wallets(wallets, min_trades=min_trades, trades_by_wallet=trades_by_wallet)
+    cluster_wallets(ranked)
     print_table(ranked, top_n=top_n, min_trades=min_trades)
+    print_analysis(ranked, n=5)
     print_summary_stats(ranked)
     save_json(ranked, "wallet_rankings_demo.json")
     export_csv(ranked, "wallet_rankings_demo.csv")
@@ -567,11 +786,12 @@ def run_demo(top_n: int = TOP_N, min_trades: int = MIN_TRADES):
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="Polymarket BTC 15-min wallet win-rate analyzer")
-    parser.add_argument("--demo",      action="store_true", help="Run offline with synthetic data")
-    parser.add_argument("--top",       type=int, default=TOP_N, help="Rows to display (default 30)")
+    parser.add_argument("--demo",       action="store_true", help="Run offline with synthetic data")
+    parser.add_argument("--top",        type=int, default=TOP_N,
+                        help="Rows to display (default 30)")
     parser.add_argument("--min-trades", type=int, default=MIN_TRADES,
                         help="Minimum trades to include a wallet (default 10)")
-    parser.add_argument("--no-cache",  action="store_true", help="Ignore cached API responses")
+    parser.add_argument("--no-cache",   action="store_true", help="Ignore cached API responses")
     args = parser.parse_args()
 
     top_n      = args.top
@@ -605,7 +825,7 @@ def main():
     print("\n  Sample markets:")
     for m in markets[:5]:
         title = m.get("question") or m.get("title") or m.get("slug", "?")
-        print(f"    • {title}")
+        print(f"    * {title}")
 
     condition_ids = extract_condition_ids(markets)
     print(f"\n  Condition IDs to query: {len(condition_ids)}")
@@ -628,13 +848,16 @@ def main():
     trades = deduplicate_trades(trades)
 
     print("\n[3/4] Aggregating wallet statistics...")
+    trades_by_wallet = group_trades_by_wallet(trades)
     wallets = (aggregate_wallets_subgraph(trades)
                if "creator" in trades[0]
                else aggregate_wallets_clob(trades))
     print(f"  Unique wallets found: {len(wallets)}")
 
-    ranked = score_wallets(wallets, min_trades=min_trades)
+    ranked = score_wallets(wallets, min_trades=min_trades, trades_by_wallet=trades_by_wallet)
+    cluster_wallets(ranked)
     print_table(ranked, top_n=top_n, min_trades=min_trades)
+    print_analysis(ranked, n=5)
     print_summary_stats(ranked)
     save_json(ranked)
     export_csv(ranked)
