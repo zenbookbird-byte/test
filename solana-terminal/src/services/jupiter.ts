@@ -101,7 +101,7 @@ export const USDT_MINT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'
 
 export async function getTokenPrice(mint: string): Promise<number | null> {
   try {
-    const { data } = await axios.get(`https://price.jup.ag/v4/price?ids=${mint}`, {
+    const { data } = await axios.get(`https://price.jup.ag/v6/price?ids=${mint}`, {
       timeout: 8000,
     })
     return data?.data?.[mint]?.price ?? null
@@ -113,7 +113,7 @@ export async function getTokenPrice(mint: string): Promise<number | null> {
 export async function getTokenPrices(mints: string[]): Promise<Record<string, number>> {
   try {
     const ids = mints.join(',')
-    const { data } = await axios.get(`https://price.jup.ag/v4/price?ids=${ids}`, {
+    const { data } = await axios.get(`https://price.jup.ag/v6/price?ids=${ids}`, {
       timeout: 8000,
     })
     const result: Record<string, number> = {}
