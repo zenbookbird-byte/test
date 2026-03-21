@@ -287,38 +287,160 @@
   .kelly-note { font-size:0.72rem; color:var(--muted); margin-top:10px; }
 
   /* ── SIGNAL FEED ──────────────────────────────────────────────── */
-  .signal-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; margin-bottom:20px;
-    scrollbar-width:thin; scrollbar-color:var(--border2) transparent; }
-  .signal-card {
-    flex-shrink:0; width:240px; background:var(--card); border:1px solid var(--border);
-    border-radius:12px; padding:14px 16px; position:relative; overflow:hidden;
-    transition:border-color .15s;
+  .signal-section { margin-bottom:24px; }
+  .signal-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .signal-header h3 { font-size:0.85rem; font-weight:800; letter-spacing:0.3px; }
+  .signal-header .live-dot { width:8px; height:8px; border-radius:50%; background:var(--green);
+    box-shadow:0 0 8px var(--green); animation:pulse 1s infinite; flex-shrink:0; }
+  .sig-last-update { margin-left:auto; font-size:0.72rem; color:var(--muted); }
+
+  /* Ticker wrapper — clips the scrolling track */
+  .signal-ticker { overflow:hidden; position:relative; }
+  .signal-ticker::before,
+  .signal-ticker::after {
+    content:''; position:absolute; top:0; bottom:0; width:80px; z-index:2; pointer-events:none;
   }
-  .signal-card:hover { border-color:var(--accent); }
-  .signal-card.high-conv { border-color:rgba(255,214,10,.4); }
-  .signal-card.extreme-conv { border-color:rgba(255,45,126,.5); box-shadow:0 0 20px rgba(255,45,126,.1); }
-  .sig-top { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
-  .sig-wallet { font-family:monospace; font-size:0.75rem; color:var(--muted); }
-  .sig-cluster-badge { font-size:0.6rem; font-weight:800; padding:2px 6px; border-radius:4px;
-    background:rgba(0,255,136,.1); color:var(--green); letter-spacing:0.5px; }
-  .sig-cluster-badge.edge { background:rgba(0,245,255,.1); color:var(--accent); }
-  .sig-market { font-size:0.8rem; font-weight:600; color:var(--text); margin-bottom:6px; line-height:1.4; }
-  .sig-direction { display:inline-block; font-size:0.72rem; font-weight:800; letter-spacing:1px;
-    padding:2px 8px; border-radius:4px; margin-bottom:8px; }
-  .sig-direction.yes { background:rgba(0,255,136,.1); color:var(--green); }
-  .sig-direction.no  { background:rgba(239,68,68,.1);  color:var(--red); }
-  .sig-stats { display:flex; gap:12px; font-size:0.75rem; }
-  .sig-stat-label { color:var(--muted); }
-  .sig-stat-val { font-weight:700; }
-  .sig-conv { font-size:0.7rem; font-weight:800; position:absolute; top:10px; right:12px; }
-  .sig-conv.normal  { color:var(--muted); }
-  .sig-conv.high    { color:var(--yellow); }
-  .sig-conv.extreme { color:var(--pink); }
-  .sig-age { font-size:0.68rem; color:var(--muted); margin-top:6px; }
-  .signal-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .signal-header h3 { font-size:0.82rem; font-weight:700; }
-  .signal-header .live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 1s infinite; }
-  .sig-copy-sz { color:var(--accent); font-weight:700; }
+  .signal-ticker::before { left:0;  background:linear-gradient(90deg,var(--bg) 0%,transparent 100%); }
+  .signal-ticker::after  { right:0; background:linear-gradient(-90deg,var(--bg) 0%,transparent 100%); }
+
+  /* Scrolling track — doubled for seamless loop */
+  .signal-track {
+    display:flex; gap:12px; width:max-content;
+    animation:ticker-scroll 55s linear infinite;
+    padding:4px 0 12px;
+  }
+  .signal-track:hover { animation-play-state:paused; }
+  @keyframes ticker-scroll {
+    0%   { transform:translateX(0); }
+    100% { transform:translateX(-50%); }
+  }
+
+  /* Base card */
+  .signal-card {
+    flex-shrink:0; width:268px;
+    background:rgba(255,255,255,0.03);
+    border-radius:16px; padding:0;
+    position:relative; overflow:hidden;
+    cursor:pointer;
+    transition:transform .2s, box-shadow .2s;
+    border:1px solid rgba(255,255,255,.07);
+  }
+  .signal-card:hover { transform:translateY(-3px) scale(1.01); }
+
+  /* Animated rotating gradient border for EXTREME */
+  .signal-card.extreme-conv {
+    border:none;
+    background: rgba(20,10,25,0.92);
+  }
+  .signal-card.extreme-conv::before {
+    content:'';
+    position:absolute; inset:-1px;
+    border-radius:17px;
+    background:conic-gradient(from var(--angle,0deg),
+      #ff2d7e 0%, #ff9000 25%, #00f5ff 50%, #a855f7 75%, #ff2d7e 100%);
+    animation:spin-border 3s linear infinite;
+    z-index:-1;
+  }
+  @property --angle { syntax:'<angle>'; initial-value:0deg; inherits:false; }
+  @keyframes spin-border { to { --angle: 360deg; } }
+  .signal-card.extreme-conv::after {
+    content:''; position:absolute; inset:1px; border-radius:16px;
+    background:rgba(18,8,28,.96); z-index:0;
+  }
+  .signal-card.extreme-conv .sig-inner { position:relative; z-index:1; }
+
+  /* High conviction — pulsing yellow glow */
+  .signal-card.high-conv {
+    border-color:rgba(255,214,10,.25);
+    box-shadow:0 0 0 0 rgba(255,214,10,0);
+    animation:pulse-yellow 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse-yellow {
+    0%,100%{ box-shadow:0 0 0px rgba(255,214,10,0); }
+    50%    { box-shadow:0 0 18px rgba(255,214,10,.22); }
+  }
+
+  /* Direction banner at top */
+  .sig-banner {
+    height:4px; width:100%;
+    border-radius:16px 16px 0 0;
+  }
+  .sig-banner.yes { background:linear-gradient(90deg,#00ff88,#00c4a0); }
+  .sig-banner.no  { background:linear-gradient(90deg,#ef4444,#ff6b35); }
+
+  .sig-inner { padding:14px 16px 12px; }
+
+  /* Top row: address + cluster + new badge */
+  .sig-top { display:flex; align-items:center; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .sig-wallet { font-family:monospace; font-size:0.72rem; color:var(--muted); letter-spacing:0.3px; }
+  .sig-cluster-badge {
+    font-size:0.58rem; font-weight:900; padding:2px 7px; border-radius:5px;
+    text-transform:uppercase; letter-spacing:1px;
+  }
+  .sig-cluster-badge.sharp { background:rgba(0,255,136,.12); color:var(--green); }
+  .sig-cluster-badge.edge  { background:rgba(0,245,255,.12); color:var(--accent); }
+  .sig-new { font-size:0.58rem; font-weight:900; letter-spacing:1px;
+    background:rgba(255,45,126,.15); color:var(--pink);
+    border:1px solid rgba(255,45,126,.3); border-radius:4px; padding:1px 6px;
+    animation:flash-new 1s ease-in-out 3; }
+  @keyframes flash-new { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* Conviction badge */
+  .sig-conv-badge {
+    margin-left:auto; font-size:0.65rem; font-weight:900; letter-spacing:0.5px;
+    padding:2px 8px; border-radius:20px; white-space:nowrap;
+  }
+  .sig-conv-badge.normal  { background:rgba(255,255,255,.06); color:var(--muted); }
+  .sig-conv-badge.high    { background:rgba(255,214,10,.12); color:var(--yellow); border:1px solid rgba(255,214,10,.2); }
+  .sig-conv-badge.extreme { background:rgba(255,45,126,.15); color:var(--pink);   border:1px solid rgba(255,45,126,.3); }
+
+  /* Market question */
+  .sig-market {
+    font-size:0.86rem; font-weight:700; color:var(--text);
+    line-height:1.4; margin-bottom:10px; min-height:38px;
+  }
+
+  /* Direction pill — large */
+  .sig-direction {
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:0.78rem; font-weight:900; letter-spacing:1.5px;
+    padding:5px 14px; border-radius:8px; margin-bottom:10px;
+  }
+  .sig-direction.yes {
+    background:rgba(0,255,136,.1); color:var(--green);
+    border:1px solid rgba(0,255,136,.2);
+    box-shadow:0 0 12px rgba(0,255,136,.08);
+  }
+  .sig-direction.no  {
+    background:rgba(239,68,68,.1); color:var(--red);
+    border:1px solid rgba(239,68,68,.2);
+    box-shadow:0 0 12px rgba(239,68,68,.08);
+  }
+
+  /* Probability bar: market vs sharp */
+  .sig-prob-bar { margin-bottom:10px; }
+  .sig-prob-label { display:flex; justify-content:space-between; font-size:0.64rem; color:var(--muted); margin-bottom:3px; }
+  .sig-prob-track { height:5px; background:rgba(255,255,255,.07); border-radius:3px; position:relative; }
+  .sig-prob-mkt   { position:absolute; top:0; height:100%; border-radius:3px;
+    background:rgba(255,255,255,.18); transition:width .5s; }
+  .sig-prob-sharp { position:absolute; top:-2px; width:2px; height:9px; border-radius:1px;
+    background:var(--accent); transition:left .5s; }
+  .sig-prob-tip   { position:absolute; top:-14px; font-size:0.58rem; color:var(--accent);
+    transform:translateX(-50%); white-space:nowrap; }
+
+  /* Stats row */
+  .sig-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px; }
+  .sig-stat { }
+  .sig-stat-label { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:2px; }
+  .sig-stat-val { font-size:0.85rem; font-weight:800; }
+  .sig-copy-sz { color:var(--accent); }
+
+  /* Footer */
+  .sig-footer { display:flex; align-items:center; justify-content:space-between; }
+  .sig-age { font-size:0.66rem; color:var(--muted); }
+  .sig-edge-pill { font-size:0.62rem; font-weight:700; padding:2px 7px; border-radius:4px;
+    background:rgba(255,255,255,.05); color:var(--muted); }
+  .sig-edge-pill.fast { background:rgba(0,255,136,.08); color:var(--green); }
 
   /* ── MARKET SCANNER ───────────────────────────────────────────── */
   .scanner-section { margin-top:28px; }
@@ -491,13 +613,15 @@
   </div>
 
   <!-- LIVE SIGNAL FEED -->
-  <div style="margin-bottom:20px;">
+  <div class="signal-section">
     <div class="signal-header">
       <span class="live-dot"></span>
       <h3>Live Signal Feed — Sharp &amp; Edge wallets only</h3>
-      <span style="margin-left:auto;font-size:0.72rem;color:var(--muted)" id="sig-last-update">Updated just now</span>
+      <span class="sig-last-update" id="sig-last-update">Updated just now</span>
     </div>
-    <div class="signal-strip" id="signal-strip"></div>
+    <div class="signal-ticker">
+      <div class="signal-track" id="signal-strip"></div>
+    </div>
   </div>
 
   <!-- FILTERS -->
@@ -1066,7 +1190,7 @@ function renderKelly() {
 
 // ── SIGNAL FEED ───────────────────────────────────────────────────────────────
 function buildSignalFeed() {
-  const sharpWallets = WALLETS.filter(w => w.cluster === 'sharp' || w.cluster === 'edge').slice(0, 12);
+  const sharpWallets = WALLETS.filter(w => w.cluster === 'sharp' || w.cluster === 'edge').slice(0, 14);
   const strip = document.getElementById('signal-strip');
   const bankroll = parseFloat(document.getElementById('kelly-input')?.value) || 50000;
 
@@ -1080,27 +1204,77 @@ function buildSignalFeed() {
     return { w, mkt, isYes, agoMins, betSize, copySize };
   }).sort((a,b) => a.agoMins - b.agoMins);
 
-  strip.innerHTML = signals.map(s => {
-    const convLabel = s.w.conviction >= 4 ? 'EXTREME 🔥🔥' : s.w.conviction >= 2 ? 'HIGH 🔥' : 'normal';
+  function makeCard(s) {
+    const convLabel = s.w.conviction >= 4 ? 'EXTREME 🔥🔥' : s.w.conviction >= 2 ? 'HIGH 🔥' : 'NORMAL';
     const convCls   = s.w.conviction >= 4 ? 'extreme' : s.w.conviction >= 2 ? 'high' : 'normal';
     const cardCls   = s.w.conviction >= 4 ? 'extreme-conv' : s.w.conviction >= 2 ? 'high-conv' : '';
+    const isNew     = s.agoMins <= 5;
+    const dirLabel  = s.isYes ? 'YES ↑' : 'NO ↓';
+    const dirCls    = s.isYes ? 'yes' : 'no';
+
+    // Probability bar: market price vs sharp consensus
+    const mktPct    = Math.round(s.mkt.yes_price * 100);
+    const sharpPct  = Math.round(s.mkt.sharp_yes * 100);
+
+    const agoLabel  = s.agoMins < 60 ? `${s.agoMins}m ago` : `${Math.floor(s.agoMins/60)}h ago`;
+    const edgeFast  = s.w.info_edge_mins <= 20;
+    const evSign    = s.w.ev_score >= 0 ? '+' : '';
+
     return `
     <div class="signal-card ${cardCls}">
-      <div class="sig-conv ${convCls}">${convLabel}</div>
-      <div class="sig-top">
-        <span class="sig-wallet">${s.w.address}</span>
-        <span class="sig-cluster-badge ${s.w.cluster}">${s.w.cluster}</span>
+      <div class="sig-inner">
+        <div class="sig-banner ${dirCls}"></div>
+        <div style="height:10px"></div>
+        <div class="sig-top">
+          <span class="sig-wallet">${s.w.address}</span>
+          <span class="sig-cluster-badge ${s.w.cluster}">${s.w.cluster}</span>
+          ${isNew ? '<span class="sig-new">NEW</span>' : ''}
+          <span class="sig-conv-badge ${convCls}">${convLabel}</span>
+        </div>
+        <div class="sig-market">${s.mkt.title}</div>
+        <span class="sig-direction ${dirCls}">${dirLabel}</span>
+
+        <div class="sig-prob-bar">
+          <div class="sig-prob-label">
+            <span>Market ${mktPct}¢</span>
+            <span style="color:var(--accent)">Sharp ${sharpPct}%</span>
+          </div>
+          <div class="sig-prob-track">
+            <div class="sig-prob-mkt" style="width:${mktPct}%"></div>
+            <div class="sig-prob-sharp" style="left:${sharpPct}%">
+              <div class="sig-prob-tip">${sharpPct}%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sig-stats">
+          <div class="sig-stat">
+            <div class="sig-stat-label">Bet size</div>
+            <div class="sig-stat-val">$${s.betSize.toLocaleString()}</div>
+          </div>
+          <div class="sig-stat">
+            <div class="sig-stat-label">Copy size</div>
+            <div class="sig-stat-val sig-copy-sz">$${s.copySize.toLocaleString()}</div>
+          </div>
+          <div class="sig-stat">
+            <div class="sig-stat-label">EV</div>
+            <div class="sig-stat-val ${s.w.ev_score>=0?'ev-pos':'ev-neg'}">${evSign}${s.w.ev_score}</div>
+          </div>
+        </div>
+
+        <div class="sig-footer">
+          <span class="sig-age">${agoLabel}</span>
+          <span class="sig-edge-pill ${edgeFast?'fast':''}">⚡ ${s.w.info_edge_mins}m edge</span>
+        </div>
       </div>
-      <div class="sig-market">${s.mkt.title}</div>
-      <span class="sig-direction ${s.isYes?'yes':'no'}">${s.isYes?'YES ↑':'NO ↓'}</span>
-      <div class="sig-stats">
-        <div><div class="sig-stat-label">Bet size</div><div class="sig-stat-val">$${s.betSize.toLocaleString()}</div></div>
-        <div><div class="sig-stat-label">Copy size</div><div class="sig-stat-val sig-copy-sz">$${s.copySize.toLocaleString()}</div></div>
-        <div><div class="sig-stat-label">Wallet EV</div><div class="sig-stat-val ${s.w.ev_score>=0?'ev-pos':'ev-neg'}">${s.w.ev_score>=0?'+':''}${s.w.ev_score}</div></div>
-      </div>
-      <div class="sig-age">${s.agoMins < 60 ? s.agoMins+'m ago' : Math.floor(s.agoMins/60)+'h ago'} · Info edge: ${s.w.info_edge_mins}m</div>
     </div>`;
-  }).join('');
+  }
+
+  // Render twice for seamless infinite scroll loop
+  const html = signals.map(makeCard).join('');
+  strip.innerHTML = html + html;
+  document.getElementById('sig-last-update').textContent =
+    'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
 
 // ── MARKET OPPORTUNITY SCANNER ─────────────────────────────────────────────────
