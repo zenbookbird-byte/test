@@ -1,171 +1,187 @@
 import { useMemo, useState } from 'react'
-import { TrendingUp, Clock, Star, RefreshCw, Filter, ChevronUp, ChevronDown } from 'lucide-react'
+import { TrendingUp, Clock, Star, RefreshCw, SlidersHorizontal, Flame, Zap } from 'lucide-react'
 import { useTrendingPairs, useNewPairs } from '../../hooks/useTokenPairs'
 import { useTerminalStore } from '../../store/terminalStore'
 import { formatAge, formatNumber, formatPercent } from '../../services/dexscreener'
 import type { TokenPair, SortField } from '../../types'
 import clsx from 'clsx'
 
-function TokenAvatar({ pair }: { pair: TokenPair }) {
+function Avatar({ pair, size = 30 }: { pair: TokenPair; size?: number }) {
   const [err, setErr] = useState(false)
   const img = pair.info?.imageUrl
   const sym = pair.baseToken?.symbol ?? '?'
+  const colors = ['from-cyan/30 to-accent-purple/30', 'from-accent-purple/30 to-accent-orange/30', 'from-accent-green/30 to-cyan/30']
+  const colorIdx = sym.charCodeAt(0) % colors.length
   if (!img || err) {
     return (
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-purple/30 to-accent-blue/30 flex items-center justify-center text-text-primary text-xs font-bold shrink-0">
+      <div style={{ width: size, height: size, fontSize: size * 0.38 }}
+        className={clsx('rounded-full bg-gradient-to-br flex items-center justify-center text-text-primary font-bold shrink-0', colors[colorIdx])}>
         {sym[0]}
       </div>
     )
   }
   return (
-    <img
-      src={img}
-      alt={sym}
-      width={32}
-      height={32}
-      className="w-8 h-8 rounded-full object-cover shrink-0"
-      onError={() => setErr(true)}
-    />
+    <img src={img} alt={sym} style={{ width: size, height: size }}
+      className="rounded-full object-cover shrink-0" onError={() => setErr(true)} />
   )
 }
 
 type SortDir = 'asc' | 'desc'
 
+const FILTER_PRESETS = [
+  { label: 'All', minLiq: 0, minVol: 0 },
+  { label: '> $5K Liq', minLiq: 5000, minVol: 0 },
+  { label: '> $50K Vol', minLiq: 0, minVol: 50000 },
+  { label: 'Degen', minLiq: 1000, minVol: 1000 },
+]
+
 export function TokenList() {
-  const { activeTab, setActiveTab, watchlist, toggleWatchlist, setSelectedPair, selectedPair, minLiquidity, minVolume } = useTerminalStore()
-  const { data: trending, isLoading: tLoad, refetch: tRefetch, isFetching: tFetching } = useTrendingPairs()
-  const { data: newPairs, isLoading: nLoad, refetch: nRefetch, isFetching: nFetching } = useNewPairs()
+  const {
+    mainTab, setMainTab,
+    watchlist, toggleWatchlist,
+    setSelectedPair, selectedPair,
+    minLiquidity, setMinLiquidity,
+    minVolume, setMinVolume,
+  } = useTerminalStore()
+
+  const { data: trending, isLoading: tLoad, refetch: tRefetch, isFetching: tFetch } = useTrendingPairs()
+  const { data: newPairs, isLoading: nLoad, refetch: nRefetch, isFetching: nFetch } = useNewPairs()
 
   const [sortField, setSortField] = useState<SortField>('volume')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [showFilters, setShowFilters] = useState(false)
+  const [activePreset, setActivePreset] = useState(1)
 
-  const rawPairs = activeTab === 'trending' ? trending : activeTab === 'new' ? newPairs : activeTab === 'watchlist'
-    ? (trending ?? []).filter(p => watchlist.includes(p.pairAddress))
-    : []
+  const rawPairs =
+    mainTab === 'trending' ? trending :
+    mainTab === 'new' ? newPairs :
+    mainTab === 'watchlist' ? (trending ?? []).filter(p => watchlist.includes(p.pairAddress)) :
+    []
 
   const pairs = useMemo(() => {
     if (!rawPairs) return []
-    const filtered = rawPairs.filter(p => {
-      const liq = p.liquidity?.usd ?? 0
-      const vol = p.volume?.h24 ?? 0
-      return liq >= minLiquidity && vol >= minVolume
-    })
-
+    const filtered = rawPairs.filter(p =>
+      (p.liquidity?.usd ?? 0) >= minLiquidity && (p.volume?.h24 ?? 0) >= minVolume
+    )
     return [...filtered].sort((a, b) => {
       let va = 0, vb = 0
       switch (sortField) {
-        case 'price': va = parseFloat(a.priceUsd ?? '0'); vb = parseFloat(b.priceUsd ?? '0'); break
-        case 'change5m': va = a.priceChange?.m5 ?? 0; vb = b.priceChange?.m5 ?? 0; break
-        case 'change1h': va = a.priceChange?.h1 ?? 0; vb = b.priceChange?.h1 ?? 0; break
+        case 'change5m':  va = a.priceChange?.m5 ?? 0; vb = b.priceChange?.m5 ?? 0; break
+        case 'change1h':  va = a.priceChange?.h1 ?? 0; vb = b.priceChange?.h1 ?? 0; break
         case 'change24h': va = a.priceChange?.h24 ?? 0; vb = b.priceChange?.h24 ?? 0; break
-        case 'volume': va = a.volume?.h24 ?? 0; vb = b.volume?.h24 ?? 0; break
+        case 'volume':    va = a.volume?.h24 ?? 0; vb = b.volume?.h24 ?? 0; break
         case 'marketCap': va = a.marketCap ?? a.fdv ?? 0; vb = b.marketCap ?? b.fdv ?? 0; break
         case 'liquidity': va = a.liquidity?.usd ?? 0; vb = b.liquidity?.usd ?? 0; break
-        case 'age': va = a.pairCreatedAt ?? 0; vb = b.pairCreatedAt ?? 0; break
+        case 'age':       va = a.pairCreatedAt ?? 0; vb = b.pairCreatedAt ?? 0; break
       }
       return sortDir === 'desc' ? vb - va : va - vb
     })
   }, [rawPairs, sortField, sortDir, minLiquidity, minVolume])
 
-  function handleSort(field: SortField) {
+  function toggleSort(field: SortField) {
     if (sortField === field) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
     else { setSortField(field); setSortDir('desc') }
   }
 
-  const isLoading = activeTab === 'trending' ? tLoad : nLoad
-  const isFetching = activeTab === 'trending' ? tFetching : nFetching
-  const refetch = activeTab === 'trending' ? tRefetch : nRefetch
+  const isLoading = mainTab === 'trending' ? tLoad : nLoad
+  const isFetching = mainTab === 'trending' ? tFetch : nFetch
+  const refetch = mainTab === 'trending' ? tRefetch : nRefetch
 
-  function SortIcon({ field }: { field: SortField }) {
-    if (sortField !== field) return <ChevronDown size={10} className="text-text-muted" />
-    return sortDir === 'desc' ? <ChevronDown size={10} className="text-accent-blue" /> : <ChevronUp size={10} className="text-accent-blue" />
+  function applyPreset(idx: number) {
+    setActivePreset(idx)
+    setMinLiquidity(FILTER_PRESETS[idx].minLiq)
+    setMinVolume(FILTER_PRESETS[idx].minVol)
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-secondary border-r border-border w-full lg:w-72 xl:w-80 shrink-0">
-      {/* Tabs */}
-      <div className="flex border-b border-border">
+    <div className="flex flex-col w-64 xl:w-72 shrink-0 bg-bg-primary border-r border-border overflow-hidden">
+      {/* Tab bar */}
+      <div className="flex border-b border-border shrink-0">
         {([
-          { id: 'trending', label: 'Trending', icon: TrendingUp },
-          { id: 'new', label: 'New', icon: Clock },
-          { id: 'watchlist', label: 'Watch', icon: Star },
+          { id: 'trending', icon: Flame, label: 'Hot' },
+          { id: 'new',      icon: Zap,   label: 'New' },
+          { id: 'watchlist',icon: Star,  label: 'Watch' },
         ] as const).map(tab => {
           const Icon = tab.icon
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => setMainTab(tab.id)}
               className={clsx(
-                'flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-3 border-b-2 transition-colors',
-                activeTab === tab.id
-                  ? 'text-accent-blue border-accent-blue'
-                  : 'text-text-secondary border-transparent hover:text-text-primary'
+                'flex-1 flex items-center justify-center gap-1 py-2.5 text-xs font-medium transition-colors border-b-2',
+                mainTab === tab.id ? 'tab-active' : 'tab-inactive'
               )}
             >
-              <Icon size={12} />
+              <Icon size={11} />
               {tab.label}
             </button>
           )
         })}
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
-        <span className="text-xs text-text-muted flex-1">
-          {pairs.length} tokens
-        </span>
+      {/* Filter presets */}
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border">
+        {FILTER_PRESETS.map((p, i) => (
+          <button
+            key={p.label}
+            onClick={() => applyPreset(i)}
+            className={clsx(
+              'text-xs px-1.5 py-0.5 rounded transition-colors whitespace-nowrap',
+              activePreset === i
+                ? 'bg-cyan/10 text-cyan-DEFAULT border border-cyan/20'
+                : 'text-text-muted hover:text-text-secondary'
+            )}
+          >
+            {p.label}
+          </button>
+        ))}
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={clsx(
-            'w-6 h-6 rounded flex items-center justify-center transition-colors',
-            showFilters ? 'text-accent-blue bg-accent-blue/10' : 'text-text-muted hover:text-text-primary'
-          )}
+          className={clsx('ml-auto shrink-0 text-text-muted hover:text-text-primary transition-colors', showFilters && 'text-cyan-DEFAULT')}
         >
-          <Filter size={12} />
+          <SlidersHorizontal size={12} />
         </button>
         <button
           onClick={() => refetch()}
-          className={clsx('w-6 h-6 rounded flex items-center justify-center text-text-muted hover:text-text-primary transition-colors', isFetching && 'animate-spin')}
+          className={clsx('text-text-muted hover:text-text-primary transition-colors', isFetching && 'animate-spin')}
         >
           <RefreshCw size={12} />
         </button>
       </div>
 
-      {/* Filters */}
       {showFilters && (
-        <div className="px-3 py-2 border-b border-border bg-bg-tertiary space-y-2 animate-slide-in">
-          <FilterRow label="Min Liquidity" value={minLiquidity} onChange={useTerminalStore.getState().setMinLiquidity} presets={[1000, 5000, 25000, 100000]} prefix="$" />
-          <FilterRow label="Min Volume 24h" value={minVolume} onChange={useTerminalStore.getState().setMinVolume} presets={[5000, 10000, 50000, 250000]} prefix="$" />
+        <div className="px-2 py-2 border-b border-border bg-bg-secondary space-y-2 animate-slide-in">
+          <FilterSlider label="Min Liquidity" value={minLiquidity} onChange={setMinLiquidity} options={[0, 1000, 5000, 25000, 100000]} />
+          <FilterSlider label="Min Vol 24h" value={minVolume} onChange={setMinVolume} options={[0, 1000, 10000, 50000, 250000]} />
         </div>
       )}
 
       {/* Column headers */}
-      <div className="flex items-center px-3 py-1.5 border-b border-border text-xs text-text-muted">
-        <div className="w-8 shrink-0" />
-        <div className="flex-1 min-w-0">Token</div>
-        <button onClick={() => handleSort('change5m')} className="flex items-center gap-0.5 w-12 justify-end hover:text-text-primary">
-          5m <SortIcon field="change5m" />
+      <div className="grid grid-cols-[26px_1fr_44px_44px_52px] gap-0 px-2 py-1 border-b border-border text-xs text-text-muted">
+        <div />
+        <div>Token</div>
+        <button onClick={() => toggleSort('change5m')} className="text-right hover:text-text-primary flex items-center justify-end gap-0.5">
+          5m{sortField === 'change5m' && <span className="text-cyan-DEFAULT">{sortDir === 'desc' ? '↓' : '↑'}</span>}
         </button>
-        <button onClick={() => handleSort('change1h')} className="flex items-center gap-0.5 w-12 justify-end hover:text-text-primary">
-          1h <SortIcon field="change1h" />
+        <button onClick={() => toggleSort('change1h')} className="text-right hover:text-text-primary flex items-center justify-end gap-0.5">
+          1h{sortField === 'change1h' && <span className="text-cyan-DEFAULT">{sortDir === 'desc' ? '↓' : '↑'}</span>}
         </button>
-        <button onClick={() => handleSort('volume')} className="flex items-center gap-0.5 w-16 justify-end hover:text-text-primary">
-          Vol <SortIcon field="volume" />
+        <button onClick={() => toggleSort('volume')} className="text-right hover:text-text-primary flex items-center justify-end gap-0.5">
+          Vol{sortField === 'volume' && <span className="text-cyan-DEFAULT">{sortDir === 'desc' ? '↓' : '↑'}</span>}
         </button>
       </div>
 
-      {/* Token rows */}
+      {/* Rows */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="flex flex-col gap-2 p-3">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="h-12 bg-bg-tertiary rounded-lg animate-pulse" />
+          <div className="p-2 space-y-1.5">
+            {Array.from({ length: 14 }).map((_, i) => (
+              <div key={i} className="h-10 rounded-lg bg-bg-tertiary animate-pulse" />
             ))}
           </div>
         ) : pairs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-text-muted text-sm">
-            {activeTab === 'watchlist' ? 'No tokens in watchlist' : 'No tokens found'}
+          <div className="flex items-center justify-center h-24 text-xs text-text-muted">
+            {mainTab === 'watchlist' ? 'Star tokens to add to watchlist' : 'No tokens found'}
           </div>
         ) : (
           pairs.map(pair => (
@@ -180,82 +196,72 @@ export function TokenList() {
           ))
         )}
       </div>
+
+      {/* Footer count */}
+      <div className="px-3 py-1.5 border-t border-border text-xs text-text-muted">
+        {pairs.length} tokens
+      </div>
     </div>
   )
 }
 
-function TokenRow({
-  pair, selected, watched, onSelect, onWatch,
-}: {
-  pair: TokenPair
-  selected: boolean
-  watched: boolean
-  onSelect: (p: TokenPair) => void
-  onWatch: (addr: string) => void
+function TokenRow({ pair, selected, watched, onSelect, onWatch }: {
+  pair: TokenPair; selected: boolean; watched: boolean
+  onSelect: (p: TokenPair) => void; onWatch: (a: string) => void
 }) {
   const c5m = pair.priceChange?.m5 ?? 0
   const c1h = pair.priceChange?.h1 ?? 0
   const vol = pair.volume?.h24
 
+  // Age badge
+  const ageMs = pair.pairCreatedAt ? Date.now() - pair.pairCreatedAt : Infinity
+  const isNew = ageMs < 1000 * 60 * 60 // < 1h
+  const isHot = (pair.boosts?.active ?? 0) > 0
+
   return (
     <div
-      className={clsx(
-        'flex items-center px-3 py-2 cursor-pointer transition-colors token-row gap-2 border-b border-border/50',
-        selected ? 'bg-accent-blue/8 border-l-2 border-l-accent-blue' : ''
-      )}
       onClick={() => onSelect(pair)}
+      className={clsx('token-row grid grid-cols-[26px_1fr_44px_44px_52px] gap-0 items-center px-2 py-1.5 cursor-pointer border-b border-border/40', selected && 'active')}
     >
-      <TokenAvatar pair={pair} />
-      <div className="flex-1 min-w-0">
+      <div className="relative">
+        <Avatar pair={pair} size={22} />
+        {isNew && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent-green border border-bg-base" />}
+      </div>
+
+      <div className="min-w-0 px-1.5">
         <div className="flex items-center gap-1">
-          <span className="text-sm font-semibold text-text-primary truncate">{pair.baseToken.symbol}</span>
-          <button
-            onClick={e => { e.stopPropagation(); onWatch(pair.pairAddress) }}
-            className={clsx('shrink-0', watched ? 'text-accent-yellow' : 'text-text-muted hover:text-accent-yellow')}
-          >
-            <Star size={10} fill={watched ? 'currentColor' : 'none'} />
-          </button>
+          <span className="text-xs font-semibold text-text-primary truncate leading-none">{pair.baseToken.symbol}</span>
+          {isHot && <Flame size={9} className="text-accent-orange shrink-0" />}
         </div>
-        <div className="text-xs text-text-muted truncate">{formatAge(pair.pairCreatedAt)} • {pair.dexId}</div>
+        <div className="text-xs text-text-muted leading-none mt-0.5 font-mono">{formatAge(pair.pairCreatedAt)}</div>
       </div>
-      <div className={clsx('text-xs font-mono w-12 text-right', c5m >= 0 ? 'text-accent-green' : 'text-accent-red')}>
-        {formatPercent(c5m)}
+
+      <div className={clsx('text-xs font-mono text-right', c5m >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+        {c5m >= 0 ? '+' : ''}{c5m.toFixed(1)}%
       </div>
-      <div className={clsx('text-xs font-mono w-12 text-right', c1h >= 0 ? 'text-accent-green' : 'text-accent-red')}>
-        {formatPercent(c1h)}
+      <div className={clsx('text-xs font-mono text-right', c1h >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+        {c1h >= 0 ? '+' : ''}{c1h.toFixed(1)}%
       </div>
-      <div className="text-xs font-mono w-16 text-right text-text-secondary">
-        {formatNumber(vol, 1)}
+      <div className="text-xs font-mono text-right text-text-secondary">
+        {formatNumber(vol, 0).replace('$', '')}
       </div>
     </div>
   )
 }
 
-function FilterRow({
-  label, value, onChange, presets, prefix,
-}: {
-  label: string
-  value: number
-  onChange: (v: number) => void
-  presets: number[]
-  prefix?: string
+function FilterSlider({ label, value, onChange, options }: {
+  label: string; value: number; onChange: (v: number) => void; options: number[]
 }) {
   return (
     <div>
-      <div className="text-xs text-text-muted mb-1">{label}</div>
+      <div className="text-xs text-text-muted mb-1">{label}: <span className="text-text-secondary">{value === 0 ? 'Any' : formatNumber(value, 0)}</span></div>
       <div className="flex gap-1">
-        {presets.map(p => (
-          <button
-            key={p}
-            onClick={() => onChange(p)}
-            className={clsx(
-              'flex-1 text-xs py-0.5 rounded border transition-colors',
-              value === p
-                ? 'bg-accent-blue/10 border-accent-blue text-accent-blue'
-                : 'border-border text-text-muted hover:border-border-light'
-            )}
-          >
-            {prefix}{p >= 1000 ? `${p / 1000}K` : p}
+        {options.map(o => (
+          <button key={o} onClick={() => onChange(o)}
+            className={clsx('flex-1 text-xs py-0.5 rounded border transition-colors',
+              value === o ? 'border-cyan/40 text-cyan-DEFAULT bg-cyan/5' : 'border-border text-text-muted hover:border-border-light'
+            )}>
+            {o === 0 ? 'Any' : o >= 1000 ? `${o / 1000}K` : o}
           </button>
         ))}
       </div>

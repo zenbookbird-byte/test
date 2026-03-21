@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { SolanaWalletProvider } from './providers/WalletProvider'
@@ -6,94 +5,122 @@ import { Header } from './components/Layout/Header'
 import { TokenList } from './components/Discovery/TokenList'
 import { TradingChart } from './components/Chart/TradingChart'
 import { TokenInfoPanel } from './components/TokenInfo/TokenInfoPanel'
-import { SwapPanel } from './components/Swap/SwapPanel'
+import { OrderPanel } from './components/Swap/OrderPanel'
 import { Portfolio } from './components/Portfolio/Portfolio'
+import { TradesFeed } from './components/Trades/TradesFeed'
+import { HolderAnalysis } from './components/Holders/HolderAnalysis'
+import { WalletTracker } from './components/WalletTracker/WalletTracker'
 import { useTerminalStore } from './store/terminalStore'
-import { Wallet, TrendingUp } from 'lucide-react'
+import type { RightTab, MainTab } from './store/terminalStore'
+import { BarChart2, Zap, Users, Clock, Wallet, Search } from 'lucide-react'
 import clsx from 'clsx'
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      refetchOnWindowFocus: false,
-    },
-  },
+  defaultOptions: { queries: { retry: 2, refetchOnWindowFocus: false } },
 })
 
-type RightTab = 'info' | 'trade'
+const RIGHT_TABS: { id: RightTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'trade',   label: 'Trade',   icon: <Zap size={11} /> },
+  { id: 'info',    label: 'Info',    icon: <BarChart2 size={11} /> },
+  { id: 'holders', label: 'Holders', icon: <Users size={11} /> },
+  { id: 'trades',  label: 'Trades',  icon: <Clock size={11} /> },
+]
 
 function RightPanel() {
-  const [tab, setTab] = useState<RightTab>('info')
-
+  const { rightTab, setRightTab } = useTerminalStore()
   return (
-    <>
+    <div className="flex flex-col h-full w-64 xl:w-72 shrink-0 border-l border-border bg-bg-primary overflow-hidden">
+      {/* Tabs */}
       <div className="flex border-b border-border shrink-0">
-        <button
-          onClick={() => setTab('info')}
-          className={clsx(
-            'flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 border-b-2 transition-colors',
-            tab === 'info'
-              ? 'text-accent-blue border-accent-blue'
-              : 'text-text-secondary border-transparent hover:text-text-primary'
-          )}
-        >
-          <TrendingUp size={12} />
-          Info
-        </button>
-        <button
-          onClick={() => setTab('trade')}
-          className={clsx(
-            'flex-1 flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 border-b-2 transition-colors',
-            tab === 'trade'
-              ? 'text-accent-blue border-accent-blue'
-              : 'text-text-secondary border-transparent hover:text-text-primary'
-          )}
-        >
-          <Wallet size={12} />
-          Trade
-        </button>
+        {RIGHT_TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setRightTab(tab.id)}
+            className={clsx(
+              'flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium transition-colors border-b-2',
+              rightTab === tab.id ? 'tab-active' : 'tab-inactive'
+            )}
+          >
+            {tab.icon}
+            <span className="hidden xl:block">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        {rightTab === 'trade'   && <OrderPanel />}
+        {rightTab === 'info'    && <TokenInfoPanel />}
+        {rightTab === 'holders' && <HolderAnalysis />}
+        {rightTab === 'trades'  && <TradesFeed />}
+      </div>
+    </div>
+  )
+}
+
+const BOTTOM_TABS: { id: MainTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'portfolio',     label: 'Portfolio',  icon: <Wallet size={11} /> },
+  { id: 'wallettracker', label: 'Copy Trade', icon: <Search size={11} /> },
+]
+
+function BottomPanel() {
+  const { mainTab, setMainTab } = useTerminalStore()
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex border-b border-border shrink-0">
+        {BOTTOM_TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setMainTab(tab.id)}
+            className={clsx(
+              'flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors border-b-2',
+              mainTab === tab.id ? 'tab-active' : 'tab-inactive'
+            )}
+          >
+            {tab.icon}{tab.label}
+          </button>
+        ))}
       </div>
       <div className="flex-1 overflow-hidden">
-        {tab === 'info' ? <TokenInfoPanel /> : <SwapPanel />}
+        {mainTab === 'portfolio'     && <Portfolio />}
+        {mainTab === 'wallettracker' && <WalletTracker />}
       </div>
-    </>
+    </div>
   )
 }
 
 function Terminal() {
-  const { activeTab } = useTerminalStore()
+  const { mainTab } = useTerminalStore()
+  const isBottomView = mainTab === 'portfolio' || mainTab === 'wallettracker'
 
   return (
-    <div className="flex flex-col h-screen bg-bg-primary overflow-hidden">
+    <div className="flex flex-col h-screen bg-bg-base overflow-hidden">
       <Header />
-
       <div className="flex flex-1 overflow-hidden">
-        {/* Token list panel */}
+        {/* Left: Token list */}
         <TokenList />
 
-        {/* Main area */}
-        {activeTab === 'portfolio' ? (
-          <div className="flex flex-1 overflow-hidden">
-            <div className="flex-1 overflow-hidden">
-              <Portfolio />
-            </div>
-            <div className="w-72 xl:w-80 border-l border-border flex flex-col overflow-hidden shrink-0">
+        {/* Center + Right */}
+        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+          {isBottomView ? (
+            // Portfolio / Wallet tracker full view
+            <div className="flex flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden">
+                <BottomPanel />
+              </div>
               <RightPanel />
             </div>
-          </div>
-        ) : (
-          <div className="flex flex-1 overflow-hidden">
-            {/* Chart */}
-            <div className="flex-1 overflow-hidden">
-              <TradingChart />
-            </div>
-            {/* Right panel */}
-            <div className="w-72 xl:w-80 border-l border-border flex flex-col overflow-hidden shrink-0">
+          ) : (
+            // Trading view: chart on top, panels on sides
+            <div className="flex flex-1 overflow-hidden">
+              {/* Chart */}
+              <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+                <TradingChart />
+              </div>
+              {/* Right panel */}
               <RightPanel />
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )
@@ -106,13 +133,7 @@ export default function App() {
         <Terminal />
         <Toaster
           position="bottom-right"
-          toastOptions={{
-            style: {
-              background: 'transparent',
-              boxShadow: 'none',
-              padding: 0,
-            },
-          }}
+          toastOptions={{ style: { background: 'transparent', boxShadow: 'none', padding: 0 } }}
         />
       </SolanaWalletProvider>
     </QueryClientProvider>
