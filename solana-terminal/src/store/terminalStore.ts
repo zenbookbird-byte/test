@@ -1,13 +1,18 @@
 import { create } from 'zustand'
 import type { TokenPair, TimeFrame } from '../types'
 
+export type PageView = 'discover' | 'pulse' | 'trackers' | 'perpetuals' | 'yield' | 'portfolio'
 export type MainTab = 'trending' | 'new' | 'watchlist' | 'portfolio' | 'wallettracker'
 export type OrderType = 'market' | 'limit' | 'dca'
 export type RightTab = 'trade' | 'info' | 'holders' | 'trades'
 
 interface TerminalState {
+  // Navigation
+  pageView: PageView
+  setPageView: (v: PageView) => void
+
   selectedPair: TokenPair | null
-  setSelectedPair: (pair: TokenPair | null) => void
+  setSelectedPair: (p: TokenPair | null) => void
 
   mainTab: MainTab
   setMainTab: (t: MainTab) => void
@@ -21,7 +26,7 @@ interface TerminalState {
   searchQuery: string
   setSearchQuery: (q: string) => void
 
-  // Order
+  // Order state
   orderType: OrderType
   setOrderType: (t: OrderType) => void
   swapSide: 'buy' | 'sell'
@@ -32,8 +37,6 @@ interface TerminalState {
   setSlippage: (s: number) => void
   priorityFee: 'low' | 'medium' | 'high' | 'ultra'
   setPriorityFee: (f: TerminalState['priorityFee']) => void
-
-  // Limit order
   limitPrice: string
   setLimitPrice: (v: string) => void
   stopLoss: string
@@ -56,11 +59,24 @@ interface TerminalState {
   setMinLiquidity: (v: number) => void
   minVolume: number
   setMinVolume: (v: number) => void
+
+  // Bottom bar
+  quickBuyPreset: number
+  setQuickBuyPreset: (v: number) => void
+  activePreset: number
+  setActivePreset: (v: number) => void
 }
 
 export const useTerminalStore = create<TerminalState>((set, get) => ({
+  pageView: 'discover',
+  setPageView: (v) => set({ pageView: v }),
+
   selectedPair: null,
-  setSelectedPair: (pair) => set({ selectedPair: pair }),
+  setSelectedPair: (p) => {
+    set({ selectedPair: p })
+    // Auto-switch to discover when a pair is selected
+    if (p && get().pageView !== 'discover') set({ pageView: 'discover' })
+  },
 
   mainTab: 'trending',
   setMainTab: (t) => set({ mainTab: t }),
@@ -80,11 +96,10 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   setSwapSide: (s) => set({ swapSide: s }),
   swapInputAmount: '',
   setSwapInputAmount: (v) => set({ swapInputAmount: v }),
-  slippage: 0.5,
+  slippage: 1,
   setSlippage: (s) => set({ slippage: s }),
   priorityFee: 'medium',
   setPriorityFee: (f) => set({ priorityFee: f }),
-
   limitPrice: '',
   setLimitPrice: (v) => set({ limitPrice: v }),
   stopLoss: '',
@@ -97,7 +112,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   mevProtection: true,
   toggleMev: () => set(s => ({ mevProtection: !s.mevProtection })),
 
-  watchlist: JSON.parse(localStorage.getItem('st_watchlist') || '[]'),
+  watchlist: (() => { try { return JSON.parse(localStorage.getItem('st_watchlist') || '[]') } catch { return [] } })(),
   toggleWatchlist: (addr) => {
     const wl = get().watchlist
     const next = wl.includes(addr) ? wl.filter(a => a !== addr) : [...wl, addr]
@@ -105,8 +120,13 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     set({ watchlist: next })
   },
 
-  minLiquidity: 5000,
+  minLiquidity: 0,
   setMinLiquidity: (v) => set({ minLiquidity: v }),
-  minVolume: 5000,
+  minVolume: 0,
   setMinVolume: (v) => set({ minVolume: v }),
+
+  quickBuyPreset: 0.1,
+  setQuickBuyPreset: (v) => set({ quickBuyPreset: v }),
+  activePreset: 1,
+  setActivePreset: (v) => set({ activePreset: v }),
 }))
