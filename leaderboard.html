@@ -255,7 +255,151 @@
     border-radius:10px; padding:12px 15px; color:var(--text); font-size:0.93rem;
     margin-bottom:14px; transition:border-color .15s; }
   .gate-input:focus { outline:none; border-color:var(--accent); }
-  .gate-btn { width:100%; background:linear-gradient(135deg,var(--pink),var(--purple));
+  /* ── KELLY ALLOCATOR ─────────────────────────────────────────── */
+  .kelly-widget {
+    background:linear-gradient(135deg,rgba(255,214,10,.05) 0%,rgba(255,45,126,.04) 100%);
+    border:1px solid rgba(255,214,10,.2);
+    border-radius:16px; padding:20px 24px; margin-bottom:20px;
+  }
+  .kelly-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; cursor:pointer; user-select:none; }
+  .kelly-title { font-weight:800; font-size:0.95rem; }
+  .kelly-badge { font-size:0.62rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase;
+    padding:3px 10px; border-radius:50px; background:rgba(255,214,10,.12); color:var(--yellow); }
+  .kelly-toggle { margin-left:auto; color:var(--muted); font-size:0.75rem; }
+  .kelly-body { display:grid; grid-template-columns:auto 1fr; gap:16px 24px; align-items:start; }
+  @media(max-width:700px){ .kelly-body { grid-template-columns:1fr; } }
+  .kelly-input-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .kelly-input-row label { color:var(--muted); font-size:0.8rem; white-space:nowrap; }
+  .kelly-bankroll {
+    background:var(--bg); border:1px solid rgba(255,214,10,.3); color:var(--yellow);
+    border-radius:8px; padding:8px 14px; font-size:1rem; font-weight:700;
+    font-family:inherit; width:160px;
+  }
+  .kelly-bankroll:focus { outline:none; border-color:var(--yellow); }
+  .kelly-half { font-size:0.72rem; color:var(--muted); }
+  .kelly-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+  .kelly-table th { color:var(--muted); font-size:0.68rem; text-transform:uppercase; letter-spacing:0.5px;
+    padding:6px 10px; text-align:left; border-bottom:1px solid var(--border); }
+  .kelly-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,.03); }
+  .kelly-table tr:last-child td { border-bottom:none; }
+  .kelly-alloc { font-weight:800; color:var(--yellow); }
+  .kelly-edge { color:var(--green); }
+  .kelly-note { font-size:0.72rem; color:var(--muted); margin-top:10px; }
+
+  /* ── SIGNAL FEED ──────────────────────────────────────────────── */
+  .signal-strip { display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; margin-bottom:20px;
+    scrollbar-width:thin; scrollbar-color:var(--border2) transparent; }
+  .signal-card {
+    flex-shrink:0; width:240px; background:var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:14px 16px; position:relative; overflow:hidden;
+    transition:border-color .15s;
+  }
+  .signal-card:hover { border-color:var(--accent); }
+  .signal-card.high-conv { border-color:rgba(255,214,10,.4); }
+  .signal-card.extreme-conv { border-color:rgba(255,45,126,.5); box-shadow:0 0 20px rgba(255,45,126,.1); }
+  .sig-top { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .sig-wallet { font-family:monospace; font-size:0.75rem; color:var(--muted); }
+  .sig-cluster-badge { font-size:0.6rem; font-weight:800; padding:2px 6px; border-radius:4px;
+    background:rgba(0,255,136,.1); color:var(--green); letter-spacing:0.5px; }
+  .sig-cluster-badge.edge { background:rgba(0,245,255,.1); color:var(--accent); }
+  .sig-market { font-size:0.8rem; font-weight:600; color:var(--text); margin-bottom:6px; line-height:1.4; }
+  .sig-direction { display:inline-block; font-size:0.72rem; font-weight:800; letter-spacing:1px;
+    padding:2px 8px; border-radius:4px; margin-bottom:8px; }
+  .sig-direction.yes { background:rgba(0,255,136,.1); color:var(--green); }
+  .sig-direction.no  { background:rgba(239,68,68,.1);  color:var(--red); }
+  .sig-stats { display:flex; gap:12px; font-size:0.75rem; }
+  .sig-stat-label { color:var(--muted); }
+  .sig-stat-val { font-weight:700; }
+  .sig-conv { font-size:0.7rem; font-weight:800; position:absolute; top:10px; right:12px; }
+  .sig-conv.normal  { color:var(--muted); }
+  .sig-conv.high    { color:var(--yellow); }
+  .sig-conv.extreme { color:var(--pink); }
+  .sig-age { font-size:0.68rem; color:var(--muted); margin-top:6px; }
+  .signal-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .signal-header h3 { font-size:0.82rem; font-weight:700; }
+  .signal-header .live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 1s infinite; }
+  .sig-copy-sz { color:var(--accent); font-weight:700; }
+
+  /* ── MARKET SCANNER ───────────────────────────────────────────── */
+  .scanner-section { margin-top:28px; }
+  .scanner-title { font-size:1rem; font-weight:800; margin-bottom:4px; }
+  .scanner-sub { font-size:0.8rem; color:var(--muted); margin-bottom:16px; }
+  .scanner-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; }
+  .scanner-card {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:16px 18px; cursor:pointer;
+    transition:border-color .15s, transform .15s;
+  }
+  .scanner-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .scanner-card.urgent { border-color:rgba(255,45,126,.35); }
+  .sc-top { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .sc-market { font-size:0.85rem; font-weight:700; line-height:1.4; flex:1; }
+  .sc-opp { font-size:1.1rem; font-weight:900; }
+  .sc-opp.high   { color:var(--green); }
+  .sc-opp.medium { color:var(--yellow); }
+  .sc-opp.low    { color:var(--muted); }
+  .sc-bars { margin-bottom:10px; }
+  .sc-bar-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; font-size:0.75rem; }
+  .sc-bar-label { color:var(--muted); width:90px; flex-shrink:0; }
+  .sc-bar-track { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+  .sc-bar-fill { height:100%; border-radius:2px; }
+  .sc-bar-fill.consensus { background:linear-gradient(90deg,var(--accent),var(--green)); }
+  .sc-bar-fill.liquidity  { background:linear-gradient(90deg,var(--purple),var(--accent)); }
+  .sc-bar-fill.urgency    { background:linear-gradient(90deg,var(--yellow),var(--pink)); }
+  .sc-bar-val { color:var(--text); font-weight:700; width:36px; text-align:right; }
+  .sc-footer { display:flex; gap:14px; font-size:0.75rem; flex-wrap:wrap; }
+  .sc-pill { background:var(--panel); border-radius:4px; padding:2px 8px; color:var(--muted); }
+  .sc-pill span { color:var(--text); font-weight:700; }
+
+  /* ── CORRELATION PANEL ─────────────────────────────────────────── */
+  .corr-section { margin-top:28px; }
+  .corr-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .corr-title { font-size:1rem; font-weight:800; }
+  .corr-warning { display:none; font-size:0.78rem; font-weight:700;
+    background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.25);
+    color:var(--red); border-radius:50px; padding:4px 14px; }
+  .corr-ok { display:none; font-size:0.78rem; font-weight:700;
+    background:rgba(0,255,136,.1); border:1px solid rgba(0,255,136,.25);
+    color:var(--green); border-radius:50px; padding:4px 14px; }
+  .corr-grid { display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap; }
+  .corr-matrix { display:grid; gap:2px; }
+  .corr-cell { width:28px; height:28px; border-radius:3px; display:flex; align-items:center;
+    justify-content:center; font-size:0.55rem; font-weight:700; color:rgba(255,255,255,.7); }
+  .corr-labels { font-size:0.62rem; color:var(--muted); }
+  .corr-note { font-size:0.78rem; color:var(--muted); max-width:340px; line-height:1.6; }
+  .corr-stat { font-size:0.82rem; }
+  .corr-stat-val { font-weight:800; }
+
+  /* ── SPARKLINE ─────────────────────────────────────────────────── */
+  .spark-wrap { margin-top:6px; }
+  .spark-label { font-size:0.68rem; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
+  canvas.sparkline { display:block; }
+  .spark-stats { display:flex; gap:12px; margin-top:4px; font-size:0.72rem; }
+  .spark-stat { color:var(--muted); }
+  .spark-stat span { color:var(--text); font-weight:700; }
+
+  /* ── MARKET ALPHA BREAKDOWN ───────────────────────────────────── */
+  .alpha-breakdown { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+  .alpha-pill { border-radius:6px; padding:4px 10px; font-size:0.72rem; font-weight:700; }
+  .alpha-pill.pos { background:rgba(0,255,136,.1); color:var(--green); }
+  .alpha-pill.neg { background:rgba(239,68,68,.1);  color:var(--red); }
+  .alpha-pill.neu { background:rgba(255,255,255,.05); color:var(--muted); }
+
+  /* ── CONVICTION + INFO EDGE ───────────────────────────────────── */
+  .conv-bar { display:flex; align-items:center; gap:5px; }
+  .conv-dot { width:7px; height:7px; border-radius:50%; }
+  .conv-dot.normal  { background:var(--muted); }
+  .conv-dot.high    { background:var(--yellow); box-shadow:0 0 6px rgba(255,214,10,.5); }
+  .conv-dot.extreme { background:var(--pink);   box-shadow:0 0 6px rgba(255,45,126,.5); animation:pdot 1.5s infinite; }
+  .conv-num { font-size:0.8rem; font-weight:700; }
+  .conv-num.normal  { color:var(--muted); }
+  .conv-num.high    { color:var(--yellow); }
+  .conv-num.extreme { color:var(--pink); }
+  .info-edge-fast { color:var(--green); font-weight:700; }
+  .info-edge-mid  { color:var(--yellow); }
+  .info-edge-slow { color:var(--muted); }
+
+.gate-btn { width:100%; background:linear-gradient(135deg,var(--pink),var(--purple));
     color:#fff; border:none; padding:14px; border-radius:10px;
     font-size:0.95rem; font-weight:800; cursor:pointer;
     box-shadow:0 0 30px rgba(255,45,126,.3); transition:transform .15s; }
@@ -307,12 +451,54 @@
       <div class="hstat"><div class="hstat-val green" id="h-avgwr">76%</div><div class="hstat-label">Avg win rate</div></div>
       <div class="hstat"><div class="hstat-val yellow" id="h-topp&l">+$2,840</div><div class="hstat-label">Top wallet P&L (30d)</div></div>
       <div class="hstat"><div class="hstat-val accent" id="h-trades">1,247</div><div class="hstat-label">Trades tracked today</div></div>
+      <div class="hstat"><div class="hstat-val green" id="h-sharpe">1.84</div><div class="hstat-label">Avg Sharpe (sharp cluster)</div></div>
+      <div class="hstat"><div class="hstat-val" style="color:var(--pink)" id="h-opps">7</div><div class="hstat-label">Open opportunities</div></div>
     </div>
   </div>
 </div>
 
 <!-- MAIN -->
 <div class="main">
+
+  <!-- KELLY BANKROLL ALLOCATOR -->
+  <div class="kelly-widget" id="kelly-widget">
+    <div class="kelly-header" onclick="toggleKelly()">
+      <span style="font-size:1.2rem">⚖️</span>
+      <span class="kelly-title">Kelly Bankroll Allocator</span>
+      <span class="kelly-badge">HALF-KELLY</span>
+      <span class="kelly-toggle" id="kelly-toggle-txt">▼ expand</span>
+    </div>
+    <div id="kelly-body" style="display:none">
+      <div class="kelly-input-row" style="margin-bottom:14px;">
+        <label>Your bankroll</label>
+        <span style="color:var(--yellow);font-weight:800;font-size:1.1rem">$</span>
+        <input class="kelly-bankroll" id="kelly-input" type="number" value="50000" min="100" step="1000" oninput="renderKelly()">
+        <span class="kelly-half">Uses half-Kelly sizing for risk management. Max 20% per position.</span>
+      </div>
+      <div class="kelly-body">
+        <div>
+          <table class="kelly-table" id="kelly-table">
+            <thead><tr>
+              <th>Market</th><th>Sharp Consensus</th><th>Mkt Price</th>
+              <th>Edge</th><th>½-Kelly Size</th><th>Expected Return</th>
+            </tr></thead>
+            <tbody id="kelly-tbody"></tbody>
+          </table>
+          <div class="kelly-note">½-Kelly formula: f* = (p - q/b)/2 where p=sharp win probability, b=odds, q=1-p. Capped at 20% of bankroll per market. This is not financial advice.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE SIGNAL FEED -->
+  <div style="margin-bottom:20px;">
+    <div class="signal-header">
+      <span class="live-dot"></span>
+      <h3>Live Signal Feed — Sharp &amp; Edge wallets only</h3>
+      <span style="margin-left:auto;font-size:0.72rem;color:var(--muted)" id="sig-last-update">Updated just now</span>
+    </div>
+    <div class="signal-strip" id="signal-strip"></div>
+  </div>
 
   <!-- FILTERS -->
   <div class="filters">
@@ -341,6 +527,10 @@
           <th onclick="sortBy('pvalue')" class="hide-sm">p-val</th>
           <th onclick="sortBy('alpha_decay')" class="hide-md">&alpha;decay</th>
           <th onclick="sortBy('cluster')" class="hide-md">Cluster</th>
+          <th onclick="sortBy('conviction')" class="hide-md" title="Latest bet / avg bet size">Conviction</th>
+          <th onclick="sortBy('info_edge_mins')" class="hide-md" title="Avg minutes wallet enters before price moves">Info Edge</th>
+          <th onclick="sortBy('max_dd')" class="hide-md" title="Worst peak-to-trough drawdown">Max DD</th>
+          <th onclick="sortBy('sharpe')" class="hide-md">Sharpe</th>
           <th onclick="sortBy('net_pnl')">Net P&L</th>
           <th onclick="sortBy('pnl_30d')" class="hide-sm">30d P&L</th>
           <th onclick="sortBy('trades')" class="hide-md">Trades</th>
@@ -352,8 +542,36 @@
     </table>
   </div>
 
+  <!-- CORRELATION RISK PANEL -->
+  <div class="corr-section" id="corr-section">
+    <div class="corr-header">
+      <span class="corr-title">Portfolio Correlation Risk</span>
+      <span class="corr-warning" id="corr-warning">⚠ High correlation — you may be taking 1 concentrated bet</span>
+      <span class="corr-ok" id="corr-ok">✓ Well diversified</span>
+    </div>
+    <div class="corr-grid">
+      <div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;">Top-10 wallet correlation matrix</div>
+        <div class="corr-matrix" id="corr-matrix"></div>
+        <div class="corr-labels" id="corr-labels" style="margin-top:4px;"></div>
+      </div>
+      <div class="corr-note">
+        <p class="corr-stat" style="margin-bottom:8px;">Avg pairwise correlation: <span class="corr-stat-val" id="corr-avg">—</span></p>
+        <p style="margin-bottom:6px;">High correlation (&gt;0.7) means your copy-trade portfolio is effectively one concentrated position. Sharp wallets often share the same information edge — diversify across <em>market types</em> not just wallets.</p>
+        <p style="color:var(--accent);font-size:0.75rem;">For $1M+ deployment: target avg correlation &lt;0.4 across your copy positions.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARKET OPPORTUNITY SCANNER -->
+  <div class="scanner-section">
+    <div class="scanner-title">Market Opportunity Scanner</div>
+    <div class="scanner-sub">Open markets ranked by: sharp wallet consensus × available liquidity × time urgency. Best current edge opportunities.</div>
+    <div class="scanner-grid" id="scanner-grid"></div>
+  </div>
+
   <!-- METHODOLOGY NOTE -->
-  <div style="margin-top:20px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;font-size:0.85rem;color:var(--muted);line-height:1.7;">
+  <div style="margin-top:28px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 24px;font-size:0.85rem;color:var(--muted);line-height:1.7;">
     <strong style="color:var(--text);">How scores are calculated:</strong>
     Win rate (35%) + avg ROI per trade (30%) + consistency across 3 time periods (25%) + trade volume confidence (10%).
     Wallets must have ≥20 resolved trades and positive P&L in at least 2 of the last 3 months to appear.
@@ -387,7 +605,7 @@ const WAR_MARKETS = ['Iran nuclear deal by June?','Israel strikes Iran oil facil
 
 const WALLETS = Array.from({length:60}, (_,i) => {
   const r = seeded(i * 7919 + 31337);
-  const wr = 0.58 + r() * 0.30;           // 58–88%
+  const wr = 0.58 + r() * 0.30;
   const trades = Math.floor(40 + r() * 160);
   const avgRoi = 0.15 + r() * 0.95;
   const consistency = 0.5 + r() * 0.5;
@@ -401,10 +619,9 @@ const WALLETS = Array.from({length:60}, (_,i) => {
   const ageMins = Math.floor(r() * 180);
   const tag = i < 3 ? ['whale','whale','whale'][i] : (r() < 0.12 ? 'new' : (r() < 0.18 ? 'whale' : ''));
 
-  // New analytics fields
-  const ev = +((-0.04 + r() * 0.22)).toFixed(4);        // -0.04 to +0.18
+  const ev = +((-0.04 + r() * 0.22)).toFixed(4);
   const pvalue = ev > 0.08 ? +(r() * 0.04).toFixed(4) : +(0.05 + r() * 0.5).toFixed(4);
-  const alphaDecay = +(0.65 + r() * 0.7).toFixed(3);    // 0.65–1.35
+  const alphaDecay = +(0.65 + r() * 0.7).toFixed(3);
   const tpd = +(trades / (7 + r() * 60)).toFixed(1);
   const cluster = tpd >= 100 ? 'hft_bot'
     : pvalue < 0.01 && ev > 0.05 && alphaDecay >= 0.9 ? 'sharp'
@@ -412,8 +629,43 @@ const WALLETS = Array.from({length:60}, (_,i) => {
     : alphaDecay < 0.7 ? 'fading'
     : ev <= 0 ? 'noise'
     : 'developing';
-  const medHold = Math.floor(60 + r() * 7200);           // 1m – 2h in secs
+  const medHold = Math.floor(60 + r() * 7200);
   const strategy = tpd >= 100 ? 'bot' : tpd >= 10 ? 'scalper' : 'swing';
+
+  // ── NEW FIELDS ─────────────────────────────────────────────────────────
+  // Conviction: latest bet size / avg bet size  (1.0 = normal, >2 = high, >4 = extreme)
+  const conviction = +(0.4 + r() * 5.0).toFixed(2);
+  const convCls = conviction >= 4 ? 'extreme' : conviction >= 2 ? 'high' : 'normal';
+
+  // Information Edge: avg minutes before a significant price move (lower = sharper)
+  const info_edge_mins = cluster === 'sharp' ? Math.floor(3 + r() * 22)
+                       : cluster === 'edge'  ? Math.floor(20 + r() * 60)
+                       : Math.floor(40 + r() * 120);
+
+  // Max drawdown %
+  const max_dd = +(4 + r() * 46).toFixed(1);
+
+  // Sharpe ratio
+  const sharpe = +(0.3 + r() * 2.7).toFixed(2);
+
+  // Equity curve: 30 daily cumulative P&L values (for sparkline)
+  const equity_curve = (() => {
+    const rr = seeded(i * 333 + 7);
+    let cum = 0;
+    return Array.from({length:30}, (_,d) => {
+      const drift = (wr - 0.5) * 80;
+      cum += drift + (rr() - 0.5) * 200;
+      return Math.round(cum);
+    });
+  })();
+
+  // Per-market edge (EV by market type)
+  const market_alpha = {
+    war: +(ev + (r() - 0.4) * 0.08).toFixed(4),
+    btc: +(ev + (r() - 0.5) * 0.14).toFixed(4),
+    eth: +(ev + (r() - 0.5) * 0.11).toFixed(4),
+    sol: +(ev + (r() - 0.5) * 0.18).toFixed(4),
+  };
 
   const recentTrades = Array.from({length:5}, (_,j) => {
     const r2 = seeded(i * 1000 + j * 37);
@@ -445,8 +697,26 @@ const WALLETS = Array.from({length:60}, (_,i) => {
     median_hold_secs: medHold,
     trades_per_day: tpd,
     strategy,
+    conviction,
+    conv_cls: convCls,
+    info_edge_mins,
+    max_dd,
+    sharpe,
+    equity_curve,
+    market_alpha,
   };
 }).sort((a,b) => b.score - a.score).map((w,i) => ({...w, rank:i+1}));
+
+// ── OPEN MARKETS (for scanner + Kelly) ──────────────────────────────────────
+const OPEN_MARKETS = [
+  { title:'Israel conducts airstrikes on Iranian nuclear sites before June 2026?', yes_price:0.31, sharp_yes:0.71, liquidity:142000, closes_days:71, market_type:'war' },
+  { title:'US military assets directly involved in Iran conflict before July 2026?', yes_price:0.22, sharp_yes:0.58, liquidity:89000, closes_days:102, market_type:'war' },
+  { title:'Iran retaliates against Israel before end of April 2026?', yes_price:0.44, sharp_yes:0.78, liquidity:63000, closes_days:10, market_type:'war' },
+  { title:'Hezbollah opens second front against Israel in March 2026?', yes_price:0.18, sharp_yes:0.34, liquidity:41000, closes_days:5, market_type:'war' },
+  { title:'Iran nuclear deal signed before Sep 2026?', yes_price:0.12, sharp_yes:0.19, liquidity:28000, closes_days:163, market_type:'war' },
+  { title:'BTC above $110k before May 2026?', yes_price:0.38, sharp_yes:0.62, liquidity:310000, closes_days:28, market_type:'btc' },
+  { title:'ETH reclaims $3k before June 2026?', yes_price:0.27, sharp_yes:0.41, liquidity:185000, closes_days:71, market_type:'eth' },
+];
 
 let currentFilter = 'all';
 let currentSearch = '';
@@ -558,6 +828,15 @@ function buildTable(data) {
         <td class="hide-sm">${fmtPval(w.pvalue)}</td>
         <td class="hide-md">${fmtDecay(w.alpha_decay)}</td>
         <td class="hide-md"><span class="cbadge ${w.cluster}">${w.cluster}</span></td>
+        <td class="hide-md">
+          <div class="conv-bar">
+            <span class="conv-dot ${w.conv_cls}"></span>
+            <span class="conv-num ${w.conv_cls}">${w.conviction}x</span>
+          </div>
+        </td>
+        <td class="hide-md ${w.info_edge_mins<=15?'info-edge-fast':w.info_edge_mins<=45?'info-edge-mid':'info-edge-slow'}">${w.info_edge_mins}m</td>
+        <td class="hide-md" style="color:${w.max_dd>30?'var(--red)':w.max_dd>15?'var(--yellow)':'var(--muted)'}">-${w.max_dd}%</td>
+        <td class="hide-md" style="color:${w.sharpe>=2?'var(--green)':w.sharpe>=1?'var(--yellow)':'var(--muted)'}">${w.sharpe}</td>
         <td class="${w.net_pnl>=0?'pnl-pos':'pnl-neg'}">${fmt(w.net_pnl)}</td>
         <td class="${w.pnl_30d>=0?'pnl-pos':'pnl-neg'} hide-sm">${fmt(w.pnl_30d)}</td>
         <td class="hide-md" style="color:var(--muted)">${w.trades}</td>
@@ -570,8 +849,8 @@ function buildTable(data) {
         <td class="hide-sm">${mktIcon} ${w.market_type.toUpperCase()}</td>
       </tr>
       <tr id="expanded-${i}" class="expanded-row" style="display:none">
-        <td colspan="13">
-          <div class="expanded-content">
+        <td colspan="17">
+          <div class="expanded-content" style="grid-template-columns:repeat(5,1fr);">
             <div>
               <div class="exp-stat-label">EV / trade</div>
               <div class="exp-stat-val">${fmtEv(w.ev_score)}</div>
@@ -585,30 +864,61 @@ function buildTable(data) {
               <div class="exp-stat-val">${fmtDecay(w.alpha_decay)}</div>
             </div>
             <div>
+              <div class="exp-stat-label">Sharpe ratio</div>
+              <div class="exp-stat-val" style="color:${w.sharpe>=2?'var(--green)':w.sharpe>=1?'var(--yellow)':'var(--red)'}">${w.sharpe}</div>
+            </div>
+            <div>
+              <div class="exp-stat-label">Max drawdown</div>
+              <div class="exp-stat-val" style="color:${w.max_dd>30?'var(--red)':w.max_dd>15?'var(--yellow)':'var(--green)'}">-${w.max_dd}%</div>
+            </div>
+            <div>
+              <div class="exp-stat-label">Info Edge</div>
+              <div class="exp-stat-val ${w.info_edge_mins<=15?'info-edge-fast':w.info_edge_mins<=45?'info-edge-mid':'info-edge-slow'}">${w.info_edge_mins}m ahead</div>
+            </div>
+            <div>
+              <div class="exp-stat-label">Conviction (latest)</div>
+              <div class="exp-stat-val conv-num ${w.conv_cls}">${w.conviction}x avg size</div>
+            </div>
+            <div>
               <div class="exp-stat-label">Med hold</div>
               <div class="exp-stat-val" style="color:var(--accent)">${fmtHold(w.median_hold_secs)}</div>
             </div>
             <div>
-              <div class="exp-stat-label">Strategy</div>
-              <div class="exp-stat-val" style="color:var(--purple)">${w.strategy}</div>
-            </div>
-            <div>
-              <div class="exp-stat-label">Cluster</div>
-              <div class="exp-stat-val"><span class="cbadge ${w.cluster}">${w.cluster}</span></div>
-            </div>
-            <div>
-              <div class="exp-stat-label">Avg ROI / trade</div>
-              <div class="exp-stat-val" style="color:var(--green)">+${Math.round(w.avg_roi*100)}%</div>
+              <div class="exp-stat-label">Strategy · Cluster</div>
+              <div class="exp-stat-val" style="color:var(--purple)">${w.strategy} &nbsp;<span class="cbadge ${w.cluster}">${w.cluster}</span></div>
             </div>
             <div>
               <div class="exp-stat-label">Net all-time P&L</div>
               <div class="exp-stat-val ${w.net_pnl>=0?'pnl-pos':'pnl-neg'}">${fmt(w.net_pnl)}</div>
             </div>
-            <div class="exp-trade-list">
+            <!-- SPARKLINE spanning 2 cols -->
+            <div style="grid-column:span 2;">
+              <div class="spark-wrap">
+                <div class="spark-label">30-day equity curve</div>
+                <canvas class="sparkline" id="spark-${i}" width="240" height="50"></canvas>
+                <div class="spark-stats">
+                  <span class="spark-stat">30d P&L: <span class="${w.pnl_30d>=0?'pnl-pos':'pnl-neg'}">${w.pnl_30d>=0?'+':''}$${Math.abs(w.pnl_30d).toFixed(0)}</span></span>
+                  <span class="spark-stat">Sharpe: <span>${w.sharpe}</span></span>
+                  <span class="spark-stat">Max DD: <span style="color:${w.max_dd>30?'var(--red)':'var(--muted)'}">-${w.max_dd}%</span></span>
+                </div>
+              </div>
+            </div>
+            <!-- PER-MARKET ALPHA spanning 3 cols -->
+            <div style="grid-column:span 3;">
+              <div class="exp-stat-label" style="margin-bottom:8px;">Edge by market type (EV)</div>
+              <div class="alpha-breakdown">
+                ${Object.entries(w.market_alpha).map(([mkt, ev]) =>
+                  `<span class="alpha-pill ${ev>0?'pos':ev>-0.02?'neu':'neg'}">
+                    ${{war:'⚔️ War',btc:'₿ BTC',eth:'Ξ ETH',sol:'◎ SOL'}[mkt]}: ${ev>=0?'+':''}${ev}
+                  </span>`
+                ).join('')}
+              </div>
+            </div>
+            <div class="exp-trade-list" style="grid-column:1/-1;">
               <h4>Recent war-market trades</h4>
               ${w.recent_trades.map(t => `
                 <div class="exp-trade-item">
-                  <span class="exp-trade-outcome ${t.outcome.toLowerCase()==='win'?'pnl-pos':'pnl-neg'}">${t.outcome}</span>
+                  <span class="exp-trade-outcome ${t.outcome==='WIN'?'pnl-pos':'pnl-neg'}">${t.outcome}</span>
                   <span style="flex:1;color:var(--muted)">${t.market}</span>
                   <span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${t.pnl>=0?'+':''}$${Math.abs(t.pnl).toFixed(2)}</span>
                   <span style="color:var(--muted);font-size:0.75rem;margin-left:8px">${t.at}</span>
@@ -626,6 +936,9 @@ function render() {
   const data = filtered();
   buildPodium(data.slice(0,3));
   buildTable(data);
+  buildSignalFeed();
+  buildScanner();
+  buildCorrelation();
 }
 
 function toggleRow(i) {
@@ -642,6 +955,41 @@ function toggleRow(i) {
   document.getElementById(`expanded-${i}`).style.display = 'table-row';
   document.getElementById(`row-${i}`).classList.add('expanded');
   expandedRow = i;
+  // draw sparkline after row is visible
+  setTimeout(() => drawSparkline(i), 10);
+}
+
+// ── SPARKLINE ─────────────────────────────────────────────────────────────────
+function drawSparkline(i) {
+  const w = filtered()[i];
+  if (!w) return;
+  const canvas = document.getElementById(`spark-${i}`);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const data = w.equity_curve;
+  const W = canvas.width, H = canvas.height;
+  const mn = Math.min(...data), mx = Math.max(...data);
+  const range = mx - mn || 1;
+  ctx.clearRect(0,0,W,H);
+  const pts = data.map((v,j) => [j / (data.length-1) * W, H - (v - mn) / range * (H-4) - 2]);
+  // fill gradient
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  const isPos = data[data.length-1] >= 0;
+  grad.addColorStop(0, isPos ? 'rgba(0,255,136,.25)' : 'rgba(239,68,68,.25)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], H);
+  pts.forEach(([x,y]) => ctx.lineTo(x,y));
+  ctx.lineTo(pts[pts.length-1][0], H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  // line
+  ctx.beginPath();
+  pts.forEach(([x,y],j) => j===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
+  ctx.strokeStyle = isPos ? '#00ff88' : '#ef4444';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
 }
 
 function setFilter(f, btn) {
@@ -675,6 +1023,182 @@ function liveUpdate() {
   // tick up trade counter
   const el = document.getElementById('h-trades');
   if (el) el.textContent = (parseInt(el.textContent.replace(',','')) + Math.floor(Math.random()*3+1)).toLocaleString();
+}
+
+// ── KELLY BANKROLL ALLOCATOR ──────────────────────────────────────────────────
+let kellyOpen = false;
+function toggleKelly() {
+  kellyOpen = !kellyOpen;
+  document.getElementById('kelly-body').style.display = kellyOpen ? '' : 'none';
+  document.getElementById('kelly-toggle-txt').textContent = kellyOpen ? '▲ collapse' : '▼ expand';
+  if (kellyOpen) renderKelly();
+}
+
+function renderKelly() {
+  const bankroll = parseFloat(document.getElementById('kelly-input').value) || 50000;
+  const tbody = document.getElementById('kelly-tbody');
+  const rows = OPEN_MARKETS.map(m => {
+    const p = m.sharp_yes;            // sharp-implied win probability
+    const b = (1 - m.yes_price) / m.yes_price;  // odds (profit per $1 risked on YES)
+    const q = 1 - p;
+    const kelly_f = Math.max(0, (p * b - q) / b);
+    const half_kelly = kelly_f * 0.5;
+    const capped = Math.min(half_kelly, 0.20);
+    const size = bankroll * capped;
+    const edge = p - m.yes_price;
+    const exp_ret = size * edge / m.yes_price;
+    const urgency = m.closes_days <= 14 ? '🔴 Urgent' : m.closes_days <= 45 ? '🟡' : '🟢';
+    const liqOk = size <= m.liquidity * 0.15;
+    return { m, size, edge, exp_ret, urgency, liqOk, capped };
+  }).filter(r => r.capped > 0).sort((a,b) => b.size - a.size);
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td style="color:var(--text);max-width:280px;white-space:normal;font-size:0.8rem;">${r.m.title}</td>
+      <td style="color:var(--muted);font-size:0.78rem;text-align:center;">${Math.round(r.m.sharp_yes*100)}% sharp / ${Math.round(r.m.yes_price*100)}¢ mkt</td>
+      <td class="kelly-edge">+${(r.edge*100).toFixed(1)}%</td>
+      <td class="kelly-alloc">$${r.size.toLocaleString('en-US',{maximumFractionDigits:0})}</td>
+      <td class="${r.exp_ret>=0?'ev-pos':'ev-neg'}">$${r.exp_ret.toFixed(0)}</td>
+    </tr>
+    ${!r.liqOk ? `<tr><td colspan="5" style="font-size:0.72rem;color:var(--red);padding:2px 10px 8px;">⚠ Your size ($${r.size.toFixed(0)}) exceeds 15% of available liquidity ($${(r.m.liquidity*0.15).toFixed(0)}) — expect slippage</td></tr>` : ''}
+  `).join('') || '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px;">No positive-EV opportunities found at current bankroll sizing</td></tr>';
+}
+
+// ── SIGNAL FEED ───────────────────────────────────────────────────────────────
+function buildSignalFeed() {
+  const sharpWallets = WALLETS.filter(w => w.cluster === 'sharp' || w.cluster === 'edge').slice(0, 12);
+  const strip = document.getElementById('signal-strip');
+  const bankroll = parseFloat(document.getElementById('kelly-input')?.value) || 50000;
+
+  const signals = sharpWallets.map((w, j) => {
+    const r = seeded(w.rank * 9871 + 42);
+    const mkt = OPEN_MARKETS[j % OPEN_MARKETS.length];
+    const isYes = r() > 0.35;
+    const agoMins = Math.floor(2 + r() * 118);
+    const betSize = Math.floor(200 + r() * 4800);
+    const copySize = Math.round(bankroll * Math.min(0.15, Math.max(0.01, w.ev_score * 3)));
+    return { w, mkt, isYes, agoMins, betSize, copySize };
+  }).sort((a,b) => a.agoMins - b.agoMins);
+
+  strip.innerHTML = signals.map(s => {
+    const convLabel = s.w.conviction >= 4 ? 'EXTREME 🔥🔥' : s.w.conviction >= 2 ? 'HIGH 🔥' : 'normal';
+    const convCls   = s.w.conviction >= 4 ? 'extreme' : s.w.conviction >= 2 ? 'high' : 'normal';
+    const cardCls   = s.w.conviction >= 4 ? 'extreme-conv' : s.w.conviction >= 2 ? 'high-conv' : '';
+    return `
+    <div class="signal-card ${cardCls}">
+      <div class="sig-conv ${convCls}">${convLabel}</div>
+      <div class="sig-top">
+        <span class="sig-wallet">${s.w.address}</span>
+        <span class="sig-cluster-badge ${s.w.cluster}">${s.w.cluster}</span>
+      </div>
+      <div class="sig-market">${s.mkt.title}</div>
+      <span class="sig-direction ${s.isYes?'yes':'no'}">${s.isYes?'YES ↑':'NO ↓'}</span>
+      <div class="sig-stats">
+        <div><div class="sig-stat-label">Bet size</div><div class="sig-stat-val">$${s.betSize.toLocaleString()}</div></div>
+        <div><div class="sig-stat-label">Copy size</div><div class="sig-stat-val sig-copy-sz">$${s.copySize.toLocaleString()}</div></div>
+        <div><div class="sig-stat-label">Wallet EV</div><div class="sig-stat-val ${s.w.ev_score>=0?'ev-pos':'ev-neg'}">${s.w.ev_score>=0?'+':''}${s.w.ev_score}</div></div>
+      </div>
+      <div class="sig-age">${s.agoMins < 60 ? s.agoMins+'m ago' : Math.floor(s.agoMins/60)+'h ago'} · Info edge: ${s.w.info_edge_mins}m</div>
+    </div>`;
+  }).join('');
+}
+
+// ── MARKET OPPORTUNITY SCANNER ─────────────────────────────────────────────────
+function buildScanner() {
+  const grid = document.getElementById('scanner-grid');
+  const scored = OPEN_MARKETS.map(m => {
+    const edge = m.sharp_yes - m.yes_price;
+    const consensus = Math.abs(m.sharp_yes - 0.5) * 2;       // 0–1, how far from 50/50
+    const liq_score = Math.min(1, m.liquidity / 300000);
+    const urgency   = Math.max(0, 1 - m.closes_days / 180);
+    const opp_score = (consensus * 0.45 + liq_score * 0.30 + urgency * 0.25) * 100;
+    return { ...m, edge, consensus, liq_score, urgency, opp_score };
+  }).sort((a,b) => b.opp_score - a.opp_score);
+
+  grid.innerHTML = scored.map(m => {
+    const oppCls = m.opp_score >= 60 ? 'high' : m.opp_score >= 40 ? 'medium' : 'low';
+    const urgent = m.closes_days <= 14;
+    const edgeSign = m.edge >= 0 ? '+' : '';
+    const sharpDir = m.sharp_yes > m.yes_price ? 'YES ↑' : 'NO ↓';
+    const sharpDirCls = m.sharp_yes > m.yes_price ? 'var(--green)' : 'var(--red)';
+    return `
+    <div class="scanner-card ${urgent?'urgent':''}" onclick="">
+      <div class="sc-top">
+        <div class="sc-market">${m.title}</div>
+        <div class="sc-opp ${oppCls}" title="Opportunity score">${Math.round(m.opp_score)}</div>
+      </div>
+      <div class="sc-bars">
+        <div class="sc-bar-row">
+          <span class="sc-bar-label">Sharp consensus</span>
+          <div class="sc-bar-track"><div class="sc-bar-fill consensus" style="width:${m.consensus*100}%"></div></div>
+          <span class="sc-bar-val">${Math.round(m.sharp_yes*100)}%</span>
+        </div>
+        <div class="sc-bar-row">
+          <span class="sc-bar-label">Liquidity</span>
+          <div class="sc-bar-track"><div class="sc-bar-fill liquidity" style="width:${m.liq_score*100}%"></div></div>
+          <span class="sc-bar-val">$${(m.liquidity/1000).toFixed(0)}k</span>
+        </div>
+        <div class="sc-bar-row">
+          <span class="sc-bar-label">Urgency</span>
+          <div class="sc-bar-track"><div class="sc-bar-fill urgency" style="width:${m.urgency*100}%"></div></div>
+          <span class="sc-bar-val">${m.closes_days}d</span>
+        </div>
+      </div>
+      <div class="sc-footer">
+        <span class="sc-pill">Mkt: <span>${Math.round(m.yes_price*100)}¢</span></span>
+        <span class="sc-pill">Edge: <span style="color:${m.edge>=0?'var(--green)':'var(--red)'}">${edgeSign}${(m.edge*100).toFixed(1)}%</span></span>
+        <span class="sc-pill">Sharps say: <span style="color:${sharpDirCls}">${sharpDir}</span></span>
+        ${urgent ? '<span class="sc-pill" style="color:var(--pink);font-weight:700">⏰ Closing soon</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── WALLET CORRELATION MATRIX ──────────────────────────────────────────────────
+function buildCorrelation() {
+  const top10 = WALLETS.slice(0, 10);
+  const n = top10.length;
+  // Pearson correlation between equity curves
+  function pearson(a, b) {
+    const ma = a.reduce((s,v)=>s+v,0)/a.length;
+    const mb = b.reduce((s,v)=>s+v,0)/b.length;
+    const num = a.reduce((s,v,i)=>s+(v-ma)*(b[i]-mb),0);
+    const da = Math.sqrt(a.reduce((s,v)=>s+(v-ma)**2,0));
+    const db = Math.sqrt(b.reduce((s,v)=>s+(v-mb)**2,0));
+    return da && db ? num/(da*db) : 0;
+  }
+
+  const matrix = [];
+  let sumCorr = 0, pairs = 0;
+  for (let i=0; i<n; i++) {
+    matrix[i] = [];
+    for (let j=0; j<n; j++) {
+      const c = i===j ? 1 : pearson(top10[i].equity_curve, top10[j].equity_curve);
+      matrix[i][j] = +c.toFixed(2);
+      if (j > i) { sumCorr += c; pairs++; }
+    }
+  }
+  const avgCorr = pairs ? (sumCorr/pairs).toFixed(2) : 0;
+  document.getElementById('corr-avg').textContent = avgCorr;
+  const isHighCorr = avgCorr > 0.55;
+  document.getElementById('corr-warning').style.display = isHighCorr ? '' : 'none';
+  document.getElementById('corr-ok').style.display      = isHighCorr ? 'none' : '';
+
+  const cellSize = 28;
+  const matrixEl = document.getElementById('corr-matrix');
+  matrixEl.style.gridTemplateColumns = `repeat(${n},${cellSize}px)`;
+  matrixEl.innerHTML = matrix.flat().map((c,k) => {
+    const i = Math.floor(k/n), j = k%n;
+    const abs = Math.abs(c);
+    const r = i===j ? 30 : Math.round(abs*255);
+    const g = i===j ? 30 : Math.round((1-abs)*120);
+    const b2 = i===j ? 80 : 40;
+    const bg = `rgb(${r},${g},${b2})`;
+    return `<div class="corr-cell" style="background:${bg}" title="r=${c}">${i===j?'—':c>0.7?'⚠':''}</div>`;
+  }).join('');
+
+  document.getElementById('corr-labels').textContent =
+    'Rows/cols: ' + top10.map(w=>w.address.slice(2,6)).join(' · ');
 }
 
 /* ── GATE LOGIN ── */
