@@ -23,7 +23,7 @@ function computeJeetScore(pair: {
 }) {
   let score = 50
   const h1 = pair.txns?.h1
-  const h24 = pair.txns?.h24
+
   if (h1) {
     const total = h1.buys + h1.sells
     if (total > 0) {

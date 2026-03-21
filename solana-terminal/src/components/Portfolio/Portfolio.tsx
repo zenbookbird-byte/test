@@ -9,7 +9,7 @@ import clsx from 'clsx'
 export function Portfolio() {
   const { publicKey } = useWallet()
   const { data: tokens, isLoading, isFetching, refetch } = useWalletTokens()
-  const { setSelectedPair, setActiveTab } = useTerminalStore()
+  const { setSelectedPair, setMainTab } = useTerminalStore()
 
   if (!publicKey) {
     return (
@@ -33,7 +33,7 @@ export function Portfolio() {
       const pairs = await getTokenPairs(mint)
       if (pairs.length > 0) {
         setSelectedPair(pairs[0])
-        setActiveTab('trending')
+        setMainTab('trending')
       }
     } catch {
       // ignore

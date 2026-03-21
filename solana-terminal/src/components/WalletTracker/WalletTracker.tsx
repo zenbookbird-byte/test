@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Plus, X, ExternalLink, Copy, TrendingUp, TrendingDown } from 'lucide-react'
+import { Search, Plus, X, ExternalLink } from 'lucide-react'
 import { useTerminalStore } from '../../store/terminalStore'
 import { getTokenPairs } from '../../services/dexscreener'
 import clsx from 'clsx'

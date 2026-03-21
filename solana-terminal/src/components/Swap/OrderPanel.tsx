@@ -67,7 +67,7 @@ function mockHolderStats(addr?: string) {
 
 type TradesTabId = 'dev' | 'tracked' | 'you'
 
-function LiveTradesFeed({ pair }: { pair: import('../../types').TokenPair | null }) {
+function LiveTradesFeed({ pair: _pair }: { pair: import('../../types').TokenPair | null }) {
   const [tab, setTab] = useState<TradesTabId>('dev')
   const trades = useMockTrades(tab)
 
@@ -171,10 +171,11 @@ export function OrderPanel() {
     return () => clearTimeout(t)
   }, [fetchQuote])
 
-  const _outAmount = quote
+  const outAmount = quote
     ? (parseInt(quote.outAmount) / Math.pow(10, swapSide === 'buy' ? 6 : 9)).toFixed(4)
     : '—'
-  const _priceImpact = quote ? parseFloat(quote.priceImpactPct) * 100 : 0
+  const priceImpact = quote ? parseFloat(quote.priceImpactPct) * 100 : 0
+  void outAmount; void priceImpact
 
   const stats = mockHolderStats(selectedPair?.baseToken.address)
 

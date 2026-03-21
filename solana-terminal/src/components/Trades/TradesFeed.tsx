@@ -17,7 +17,7 @@ interface Trade {
 function useTradesFeed(pairAddress: string | undefined) {
   const [trades, setTrades] = useState<Trade[]>([])
   const [loading, setLoading] = useState(false)
-  const prevAddress = useRef<string>()
+  const prevAddress = useRef<string | undefined>(undefined)
 
   useEffect(() => {
     if (!pairAddress) { setTrades([]); return }

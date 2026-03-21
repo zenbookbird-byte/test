@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
-import { Plus, Send, MessageCircle, TrendingUp, TrendingDown, ChevronRight, Copy, ExternalLink } from 'lucide-react'
+import { Plus, Send, MessageCircle, Copy, ExternalLink } from 'lucide-react'
 import { useSOLBalance } from '../../hooks/useWalletTokens'
 import { useWalletTokens } from '../../hooks/useWalletTokens'
 import clsx from 'clsx'
@@ -21,7 +21,7 @@ export function LeftSidebar() {
   const { data: tokens } = useWalletTokens()
   const [chatInput, setChatInput] = useState('')
   const [msgs, setMsgs] = useState<ChatMsg[]>(DEMO_MSGS)
-  const [copied, setCopied] = useState(false)
+  const [, setCopied] = useState(false)
 
   const totalValue = tokens?.reduce((s, t) => s + t.valueUsd, 0) ?? 0
 

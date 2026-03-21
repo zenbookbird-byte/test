@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { TrendingUp, Clock, Star, RefreshCw, SlidersHorizontal, Flame, Zap } from 'lucide-react'
+import { Star, RefreshCw, SlidersHorizontal, Flame, Zap } from 'lucide-react'
 import { useTrendingPairs, useNewPairs } from '../../hooks/useTokenPairs'
 import { useTerminalStore } from '../../store/terminalStore'
-import { formatAge, formatNumber, formatPercent } from '../../services/dexscreener'
+import { formatAge, formatNumber } from '../../services/dexscreener'
 import type { TokenPair, SortField } from '../../types'
 import clsx from 'clsx'
 
@@ -205,9 +205,9 @@ export function TokenList() {
   )
 }
 
-function TokenRow({ pair, selected, watched, onSelect, onWatch }: {
-  pair: TokenPair; selected: boolean; watched: boolean
-  onSelect: (p: TokenPair) => void; onWatch: (a: string) => void
+function TokenRow({ pair, selected, onSelect }: {
+  pair: TokenPair; selected: boolean; watched?: boolean
+  onSelect: (p: TokenPair) => void; onWatch?: (a: string) => void
 }) {
   const c5m = pair.priceChange?.m5 ?? 0
   const c1h = pair.priceChange?.h1 ?? 0

@@ -3,7 +3,7 @@ import { useWallet } from '@solana/wallet-adapter-react'
 import { useConnection } from '@solana/wallet-adapter-react'
 import { VersionedTransaction } from '@solana/web3.js'
 import {
-  RefreshCw, SlidersHorizontal, Filter, Eye, Twitter, Globe,
+  RefreshCw, Filter, Eye, Twitter, Globe,
   MessageCircle, Copy, ExternalLink, Zap, ChevronDown, ChevronUp, BookmarkPlus, Search
 } from 'lucide-react'
 import { useTrendingPairs, useNewPairs } from '../../hooks/useTokenPairs'
@@ -33,7 +33,7 @@ type TimeFrame = '1m' | '5m' | '30m' | '1h'
 type SortDir = 'asc' | 'desc'
 
 export function TokenScanner() {
-  const { setSelectedPair, selectedPair, watchlist, toggleWatchlist, quickBuyPreset, activePreset } = useTerminalStore()
+  const { setSelectedPair, selectedPair, watchlist, toggleWatchlist, quickBuyPreset } = useTerminalStore()
   const { publicKey, signTransaction } = useWallet()
   const { connection } = useConnection()
 
@@ -240,7 +240,7 @@ function TokenRow({ pair, idx, selected, watched, onSelect, onWatch, onQuickBuy,
   onQuickBuy: (p: TokenPair, e: React.MouseEvent) => void; isQuickBuying: boolean
 }) {
   const [imgErr, setImgErr] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [, setCopied] = useState(false)
   const stats = useMemo(() => mockHolderStats(pair.baseToken.address), [pair.baseToken.address])
 
   const c = pair.priceChange?.h24 ?? 0

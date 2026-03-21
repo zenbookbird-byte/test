@@ -7,6 +7,7 @@ import {
   type ISeriesApi,
   type CandlestickData,
   type HistogramData,
+  type UTCTimestamp,
   ColorType,
   CrosshairMode,
 } from 'lightweight-charts'
@@ -73,7 +74,6 @@ export function TradingChart() {
         timeVisible: true,
         secondsVisible: false,
       },
-      watermark: { visible: false },
     })
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
@@ -133,16 +133,16 @@ export function TradingChart() {
         return
       }
 
-      const candles: CandlestickData[] = bars.map(b => ({
-        time: b.time as number,
+      const candles: CandlestickData<UTCTimestamp>[] = bars.map(b => ({
+        time: b.time as UTCTimestamp,
         open:  b.open,
         high:  b.high,
         low:   b.low,
         close: b.close,
       }))
 
-      const volumes: HistogramData[] = bars.map(b => ({
-        time: b.time as number,
+      const volumes: HistogramData<UTCTimestamp>[] = bars.map(b => ({
+        time: b.time as UTCTimestamp,
         value: b.volume,
         color: b.close >= b.open ? '#16c78433' : '#ea394333',
       }))

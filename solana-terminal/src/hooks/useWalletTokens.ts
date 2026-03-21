@@ -66,7 +66,7 @@ export function useWalletTokens() {
         },
       ]
 
-      for (const { account } of tokenAccounts.value as RawTokenAccount[]) {
+      for (const { account } of tokenAccounts.value as unknown as RawTokenAccount[]) {
         const info = account.data.parsed.info
         const balance = info.tokenAmount.uiAmount
         if (!balance || balance === 0) continue
