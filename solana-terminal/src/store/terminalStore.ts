@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { TokenPair, TimeFrame } from '../types'
 
-export type PageView = 'discover' | 'pulse' | 'trackers' | 'perpetuals' | 'yield' | 'portfolio'
+export type PageView = 'discover' | 'pulse' | 'trackers' | 'perpetuals' | 'yield' | 'vision' | 'portfolio' | 'rewards'
 export type MainTab = 'trending' | 'new' | 'watchlist' | 'portfolio' | 'wallettracker'
 export type OrderType = 'market' | 'limit' | 'dca'
 export type RightTab = 'trade' | 'info' | 'holders' | 'trades'

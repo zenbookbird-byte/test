@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Search, Bell, Star, ChevronDown, X, Download, Settings, User } from 'lucide-react'
+import { Search, Bell, Star, ChevronDown, X, Download, Settings, User, Gift } from 'lucide-react'
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useTerminalStore } from '../../store/terminalStore'
@@ -9,18 +9,34 @@ import type { TokenPair } from '../../types'
 import type { PageView } from '../../store/terminalStore'
 import clsx from 'clsx'
 
-const NAV_ITEMS: { id: PageView; label: string; badge?: string }[] = [
-  { id: 'discover',    label: 'Discover' },
-  { id: 'pulse',       label: 'Pulse' },
-  { id: 'trackers',    label: 'Trackers' },
-  { id: 'perpetuals',  label: 'Perpetuals' },
-  { id: 'yield',       label: 'Yield' },
-  { id: 'portfolio',   label: 'Portfolio' },
+const NAV_ITEMS: { id: PageView; label: string; badge?: string; hot?: boolean }[] = [
+  { id: 'discover',   label: 'Discover' },
+  { id: 'pulse',      label: 'Pulse' },
+  { id: 'trackers',   label: 'Trackers' },
+  { id: 'perpetuals', label: 'Perpetuals' },
+  { id: 'yield',      label: 'Yield' },
+  { id: 'vision',     label: 'Vision', hot: true },
+  { id: 'portfolio',  label: 'Portfolio' },
+  { id: 'rewards',    label: 'Rewards', badge: 'NEW' },
 ]
+
+// flipit.gg SVG Logo
+function FlipitLogo() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="26" height="26" rx="6" fill="#16c784"/>
+      {/* Stylized "F" with flip arrow */}
+      <path d="M7 7h8v2.5H9.5v2.5h5v2.5h-5V19H7V7z" fill="#080a0e"/>
+      {/* Flip arrow element */}
+      <path d="M17 10.5 L20 7 L20 9.5 C20 14 17 16 14 17" stroke="#080a0e" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <path d="M18.5 8.5 L20 7 L20.5 9" stroke="#080a0e" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    </svg>
+  )
+}
 
 export function TopNav() {
   const { pageView, setPageView, setSelectedPair, setSearchQuery } = useTerminalStore()
-  const { connected, publicKey } = useWallet()
+  const { connected } = useWallet()
   const [localQuery, setLocalQuery] = useState('')
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -50,12 +66,13 @@ export function TopNav() {
   return (
     <header className="h-11 bg-ax-nav border-b border-ax-border flex items-center px-3 gap-0 shrink-0 z-50 select-none">
       {/* Logo */}
-      <div className="flex items-center gap-1.5 pr-4 border-r border-ax-border mr-3 shrink-0">
-        <div className="w-6 h-6 bg-green-DEFAULT rounded-md flex items-center justify-center">
-          <span className="text-ax-base font-black text-xs">A</span>
+      <div className="flex items-center gap-2 pr-4 border-r border-ax-border mr-3 shrink-0 cursor-pointer" onClick={() => setPageView('discover')}>
+        <FlipitLogo />
+        <div className="flex flex-col leading-none">
+          <span className="font-black text-text-primary text-sm tracking-tight">flipit</span>
+          <span className="text-2xs text-green-DEFAULT font-bold tracking-widest">.gg</span>
         </div>
-        <span className="font-bold text-text-primary text-sm">AXIOM</span>
-        <span className="badge badge-green ml-0.5">Pro</span>
+        <span className="badge badge-green ml-0.5 text-[9px] px-1 py-0.5">Pro</span>
       </div>
 
       {/* Nav */}
@@ -64,10 +81,14 @@ export function TopNav() {
           <button
             key={item.id}
             onClick={() => setPageView(item.id)}
-            className={clsx('nav-tab flex items-center gap-1', pageView === item.id && 'active')}
+            className={clsx('nav-tab flex items-center gap-1 relative', pageView === item.id && 'active')}
           >
+            {item.id === 'rewards' && <Gift size={10} />}
             {item.label}
             {item.badge && <span className="badge badge-green">{item.badge}</span>}
+            {item.hot && (
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+            )}
           </button>
         ))}
       </nav>
@@ -107,15 +128,24 @@ export function TopNav() {
 
       {/* Right side */}
       <div className="flex items-center gap-1.5 ml-auto shrink-0">
+        {/* Wallet balance chips */}
+        <div className="hidden lg:flex items-center gap-1 bg-ax-card border border-ax-border rounded-lg px-2 h-7 text-2xs font-mono text-text-muted">
+          <span className="text-text-secondary">◎</span>
+          <span>0</span>
+          <span className="text-ax-bordl">|</span>
+          <span className="text-text-secondary">🪙</span>
+          <span>0</span>
+        </div>
+
         {/* SOL selector */}
         <button className="flex items-center gap-1 bg-ax-card border border-ax-border rounded-lg px-2.5 h-7 text-xs font-medium text-text-primary hover:bg-ax-hover transition-colors">
-          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-500" />
+          <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-purple-DEFAULT to-blue-accent" />
           SOL
           <ChevronDown size={10} className="text-text-muted" />
         </button>
 
         {/* Deposit */}
-        <button className="btn-buy h-7 flex items-center gap-1 px-3">
+        <button className="btn-buy h-7 flex items-center gap-1 px-3 text-xs">
           <Download size={10} />
           Deposit
         </button>
@@ -125,6 +155,7 @@ export function TopNav() {
         </button>
         <button className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-ax-card border border-ax-border rounded-lg transition-colors relative">
           <Bell size={12} />
+          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-red-DEFAULT" />
         </button>
         <button className="w-7 h-7 flex items-center justify-center text-text-muted hover:text-text-primary bg-ax-card border border-ax-border rounded-lg transition-colors">
           <Settings size={12} />
