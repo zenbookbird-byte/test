@@ -529,6 +529,180 @@
   .gate-error { color:#ef4444; font-size:0.8rem; margin-top:10px; display:none; }
   .gate-hint { color:var(--muted); font-size:0.75rem; margin-top:14px; }
   .gate-hint a { color:var(--accent); text-decoration:none; }
+
+  /* ── CLICKABLE BADGES & TAGS ──────────────────────────────────── */
+  .cbadge { cursor:pointer; transition:filter .15s, transform .12s; }
+  .cbadge:hover { filter:brightness(1.3); transform:scale(1.08); }
+  .cbadge.active-filter { outline:2px solid #fff; outline-offset:2px; }
+  .addr-tag { cursor:pointer; transition:filter .15s, transform .12s; }
+  .addr-tag:hover { filter:brightness(1.3); transform:scale(1.08); }
+  .addr-tag.active-filter { outline:2px solid #fff; outline-offset:2px; }
+
+  /* ── HEADER STAT CARDS ────────────────────────────────────────── */
+  .hstat {
+    cursor:pointer; padding:10px 14px; border-radius:12px;
+    border:1px solid transparent;
+    transition:background .15s, border-color .15s, transform .15s;
+  }
+  .hstat:hover { background:rgba(255,255,255,.04); border-color:var(--border); transform:translateY(-2px); }
+  .hstat:active { transform:translateY(0); }
+  .hstat-tooltip { font-size:0.62rem; color:var(--muted); margin-top:2px; opacity:0; transition:opacity .2s; }
+  .hstat:hover .hstat-tooltip { opacity:1; }
+
+  /* ── WALLET DETAIL DRAWER ─────────────────────────────────────── */
+  .drawer { position:fixed; inset:0; z-index:500; pointer-events:none; }
+  .drawer.open { pointer-events:all; }
+  .drawer-overlay {
+    position:absolute; inset:0;
+    background:rgba(0,0,0,.65); backdrop-filter:blur(5px);
+    opacity:0; transition:opacity .3s;
+  }
+  .drawer.open .drawer-overlay { opacity:1; }
+  .drawer-panel {
+    position:absolute; top:0; right:0; bottom:0; width:min(500px,95vw);
+    background:var(--panel); border-left:1px solid var(--border2);
+    transform:translateX(100%);
+    transition:transform .32s cubic-bezier(.32,.72,0,1);
+    overflow-y:auto; display:flex; flex-direction:column;
+  }
+  .drawer.open .drawer-panel { transform:translateX(0); }
+  .drawer-header {
+    display:flex; align-items:center; gap:10px; padding:20px 24px 16px;
+    border-bottom:1px solid var(--border); position:sticky; top:0;
+    background:var(--panel); z-index:1;
+  }
+  .drawer-header h2 { font-size:0.9rem; font-weight:800; flex:1; }
+  .drawer-close {
+    width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.06);
+    border:1px solid var(--border); color:var(--muted); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-size:0.9rem;
+    transition:background .15s, color .15s; flex-shrink:0;
+  }
+  .drawer-close:hover { background:rgba(255,255,255,.12); color:var(--text); }
+  .drawer-body { padding:20px 24px; flex:1; }
+  .drawer-addr-full {
+    font-family:monospace; font-size:0.78rem; color:var(--muted);
+    word-break:break-all; margin-bottom:10px;
+    background:rgba(255,255,255,.03); border-radius:8px; padding:8px 12px;
+  }
+  .drawer-badges { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .drawer-grid {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px;
+  }
+  .drawer-stat {
+    background:rgba(255,255,255,.03); border:1px solid var(--border);
+    border-radius:10px; padding:10px 12px;
+  }
+  .dstat-l { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:3px; }
+  .dstat-v { font-size:1rem; font-weight:800; }
+  .drawer-section-title { font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.8px; margin:18px 0 8px; }
+  .copy-trade-btn {
+    width:100%; padding:14px; border-radius:12px; border:none; cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--green));
+    color:#000; font-weight:900; font-size:0.95rem; letter-spacing:0.3px;
+    margin-bottom:10px; transition:transform .15s, box-shadow .15s;
+    box-shadow:0 0 20px rgba(0,245,255,.2);
+  }
+  .copy-trade-btn:hover { transform:translateY(-2px); box-shadow:0 0 30px rgba(0,245,255,.35); }
+  .poly-link-btn {
+    display:block; width:100%; padding:12px; border-radius:12px;
+    background:rgba(255,255,255,.05); border:1px solid var(--border);
+    color:var(--muted); text-align:center; text-decoration:none;
+    font-size:0.85rem; font-weight:600; transition:background .15s, color .15s;
+  }
+  .poly-link-btn:hover { background:rgba(255,255,255,.1); color:var(--text); }
+
+  /* ── COPY TRADE MODAL ─────────────────────────────────────────── */
+  .modal-overlay {
+    position:fixed; inset:0; z-index:600;
+    background:rgba(0,0,0,.75); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transition:opacity .22s;
+  }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal-box {
+    background:var(--panel); border:1px solid var(--border2);
+    border-radius:20px; padding:28px; width:min(520px,93vw);
+    transform:scale(.95) translateY(12px); transition:transform .22s;
+    box-shadow:0 0 80px rgba(0,0,0,.6);
+  }
+  .modal-overlay.open .modal-box { transform:scale(1) translateY(0); }
+  .modal-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .modal-title { font-size:1.1rem; font-weight:900; }
+  .modal-close {
+    width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.06);
+    border:1px solid var(--border); color:var(--muted); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:all .15s;
+  }
+  .modal-close:hover { background:rgba(255,255,255,.12); color:var(--text); }
+  .modal-market-q { font-size:1rem; font-weight:700; line-height:1.5; margin-bottom:18px; color:var(--text); }
+  .modal-dir {
+    display:inline-flex; align-items:center; gap:6px; margin-bottom:18px;
+    font-size:0.85rem; font-weight:900; letter-spacing:1px;
+    padding:7px 18px; border-radius:10px;
+  }
+  .modal-dir.yes { background:rgba(0,255,136,.12); color:var(--green); border:1px solid rgba(0,255,136,.25); }
+  .modal-dir.no  { background:rgba(239,68,68,.12);  color:var(--red);   border:1px solid rgba(239,68,68,.25); }
+  .modal-stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px; }
+  .mstat { background:rgba(255,255,255,.03); border:1px solid var(--border); border-radius:10px; padding:10px 14px; }
+  .mstat-l { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:4px; }
+  .mstat-v { font-size:1.05rem; font-weight:800; }
+  .modal-copy-btn {
+    width:100%; padding:14px; border-radius:12px; border:none; cursor:pointer; margin-bottom:10px;
+    background:linear-gradient(135deg,var(--pink),var(--purple));
+    color:#fff; font-weight:900; font-size:0.95rem;
+    transition:transform .15s, box-shadow .15s;
+    box-shadow:0 0 20px rgba(255,45,126,.2);
+  }
+  .modal-copy-btn:hover { transform:translateY(-2px); box-shadow:0 0 30px rgba(255,45,126,.35); }
+  .modal-note { font-size:0.72rem; color:var(--muted); text-align:center; line-height:1.5; }
+
+  /* ── MARKET DETAIL MODAL ──────────────────────────────────────── */
+  .market-modal-wallets { margin:14px 0; }
+  .mwallet-row {
+    display:flex; align-items:center; gap:10px; padding:8px 0;
+    border-bottom:1px solid rgba(255,255,255,.04); font-size:0.82rem;
+  }
+  .mwallet-row:last-child { border-bottom:none; }
+
+  /* ── TOAST ────────────────────────────────────────────────────── */
+  .toast {
+    position:fixed; bottom:28px; left:50%;
+    transform:translateX(-50%) translateY(80px);
+    background:var(--green); color:#000;
+    font-weight:800; font-size:0.85rem; letter-spacing:0.3px;
+    padding:10px 28px; border-radius:50px; z-index:800;
+    transition:transform .28s cubic-bezier(.34,1.56,.64,1);
+    pointer-events:none; white-space:nowrap;
+    box-shadow:0 4px 24px rgba(0,255,136,.3);
+  }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+  .toast.warn { background:var(--yellow); box-shadow:0 4px 24px rgba(255,214,10,.3); }
+  .toast.info { background:var(--accent); color:#000; box-shadow:0 4px 24px rgba(0,245,255,.3); }
+
+  /* ── CORR CELL TOOLTIP ────────────────────────────────────────── */
+  .corr-cell { position:relative; cursor:pointer; }
+  .corr-cell:hover::after {
+    content:attr(data-tip);
+    position:absolute; bottom:calc(100% + 5px); left:50%;
+    transform:translateX(-50%);
+    background:var(--panel2); border:1px solid var(--border2);
+    color:var(--text); font-size:0.65rem; font-weight:600;
+    padding:4px 8px; border-radius:6px; white-space:nowrap; z-index:10;
+    pointer-events:none;
+  }
+
+  /* ── CLICKABLE KELLY ROWS ─────────────────────────────────────── */
+  .kelly-table tbody tr { cursor:pointer; transition:background .12s; }
+  .kelly-table tbody tr:hover { background:rgba(255,255,255,.04); }
+
+  /* ── ADDRESS LINK IN TABLE ────────────────────────────────────── */
+  .wallet-link {
+    cursor:pointer; color:var(--accent); font-family:monospace; font-size:0.82rem;
+    text-decoration:none; border-bottom:1px dashed rgba(0,245,255,.3);
+    transition:color .15s, border-color .15s;
+  }
+  .wallet-link:hover { color:#fff; border-color:#fff; }
 </style>
 </head>
 <body>
@@ -569,12 +743,36 @@
     <h1 class="page-title">Top Wallet Leaderboard</h1>
     <p class="page-sub">The 60 best-performing Polymarket wallets ranked by our multi-period scoring system. These are the wallets the bot watches. Public data, sourced directly from the subgraph.</p>
     <div class="header-stats">
-      <div class="hstat"><div class="hstat-val accent" id="h-wallets">60</div><div class="hstat-label">Tracked wallets</div></div>
-      <div class="hstat"><div class="hstat-val green" id="h-avgwr">76%</div><div class="hstat-label">Avg win rate</div></div>
-      <div class="hstat"><div class="hstat-val yellow" id="h-topp&l">+$2,840</div><div class="hstat-label">Top wallet P&L (30d)</div></div>
-      <div class="hstat"><div class="hstat-val accent" id="h-trades">1,247</div><div class="hstat-label">Trades tracked today</div></div>
-      <div class="hstat"><div class="hstat-val green" id="h-sharpe">1.84</div><div class="hstat-label">Avg Sharpe (sharp cluster)</div></div>
-      <div class="hstat"><div class="hstat-val" style="color:var(--pink)" id="h-opps">7</div><div class="hstat-label">Open opportunities</div></div>
+      <div class="hstat" onclick="sortBy('score');showToast('Sorted by score','info')" title="Click to sort by score">
+        <div class="hstat-val accent" id="h-wallets">60</div>
+        <div class="hstat-label">Tracked wallets</div>
+        <div class="hstat-tooltip">↕ Sort by score</div>
+      </div>
+      <div class="hstat" onclick="sortBy('win_rate');showToast('Sorted by win rate','info')" title="Click to sort by win rate">
+        <div class="hstat-val green" id="h-avgwr">76%</div>
+        <div class="hstat-label">Avg win rate</div>
+        <div class="hstat-tooltip">↕ Sort by win rate</div>
+      </div>
+      <div class="hstat" onclick="sortBy('pnl_30d');showToast('Sorted by 30d P&amp;L','info')" title="Click to sort by 30d P&L">
+        <div class="hstat-val yellow" id="h-topp&l">+$2,840</div>
+        <div class="hstat-label">Top wallet P&amp;L (30d)</div>
+        <div class="hstat-tooltip">↕ Sort by 30d P&L</div>
+      </div>
+      <div class="hstat" onclick="sortBy('trades');showToast('Sorted by trades','info')" title="Click to sort by trades">
+        <div class="hstat-val accent" id="h-trades">1,247</div>
+        <div class="hstat-label">Trades tracked today</div>
+        <div class="hstat-tooltip">↕ Sort by trades</div>
+      </div>
+      <div class="hstat" onclick="sortBy('sharpe');showToast('Sorted by Sharpe ratio','info')" title="Click to sort by Sharpe">
+        <div class="hstat-val green" id="h-sharpe">1.84</div>
+        <div class="hstat-label">Avg Sharpe (sharp cluster)</div>
+        <div class="hstat-tooltip">↕ Sort by Sharpe</div>
+      </div>
+      <div class="hstat" onclick="document.querySelector('.scanner-section')?.scrollIntoView({behavior:'smooth'});showToast('Showing open opportunities','info')" title="Scroll to opportunities">
+        <div class="hstat-val" style="color:var(--pink)" id="h-opps">7</div>
+        <div class="hstat-label">Open opportunities</div>
+        <div class="hstat-tooltip">↓ View opportunities</div>
+      </div>
     </div>
   </div>
 </div>
@@ -847,11 +1045,15 @@ let currentSearch = '';
 let sortKey = 'score';
 let sortDir = -1;  // -1 = desc
 let expandedRow = null;
+let clusterFilter = null;
+let tagFilter = null;
 
 function filtered() {
   return WALLETS.filter(w => {
     if (currentFilter !== 'all' && w.market_type !== currentFilter) return false;
     if (currentSearch && !w.address.toLowerCase().includes(currentSearch.toLowerCase())) return false;
+    if (clusterFilter && w.cluster !== clusterFilter) return false;
+    if (tagFilter && w.tag !== tagFilter) return false;
     return true;
   }).sort((a,b) => {
     const av = a[sortKey], bv = b[sortKey];
@@ -938,8 +1140,8 @@ function buildTable(data) {
       <tr id="row-${i}" onclick="toggleRow(${i})">
         <td class="rank-cell ${rankCls}">${w.rank <= 3 ? ['🥇','🥈','🥉'][w.rank-1] : w.rank}</td>
         <td class="addr-cell">
-          ${w.address}
-          ${w.tag ? `<span class="addr-tag ${w.tag}">${w.tag}</span>` : ''}
+          <span class="wallet-link" onclick="event.stopPropagation();openWalletDrawer(${i})">${w.address}</span>
+          ${w.tag ? `<span class="addr-tag cbadge ${w.tag}" onclick="event.stopPropagation();filterByTag('${w.tag}')">${w.tag}</span>` : ''}
         </td>
         <td class="score-cell">
           <div class="score-bar-wrap">
@@ -951,7 +1153,7 @@ function buildTable(data) {
         <td>${fmtEv(w.ev_score)}</td>
         <td class="hide-sm">${fmtPval(w.pvalue)}</td>
         <td class="hide-md">${fmtDecay(w.alpha_decay)}</td>
-        <td class="hide-md"><span class="cbadge ${w.cluster}">${w.cluster}</span></td>
+        <td class="hide-md"><span class="cbadge ${w.cluster}" onclick="event.stopPropagation();filterByCluster('${w.cluster}')">${w.cluster}</span></td>
         <td class="hide-md">
           <div class="conv-bar">
             <span class="conv-dot ${w.conv_cls}"></span>
@@ -1177,7 +1379,7 @@ function renderKelly() {
   }).filter(r => r.capped > 0).sort((a,b) => b.size - a.size);
 
   tbody.innerHTML = rows.map(r => `
-    <tr>
+    <tr onclick="showToast('Copied: ${r.m.title.slice(0,32)}…','info');navigator.clipboard?.writeText('${r.m.title.replace(/'/g,'')}')" title="Click to copy market name">
       <td style="color:var(--text);max-width:280px;white-space:normal;font-size:0.8rem;">${r.m.title}</td>
       <td style="color:var(--muted);font-size:0.78rem;text-align:center;">${Math.round(r.m.sharp_yes*100)}% sharp / ${Math.round(r.m.yes_price*100)}¢ mkt</td>
       <td class="kelly-edge">+${(r.edge*100).toFixed(1)}%</td>
@@ -1203,8 +1405,9 @@ function buildSignalFeed() {
     const copySize = Math.round(bankroll * Math.min(0.15, Math.max(0.01, w.ev_score * 3)));
     return { w, mkt, isYes, agoMins, betSize, copySize };
   }).sort((a,b) => a.agoMins - b.agoMins);
+  _signals = signals;
 
-  function makeCard(s) {
+  function makeCard(s, idx) {
     const convLabel = s.w.conviction >= 4 ? 'EXTREME 🔥🔥' : s.w.conviction >= 2 ? 'HIGH 🔥' : 'NORMAL';
     const convCls   = s.w.conviction >= 4 ? 'extreme' : s.w.conviction >= 2 ? 'high' : 'normal';
     const cardCls   = s.w.conviction >= 4 ? 'extreme-conv' : s.w.conviction >= 2 ? 'high-conv' : '';
@@ -1221,7 +1424,7 @@ function buildSignalFeed() {
     const evSign    = s.w.ev_score >= 0 ? '+' : '';
 
     return `
-    <div class="signal-card ${cardCls}">
+    <div class="signal-card ${cardCls}" onclick="openSignalModal(${idx})" style="cursor:pointer">
       <div class="sig-inner">
         <div class="sig-banner ${dirCls}"></div>
         <div style="height:10px"></div>
@@ -1271,13 +1474,15 @@ function buildSignalFeed() {
   }
 
   // Render twice for seamless infinite scroll loop
-  const html = signals.map(makeCard).join('');
+  const html = signals.map((s,i) => makeCard(s,i)).join('');
   strip.innerHTML = html + html;
   document.getElementById('sig-last-update').textContent =
     'Updated ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
 
 // ── MARKET OPPORTUNITY SCANNER ─────────────────────────────────────────────────
+let _signals = [];
+let _scoredMarkets = [];
 function buildScanner() {
   const grid = document.getElementById('scanner-grid');
   const scored = OPEN_MARKETS.map(m => {
@@ -1288,15 +1493,16 @@ function buildScanner() {
     const opp_score = (consensus * 0.45 + liq_score * 0.30 + urgency * 0.25) * 100;
     return { ...m, edge, consensus, liq_score, urgency, opp_score };
   }).sort((a,b) => b.opp_score - a.opp_score);
+  _scoredMarkets = scored;
 
-  grid.innerHTML = scored.map(m => {
+  grid.innerHTML = scored.map((m, mi) => {
     const oppCls = m.opp_score >= 60 ? 'high' : m.opp_score >= 40 ? 'medium' : 'low';
     const urgent = m.closes_days <= 14;
     const edgeSign = m.edge >= 0 ? '+' : '';
     const sharpDir = m.sharp_yes > m.yes_price ? 'YES ↑' : 'NO ↓';
     const sharpDirCls = m.sharp_yes > m.yes_price ? 'var(--green)' : 'var(--red)';
     return `
-    <div class="scanner-card ${urgent?'urgent':''}" onclick="">
+    <div class="scanner-card ${urgent?'urgent':''}" onclick="openMarketModal(${mi})">
       <div class="sc-top">
         <div class="sc-market">${m.title}</div>
         <div class="sc-opp ${oppCls}" title="Opportunity score">${Math.round(m.opp_score)}</div>
@@ -1368,12 +1574,242 @@ function buildCorrelation() {
     const g = i===j ? 30 : Math.round((1-abs)*120);
     const b2 = i===j ? 80 : 40;
     const bg = `rgb(${r},${g},${b2})`;
-    return `<div class="corr-cell" style="background:${bg}" title="r=${c}">${i===j?'—':c>0.7?'⚠':''}</div>`;
+    const wi = top10[i], wj = top10[j];
+    const tip = i===j ? wi.address : `${wi.address} × ${wj.address}: r=${c}`;
+    return `<div class="corr-cell" style="background:${bg}" data-tip="${tip}" onclick="showToast('r=${c} — ${i===j?'diagonal':wi.address.slice(0,6)+' × '+wj.address.slice(0,6)}','info')">${i===j?'—':c>0.7?'⚠':''}</div>`;
   }).join('');
 
   document.getElementById('corr-labels').textContent =
     'Rows/cols: ' + top10.map(w=>w.address.slice(2,6)).join(' · ');
 }
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast' + (type ? ' ' + type : '');
+  // force reflow to re-trigger animation
+  void t.offsetWidth;
+  t.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// ── WALLET DETAIL DRAWER ───────────────────────────────────────────────────────
+function openWalletDrawer(idx) {
+  const data = filtered();
+  const w = data[idx];
+  if (!w) return;
+  const body = document.getElementById('drawer-body');
+  const title = document.getElementById('drawer-title');
+  title.textContent = `Wallet #${w.rank} — ${w.cluster.toUpperCase()}`;
+
+  const convCls = w.conv_cls;
+  const sigLabel = w.pvalue < 0.05 ? '✅ Statistically significant' : '⚠ Not significant';
+  const strategyBadge = w.strategy ? `<span class="cbadge ${w.cluster}" style="font-size:0.72rem;padding:3px 10px;">${w.strategy}</span>` : '';
+
+  body.innerHTML = `
+    <div class="drawer-addr-full">${w.address}</div>
+    <div class="drawer-badges">
+      <span class="cbadge ${w.cluster}">${w.cluster}</span>
+      ${w.tag ? `<span class="cbadge ${w.tag}">${w.tag}</span>` : ''}
+      ${strategyBadge}
+    </div>
+    <div class="drawer-grid">
+      <div class="drawer-stat"><div class="dstat-l">Score</div><div class="dstat-v" style="color:var(--accent)">${w.score}</div></div>
+      <div class="drawer-stat"><div class="dstat-l">Win Rate</div><div class="dstat-v" style="color:var(--green)">${Math.round(w.win_rate*100)}%</div></div>
+      <div class="drawer-stat"><div class="dstat-l">Net P&amp;L</div><div class="dstat-v ${w.net_pnl>=0?'ev-pos':'ev-neg'}">${fmt(w.net_pnl)}</div></div>
+      <div class="drawer-stat"><div class="dstat-l">30d P&amp;L</div><div class="dstat-v ${w.pnl_30d>=0?'ev-pos':'ev-neg'}">${fmt(w.pnl_30d)}</div></div>
+      <div class="drawer-stat"><div class="dstat-l">Sharpe</div><div class="dstat-v" style="color:${w.sharpe>=2?'var(--green)':w.sharpe>=1?'var(--yellow)':'var(--muted)'}">${w.sharpe}</div></div>
+      <div class="drawer-stat"><div class="dstat-l">Max DD</div><div class="dstat-v" style="color:${w.max_dd>30?'var(--red)':'var(--muted)'}">-${w.max_dd}%</div></div>
+      <div class="drawer-stat"><div class="dstat-l">EV / trade</div><div class="dstat-v ${w.ev_score>=0?'ev-pos':'ev-neg'}">${w.ev_score>=0?'+':''}${w.ev_score}</div></div>
+      <div class="drawer-stat"><div class="dstat-l">p-value</div><div class="dstat-v">${w.pvalue.toFixed(4)}</div></div>
+      <div class="drawer-stat"><div class="dstat-l">Alpha decay</div><div class="dstat-v">${w.alpha_decay.toFixed(2)}x</div></div>
+    </div>
+    <div class="drawer-section-title">${sigLabel} (p=${w.pvalue.toFixed(4)})</div>
+    <div class="drawer-section-title">Equity curve</div>
+    <canvas id="drawer-spark" width="440" height="80" class="sparkline" style="width:100%;border-radius:8px;"></canvas>
+    <div style="margin-top:18px"></div>
+    <button class="copy-trade-btn" onclick="openSignalModalForWallet(${idx})">🔁 Copy Trade Settings</button>
+    <a class="poly-link-btn" href="https://polymarket.com" target="_blank" rel="noopener">View on Polymarket ↗</a>
+  `;
+
+  document.getElementById('wallet-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // draw sparkline
+  setTimeout(() => {
+    const canvas = document.getElementById('drawer-spark');
+    if (!canvas) return;
+    _drawSparklineOnCanvas(canvas, w.equity_curve);
+  }, 50);
+}
+
+function closeDrawer() {
+  document.getElementById('wallet-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function openSignalModalForWallet(idx) {
+  closeDrawer();
+  setTimeout(() => {
+    const w = filtered()[idx];
+    if (!w) return;
+    // find matching signal
+    const si = _signals.findIndex(s => s.w.address === w.address);
+    if (si >= 0) openSignalModal(si);
+    else showToast('No active signal for this wallet', 'warn');
+  }, 320);
+}
+
+// ── SIGNAL COPY MODAL ──────────────────────────────────────────────────────────
+function openSignalModal(idx) {
+  const s = _signals[idx];
+  if (!s) return;
+  const dirCls = s.isYes ? 'yes' : 'no';
+  const dirLabel = s.isYes ? 'BUY YES ↑' : 'BUY NO ↓';
+  const agoLabel = s.agoMins < 60 ? `${s.agoMins}m ago` : `${Math.floor(s.agoMins/60)}h ago`;
+  const evSign = s.w.ev_score >= 0 ? '+' : '';
+
+  document.getElementById('copy-modal-box').innerHTML = `
+    <div class="modal-top">
+      <div class="modal-title">📋 Copy Trade</div>
+      <button class="modal-close" onclick="closeModal('copy-modal')">✕</button>
+    </div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-bottom:10px;">Signal from <strong style="color:var(--accent)">${s.w.address}</strong> · ${agoLabel}</div>
+    <div class="modal-market-q">${s.mkt.title}</div>
+    <div class="modal-dir ${dirCls}">${dirLabel}</div>
+    <div class="modal-stats">
+      <div class="mstat"><div class="mstat-l">Copy size</div><div class="mstat-v" style="color:var(--accent)">$${s.copySize.toLocaleString()}</div></div>
+      <div class="mstat"><div class="mstat-l">Mkt price</div><div class="mstat-v">${Math.round(s.mkt.yes_price*100)}¢</div></div>
+      <div class="mstat"><div class="mstat-l">Sharp cons.</div><div class="mstat-v" style="color:var(--green)">${Math.round(s.mkt.sharp_yes*100)}%</div></div>
+      <div class="mstat"><div class="mstat-l">EV / trade</div><div class="mstat-v ${s.w.ev_score>=0?'ev-pos':'ev-neg'}">${evSign}${s.w.ev_score}</div></div>
+      <div class="mstat"><div class="mstat-l">Conviction</div><div class="mstat-v conv-num ${s.w.conv_cls}">${s.w.conviction}x</div></div>
+      <div class="mstat"><div class="mstat-l">Info edge</div><div class="mstat-v ${s.w.info_edge_mins<=15?'info-edge-fast':''}">${s.w.info_edge_mins}m</div></div>
+    </div>
+    <button class="modal-copy-btn" onclick="navigator.clipboard?.writeText('${s.mkt.title.replace(/'/g,'')}');showToast('Market copied to clipboard!');closeModal('copy-modal')">
+      📋 Copy market name
+    </button>
+    <div class="modal-note">This signal is derived from on-chain data and does not constitute financial advice. Always do your own research.</div>
+  `;
+  document.getElementById('copy-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+// ── MARKET DETAIL MODAL ────────────────────────────────────────────────────────
+function openMarketModal(idx) {
+  const m = _scoredMarkets[idx];
+  if (!m) return;
+  const edgeSign = m.edge >= 0 ? '+' : '';
+  const sharpDir = m.sharp_yes > m.yes_price ? 'YES ↑' : 'NO ↓';
+  const sharpDirCls = m.sharp_yes > m.yes_price ? 'yes' : 'no';
+  const urgencyTxt = m.closes_days <= 7 ? '🔴 URGENT' : m.closes_days <= 30 ? '🟡 Soon' : '🟢 Normal';
+
+  // wallets trading this market
+  const activeWallets = WALLETS.filter(w => w.market_type === m.type || w.market_type === 'war').slice(0,5);
+
+  document.getElementById('market-modal-box').innerHTML = `
+    <div class="modal-top">
+      <div class="modal-title">📊 Market Analysis</div>
+      <button class="modal-close" onclick="closeModal('market-modal')">✕</button>
+    </div>
+    <div class="modal-market-q">${m.title}</div>
+    <div class="modal-dir ${sharpDirCls}">${sharpDir}</div>
+    <div class="modal-stats">
+      <div class="mstat"><div class="mstat-l">Market price</div><div class="mstat-v">${Math.round(m.yes_price*100)}¢</div></div>
+      <div class="mstat"><div class="mstat-l">Sharp consensus</div><div class="mstat-v" style="color:var(--green)">${Math.round(m.sharp_yes*100)}%</div></div>
+      <div class="mstat"><div class="mstat-l">Edge</div><div class="mstat-v ${m.edge>=0?'ev-pos':'ev-neg'}">${edgeSign}${(m.edge*100).toFixed(1)}%</div></div>
+      <div class="mstat"><div class="mstat-l">Liquidity</div><div class="mstat-v">$${(m.liquidity/1000).toFixed(0)}k</div></div>
+      <div class="mstat"><div class="mstat-l">Closes in</div><div class="mstat-v">${m.closes_days}d</div></div>
+      <div class="mstat"><div class="mstat-l">Urgency</div><div class="mstat-v">${urgencyTxt}</div></div>
+    </div>
+    <div class="drawer-section-title">Top wallets active in similar markets</div>
+    <div class="market-modal-wallets">
+      ${activeWallets.map(w => `
+        <div class="mwallet-row">
+          <span class="cbadge ${w.cluster}" style="font-size:0.65rem;padding:2px 8px">${w.cluster}</span>
+          <span style="font-family:monospace;color:var(--accent);font-size:0.78rem;flex:1;cursor:pointer" onclick="closeModal('market-modal');setTimeout(()=>openWalletDrawer(WALLETS.indexOf(w)),200)">${w.address}</span>
+          <span class="${w.net_pnl>=0?'ev-pos':'ev-neg'}">${fmt(w.net_pnl)}</span>
+        </div>
+      `).join('')}
+    </div>
+    <button class="modal-copy-btn" onclick="navigator.clipboard?.writeText('${m.title.replace(/'/g,'')}');showToast('Market copied!');closeModal('market-modal')">
+      📋 Copy market name
+    </button>
+  `;
+  document.getElementById('market-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal(id) {
+  document.getElementById(id)?.classList.remove('open');
+  // only restore scroll if no other modals/drawers open
+  const anyOpen = document.querySelector('.modal-overlay.open, .drawer.open');
+  if (!anyOpen) document.body.style.overflow = '';
+}
+
+// ── CLUSTER / TAG FILTER ───────────────────────────────────────────────────────
+function filterByCluster(cluster) {
+  if (clusterFilter === cluster) {
+    clusterFilter = null;
+    showToast('Cluster filter cleared', 'info');
+  } else {
+    clusterFilter = cluster;
+    showToast(`Showing ${cluster} wallets`, 'info');
+  }
+  render();
+}
+
+function filterByTag(tag) {
+  if (tagFilter === tag) {
+    tagFilter = null;
+    showToast('Tag filter cleared', 'info');
+  } else {
+    tagFilter = tag;
+    showToast(`Showing ${tag} wallets`, 'info');
+  }
+  render();
+}
+
+// ── SPARKLINE HELPER ───────────────────────────────────────────────────────────
+function _drawSparklineOnCanvas(canvas, data) {
+  if (!canvas || !data || data.length < 2) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || canvas.width;
+  const H = canvas.height;
+  canvas.width = W;
+  const mn = Math.min(...data), mx = Math.max(...data);
+  const range = mx - mn || 1;
+  ctx.clearRect(0,0,W,H);
+  const pts = data.map((v,j) => [j/(data.length-1)*W, H-(v-mn)/range*(H-6)-3]);
+  const isPos = data[data.length-1] >= 0;
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0, isPos ? 'rgba(0,255,136,.3)' : 'rgba(239,68,68,.3)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0],H);
+  pts.forEach(([x,y]) => ctx.lineTo(x,y));
+  ctx.lineTo(pts[pts.length-1][0],H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.beginPath();
+  pts.forEach(([x,y],j) => j===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y));
+  ctx.strokeStyle = isPos ? '#00ff88' : '#ef4444';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+// close drawer/modals on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDrawer();
+    closeModal('copy-modal');
+    closeModal('market-modal');
+  }
+});
 
 /* ── GATE LOGIN ── */
 const VALID_PREFIXES = ['DEMO','STARTER','PRO','PRIVATE'];
@@ -1406,6 +1842,31 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('gate-email').addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('gate-code').focus(); });
 });
 </script>
+
+<!-- ── WALLET DETAIL DRAWER ── -->
+<div id="wallet-drawer" class="drawer">
+  <div class="drawer-overlay" onclick="closeDrawer()"></div>
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <h2 id="drawer-title">Wallet Profile</h2>
+      <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body" id="drawer-body"></div>
+  </div>
+</div>
+
+<!-- ── SIGNAL / COPY MODAL ── -->
+<div id="copy-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('copy-modal')">
+  <div class="modal-box" id="copy-modal-box"></div>
+</div>
+
+<!-- ── MARKET DETAIL MODAL ── -->
+<div id="market-modal" class="modal-overlay" onclick="if(event.target===this)closeModal('market-modal')">
+  <div class="modal-box" id="market-modal-box"></div>
+</div>
+
+<!-- ── TOAST ── -->
+<div id="toast" class="toast"></div>
 
 </div><!-- /#lb-app -->
 </body>
