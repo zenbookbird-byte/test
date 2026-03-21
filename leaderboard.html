@@ -131,14 +131,14 @@
   .lb-wrap { background:var(--card); border:1px solid var(--border); border-radius:18px; overflow:hidden; }
   .lb-table { width:100%; border-collapse:collapse; }
   .lb-table th {
-    font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1px;
-    color:var(--muted); padding:14px 16px; text-align:left;
+    font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;
+    color:var(--muted); padding:12px 10px; text-align:left;
     border-bottom:1px solid var(--border); white-space:nowrap;
     cursor:pointer; user-select:none;
   }
   .lb-table th:hover { color:var(--text); }
   .lb-table th.sorted { color:var(--accent); }
-  .lb-table td { padding:13px 16px; border-bottom:1px solid rgba(255,255,255,.03); font-size:0.85rem; vertical-align:middle; }
+  .lb-table td { padding:11px 10px; border-bottom:1px solid rgba(255,255,255,.03); font-size:0.82rem; vertical-align:middle; }
   .lb-table tr:last-child td { border-bottom:none; }
   .lb-table tbody tr { transition:background .1s; cursor:pointer; }
   .lb-table tbody tr:hover { background:rgba(255,255,255,.03); }
@@ -846,43 +846,17 @@
           <th onclick="sortBy('score')" class="sorted">Score ↓</th>
           <th onclick="sortBy('win_rate')">Win rate</th>
           <th onclick="sortBy('ev_score')">EV</th>
-          <th onclick="sortBy('pvalue')" class="hide-sm">p-val</th>
-          <th onclick="sortBy('alpha_decay')" class="hide-md">&alpha;decay</th>
-          <th onclick="sortBy('cluster')" class="hide-md">Cluster</th>
-          <th onclick="sortBy('conviction')" class="hide-md" title="Latest bet / avg bet size">Conviction</th>
-          <th onclick="sortBy('info_edge_mins')" class="hide-md" title="Avg minutes wallet enters before price moves">Info Edge</th>
-          <th onclick="sortBy('max_dd')" class="hide-md" title="Worst peak-to-trough drawdown">Max DD</th>
-          <th onclick="sortBy('sharpe')" class="hide-md">Sharpe</th>
+          <th onclick="sortBy('pvalue')">p-val</th>
+          <th onclick="sortBy('alpha_decay')">&alpha;decay</th>
+          <th onclick="sortBy('cluster')">Cluster</th>
+          <th onclick="sortBy('conviction')" title="Latest bet / avg bet size">Conviction</th>
+          <th onclick="sortBy('info_edge_mins')" title="Avg minutes wallet enters before price moves">Info Edge</th>
+          <th onclick="sortBy('max_dd')" title="Worst peak-to-trough drawdown">Max DD</th>
           <th onclick="sortBy('net_pnl')">Net P&L</th>
-          <th onclick="sortBy('pnl_30d')" class="hide-sm">30d P&L</th>
-          <th onclick="sortBy('trades')" class="hide-md">Trades</th>
-          <th onclick="sortBy('last_active')" class="hide-md">Last active</th>
-          <th class="hide-sm">Markets</th>
         </tr>
       </thead>
       <tbody id="lb-tbody"></tbody>
     </table>
-  </div>
-
-  <!-- CORRELATION RISK PANEL -->
-  <div class="corr-section" id="corr-section">
-    <div class="corr-header">
-      <span class="corr-title">Portfolio Correlation Risk</span>
-      <span class="corr-warning" id="corr-warning">⚠ High correlation — you may be taking 1 concentrated bet</span>
-      <span class="corr-ok" id="corr-ok">✓ Well diversified</span>
-    </div>
-    <div class="corr-grid">
-      <div>
-        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;">Top-10 wallet correlation matrix</div>
-        <div class="corr-matrix" id="corr-matrix"></div>
-        <div class="corr-labels" id="corr-labels" style="margin-top:4px;"></div>
-      </div>
-      <div class="corr-note">
-        <p class="corr-stat" style="margin-bottom:8px;">Avg pairwise correlation: <span class="corr-stat-val" id="corr-avg">—</span></p>
-        <p style="margin-bottom:6px;">High correlation (&gt;0.7) means your copy-trade portfolio is effectively one concentrated position. Sharp wallets often share the same information edge — diversify across <em>market types</em> not just wallets.</p>
-        <p style="color:var(--accent);font-size:0.75rem;">For $1M+ deployment: target avg correlation &lt;0.4 across your copy positions.</p>
-      </div>
-    </div>
   </div>
 
   <!-- MARKET OPPORTUNITY SCANNER -->
@@ -1151,31 +1125,21 @@ function buildTable(data) {
         </td>
         <td class="wr-cell ${wrCls}">${Math.round(w.win_rate*100)}%</td>
         <td>${fmtEv(w.ev_score)}</td>
-        <td class="hide-sm">${fmtPval(w.pvalue)}</td>
-        <td class="hide-md">${fmtDecay(w.alpha_decay)}</td>
-        <td class="hide-md"><span class="cbadge ${w.cluster}" onclick="event.stopPropagation();filterByCluster('${w.cluster}')">${w.cluster}</span></td>
-        <td class="hide-md">
+        <td>${fmtPval(w.pvalue)}</td>
+        <td>${fmtDecay(w.alpha_decay)}</td>
+        <td><span class="cbadge ${w.cluster}" onclick="event.stopPropagation();filterByCluster('${w.cluster}')">${w.cluster}</span></td>
+        <td>
           <div class="conv-bar">
             <span class="conv-dot ${w.conv_cls}"></span>
             <span class="conv-num ${w.conv_cls}">${w.conviction}x</span>
           </div>
         </td>
-        <td class="hide-md ${w.info_edge_mins<=15?'info-edge-fast':w.info_edge_mins<=45?'info-edge-mid':'info-edge-slow'}">${w.info_edge_mins}m</td>
-        <td class="hide-md" style="color:${w.max_dd>30?'var(--red)':w.max_dd>15?'var(--yellow)':'var(--muted)'}">-${w.max_dd}%</td>
-        <td class="hide-md" style="color:${w.sharpe>=2?'var(--green)':w.sharpe>=1?'var(--yellow)':'var(--muted)'}">${w.sharpe}</td>
+        <td class="${w.info_edge_mins<=15?'info-edge-fast':w.info_edge_mins<=45?'info-edge-mid':'info-edge-slow'}">${w.info_edge_mins}m</td>
+        <td style="color:${w.max_dd>30?'var(--red)':w.max_dd>15?'var(--yellow)':'var(--muted)'}">-${w.max_dd}%</td>
         <td class="${w.net_pnl>=0?'pnl-pos':'pnl-neg'}">${fmt(w.net_pnl)}</td>
-        <td class="${w.pnl_30d>=0?'pnl-pos':'pnl-neg'} hide-sm">${fmt(w.pnl_30d)}</td>
-        <td class="hide-md" style="color:var(--muted)">${w.trades}</td>
-        <td class="hide-md">
-          <div class="activity-cell">
-            <span class="act-dot ${act.cls}"></span>
-            <span style="font-size:0.78rem;color:var(--muted)">${act.txt}</span>
-          </div>
-        </td>
-        <td class="hide-sm">${mktIcon} ${w.market_type.toUpperCase()}</td>
       </tr>
       <tr id="expanded-${i}" class="expanded-row" style="display:none">
-        <td colspan="17">
+        <td colspan="12">
           <div class="expanded-content" style="grid-template-columns:repeat(5,1fr);">
             <div>
               <div class="exp-stat-label">EV / trade</div>
@@ -1264,7 +1228,6 @@ function render() {
   buildTable(data);
   buildSignalFeed();
   buildScanner();
-  buildCorrelation();
 }
 
 function toggleRow(i) {
