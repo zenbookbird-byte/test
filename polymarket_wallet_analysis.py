@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Polymarket Wallet Win-Rate Analyzer
-Pulls on-chain trade data for BTC 15-minute markets and ranks wallets by win rate.
+Polymarket Iran-War Profits Analyzer
+Pulls on-chain trade data for Iran/Israel/war geopolitical markets and ranks wallets by win rate.
 
 Usage:
     python3 polymarket_wallet_analysis.py          # live data
@@ -124,12 +124,16 @@ def deduplicate_trades(trades: list) -> list:
     return result
 
 
-# ── Step 1: Find BTC 15-min markets ──────────────────────────────────────────
-def find_btc_markets(limit: int = 50) -> list:
-    print("\n[1/4] Fetching BTC 15-minute markets from Gamma API...")
+# ── Step 1: Find Iran/war geopolitical markets ────────────────────────────────
+_WAR_KEYWORDS = ("iran", "israel", "war", "nuclear", "strike", "attack", "missile", "idf", "irgc")
+_WAR_FILTER   = ("iran", "israel", "war", "strike", "attack", "nuclear", "missile")
+
+
+def find_war_markets(limit: int = 50) -> list:
+    print("\n[1/4] Fetching Iran/Israel/war geopolitical markets from Gamma API...")
     markets, seen = [], set()
 
-    for kw in ("btc", "bitcoin"):
+    for kw in _WAR_KEYWORDS:
         page = 0
         while True:
             data = get(
@@ -147,7 +151,7 @@ def find_btc_markets(limit: int = 50) -> list:
                 cid   = m.get("conditionId") or m.get("id")
                 if cid in seen:
                     continue
-                if any(t in title or t in slug for t in ("15-min", "15min", "15 min", " 15m", "15-minute")):
+                if any(t in title or t in slug for t in _WAR_FILTER):
                     markets.append(m)
                     seen.add(cid)
             page += 1
@@ -155,13 +159,13 @@ def find_btc_markets(limit: int = 50) -> list:
                 break
             time.sleep(RATE_DELAY)
 
-    print(f"  Found {len(markets)} BTC 15-minute markets.")
+    print(f"  Found {len(markets)} Iran/war geopolitical markets.")
     return markets[:limit]
 
 
-def _broader_btc_search() -> list:
-    """Widen search when the 15-min filter yields nothing."""
-    data = get(f"{GAMMA_API}/markets", params={"q": "bitcoin 15", "limit": 100})
+def _broader_war_search() -> list:
+    """Widen search when the keyword filter yields nothing."""
+    data = get(f"{GAMMA_API}/markets", params={"q": "iran israel", "limit": 100})
     if data is None:
         return []
     if isinstance(data, list):
@@ -785,7 +789,7 @@ def run_demo(top_n: int = TOP_N, min_trades: int = MIN_TRADES):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(description="Polymarket BTC 15-min wallet win-rate analyzer")
+    parser = argparse.ArgumentParser(description="Polymarket Iran-war geopolitical wallet profits analyzer")
     parser.add_argument("--demo",       action="store_true", help="Run offline with synthetic data")
     parser.add_argument("--top",        type=int, default=TOP_N,
                         help="Rows to display (default 30)")
@@ -799,7 +803,7 @@ def main():
     use_cache  = not args.no_cache
 
     print("=" * 60)
-    print("  Polymarket BTC 15-min Wallet Win-Rate Analyzer")
+    print("  Polymarket Iran-War Profits Analyzer")
     print(f"  {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("=" * 60)
 
@@ -810,13 +814,13 @@ def main():
     # ── Live path ────────────────────────────────────────────────────────────
     markets = (load_cache("markets.json") if use_cache else None) or []
     if not markets:
-        markets = find_btc_markets()
+        markets = find_war_markets()
         if markets and use_cache:
             save_cache(markets, "markets.json")
 
     if not markets:
-        print("\n[!] No 15-min markets found. Trying broader search...")
-        markets = _broader_btc_search()
+        print("\n[!] No war markets found. Trying broader search...")
+        markets = _broader_war_search()
 
     if not markets:
         print("[!] Could not reach Polymarket API. Run with --demo to preview output.")

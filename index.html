@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polymarket Iran-War Profits Analyzer</title>
+  <style>
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --green:     #3fb950;
+      --red:       #f85149;
+      --yellow:    #d29922;
+      --blue:      #58a6ff;
+      --orange:    #e3823c;
+      --purple:    #bc8cff;
+      --gray:      #6e7681;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 13px;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    header h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    header .subtitle {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .tag {
+      background: rgba(248, 81, 73, 0.15);
+      border: 1px solid rgba(248, 81, 73, 0.4);
+      color: var(--red);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    main { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+
+    /* ── Summary stats ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+
+    .stat-card .label { color: var(--muted); font-size: 11px; margin-bottom: 6px; }
+    .stat-card .value { font-size: 20px; font-weight: 700; }
+    .stat-card .value.green  { color: var(--green); }
+    .stat-card .value.red    { color: var(--red); }
+    .stat-card .value.blue   { color: var(--blue); }
+    .stat-card .value.yellow { color: var(--yellow); }
+    .stat-card .value.purple { color: var(--purple); }
+
+    /* ── Cluster breakdown ── */
+    .cluster-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .cluster-pill {
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s;
+    }
+
+    .cluster-pill.active { border-color: white; }
+    .cluster-pill.sharp       { background: rgba(63,185,80,.15);  color: var(--green); }
+    .cluster-pill.edge        { background: rgba(88,166,255,.15); color: var(--blue); }
+    .cluster-pill.hft_bot     { background: rgba(210,153,34,.15); color: var(--yellow); }
+    .cluster-pill.fading      { background: rgba(227,130,60,.15); color: var(--orange); }
+    .cluster-pill.noise       { background: rgba(248,81,73,.15);  color: var(--red); }
+    .cluster-pill.developing  { background: rgba(110,118,129,.15);color: var(--gray); }
+    .cluster-pill.all         { background: rgba(188,140,255,.15);color: var(--purple); }
+
+    /* ── Filters ── */
+    .filters {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .filters label { color: var(--muted); font-size: 11px; margin-right: 4px; }
+
+    .filters input[type="range"] { width: 100px; accent-color: var(--blue); }
+    .filters input[type="number"] {
+      width: 70px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-family: inherit;
+      font-size: 12px;
+    }
+
+    .filters .filter-group { display: flex; align-items: center; gap: 6px; }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+      margin-bottom: 24px;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-align: right;
+      padding: 10px 12px;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    thead th:hover { color: var(--text); }
+    thead th.sorted-asc::after  { content: " ▲"; color: var(--blue); }
+    thead th.sorted-desc::after { content: " ▼"; color: var(--blue); }
+    thead th:first-child,
+    thead th:nth-child(2) { text-align: left; }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+    td {
+      padding: 9px 12px;
+      white-space: nowrap;
+      text-align: right;
+      color: var(--text);
+    }
+
+    td:first-child { color: var(--muted); text-align: left; }
+    td:nth-child(2) { text-align: left; }
+
+    .addr {
+      font-size: 12px;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      text-decoration: none;
+      color: var(--blue);
+    }
+    .addr:hover { text-decoration: underline; }
+
+    .badge {
+      display: inline-block;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .badge.sharp      { background: rgba(63,185,80,.2);  color: var(--green); }
+    .badge.edge       { background: rgba(88,166,255,.2); color: var(--blue); }
+    .badge.hft_bot    { background: rgba(210,153,34,.2); color: var(--yellow); }
+    .badge.fading     { background: rgba(227,130,60,.2); color: var(--orange); }
+    .badge.noise      { background: rgba(248,81,73,.2);  color: var(--red); }
+    .badge.developing { background: rgba(110,118,129,.2);color: var(--gray); }
+
+    .pnl-pos { color: var(--green); }
+    .pnl-neg { color: var(--red); }
+    .ev-pos  { color: var(--green); }
+    .ev-neg  { color: var(--red); }
+    .sig     { color: var(--green); font-weight: 700; }
+    .notsig  { color: var(--muted); }
+
+    .decay-up   { color: var(--green); }
+    .decay-down { color: var(--red); }
+    .decay-flat { color: var(--muted); }
+
+    /* ── Deep dive ── */
+    .deep-dive {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .deep-dive h2 {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .dive-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+    }
+
+    .dive-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+    }
+
+    .dive-card .rank { color: var(--muted); font-size: 11px; }
+    .dive-card .addr-full {
+      font-size: 11px;
+      color: var(--blue);
+      word-break: break-all;
+      margin: 4px 0 10px;
+    }
+    .dive-card table { width: 100%; font-size: 12px; }
+    .dive-card td { padding: 3px 0; text-align: left; }
+    .dive-card td:last-child { text-align: right; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    #loading {
+      text-align: center;
+      padding: 60px;
+      color: var(--muted);
+    }
+
+    #error-msg {
+      display: none;
+      background: rgba(248,81,73,.1);
+      border: 1px solid rgba(248,81,73,.4);
+      border-radius: 8px;
+      padding: 16px;
+      color: var(--red);
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Polymarket Iran-War Profits Analyzer</h1>
+    <div class="subtitle">Iran / Israel / Geopolitical conflict markets &mdash; wallet edge detection</div>
+  </div>
+  <span class="tag">LIVE DATA</span>
+</header>
+
+<main>
+  <div id="loading">Loading wallet_rankings_demo.json&hellip;</div>
+  <div id="error-msg"></div>
+
+  <div id="content" style="display:none">
+
+    <!-- Summary stats -->
+    <div class="stats-grid" id="stats-grid"></div>
+
+    <!-- Cluster filter pills -->
+    <div class="cluster-bar" id="cluster-bar"></div>
+
+    <!-- Filters row -->
+    <div class="filters">
+      <div class="filter-group">
+        <label>Min trades</label>
+        <input type="number" id="f-min-trades" value="10" min="1" max="9999" />
+      </div>
+      <div class="filter-group">
+        <label>Max p-value</label>
+        <input type="number" id="f-max-pval" value="1" min="0" max="1" step="0.01" />
+      </div>
+      <div class="filter-group">
+        <label>Min EV</label>
+        <input type="number" id="f-min-ev" value="-99" step="0.01" />
+      </div>
+      <div class="filter-group">
+        <label>Show top</label>
+        <input type="number" id="f-top-n" value="50" min="5" max="500" />
+      </div>
+    </div>
+
+    <!-- Rankings table -->
+    <div class="table-wrap">
+      <table id="rankings-table">
+        <thead>
+          <tr>
+            <th data-col="rank">#</th>
+            <th data-col="address">Address</th>
+            <th data-col="trades">Trades</th>
+            <th data-col="trades_per_day">T/day</th>
+            <th data-col="active_days">Days</th>
+            <th data-col="win_rate">Win%</th>
+            <th data-col="ev_score">EV</th>
+            <th data-col="pvalue">p-val</th>
+            <th data-col="alpha_decay">&alpha;decay</th>
+            <th data-col="median_hold_secs">Hold</th>
+            <th data-col="net_pnl_usdc">Net P&amp;L</th>
+            <th data-col="gross_in_usdc">Vol In</th>
+            <th data-col="strategy">Strategy</th>
+            <th data-col="cluster">Cluster</th>
+          </tr>
+        </thead>
+        <tbody id="rankings-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Deep dive -->
+    <div class="deep-dive">
+      <h2>Top-5 Wallet Deep Dive</h2>
+      <div class="dive-grid" id="dive-grid"></div>
+    </div>
+
+  </div>
+</main>
+
+<footer id="footer"></footer>
+
+<script>
+// ── Data source (try demo JSON first, then live) ──────────────────────────────
+const SOURCES = ["wallet_rankings_demo.json", "wallet_rankings.json"];
+
+let _allRows   = [];
+let _sortCol   = "ev_score";
+let _sortAsc   = false;
+let _cluster   = "all";
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function fmt(n, decimals = 2) {
+  if (n == null || isNaN(n)) return "—";
+  return Number(n).toFixed(decimals);
+}
+
+function fmtPnl(n) {
+  if (n == null || isNaN(n)) return "—";
+  const s = (n >= 0 ? "+" : "") + "$" + Math.abs(n).toFixed(2);
+  return `<span class="${n >= 0 ? "pnl-pos" : "pnl-neg"}">${s}</span>`;
+}
+
+function fmtEv(n) {
+  if (n == null || isNaN(n)) return "—";
+  const s = (n >= 0 ? "+" : "") + n.toFixed(4);
+  return `<span class="${n >= 0 ? "ev-pos" : "ev-neg"}">${s}</span>`;
+}
+
+function fmtPval(n) {
+  if (n == null) return "—";
+  const cls = n < 0.05 ? "sig" : "notsig";
+  return `<span class="${cls}">${Number(n).toFixed(4)}</span>`;
+}
+
+function fmtDecay(n) {
+  if (n == null || isNaN(n)) return "—";
+  const cls = n > 1.05 ? "decay-up" : n < 0.90 ? "decay-down" : "decay-flat";
+  return `<span class="${cls}">${n.toFixed(2)}x</span>`;
+}
+
+function fmtHold(secs) {
+  if (!secs) return "—";
+  if (secs < 60)   return secs + "s";
+  if (secs < 3600) return (secs / 60).toFixed(0) + "m";
+  return (secs / 3600).toFixed(1) + "h";
+}
+
+function shortAddr(addr) {
+  if (!addr || addr.length < 12) return addr;
+  return addr.slice(0, 6) + "…" + addr.slice(-4);
+}
+
+function clusterBadge(c) {
+  return `<span class="badge ${c}">${c}</span>`;
+}
+
+function usd(n) {
+  if (n == null || isNaN(n)) return "—";
+  return "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+// ── Load data ─────────────────────────────────────────────────────────────────
+async function loadData() {
+  for (const src of SOURCES) {
+    try {
+      const res = await fetch(src);
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length) return { rows: data, src };
+    } catch (_) {}
+  }
+  return null;
+}
+
+// ── Render helpers ────────────────────────────────────────────────────────────
+function getFiltered() {
+  const minT  = parseInt($("f-min-trades").value) || 0;
+  const maxPv = parseFloat($("f-max-pval").value);
+  const minEv = parseFloat($("f-min-ev").value);
+  const topN  = parseInt($("f-top-n").value) || 50;
+
+  let rows = _allRows.filter(r => {
+    if (r.trades < minT) return false;
+    if (!isNaN(maxPv) && r.pvalue > maxPv) return false;
+    if (!isNaN(minEv) && r.ev_score < minEv) return false;
+    if (_cluster !== "all" && r.cluster !== _cluster) return false;
+    return true;
+  });
+
+  rows.sort((a, b) => {
+    const av = a[_sortCol] ?? (typeof a[_sortCol] === "string" ? "" : -Infinity);
+    const bv = b[_sortCol] ?? (typeof b[_sortCol] === "string" ? "" : -Infinity);
+    if (typeof av === "string") return _sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+    return _sortAsc ? av - bv : bv - av;
+  });
+
+  return rows.slice(0, topN);
+}
+
+function renderStats(rows) {
+  const all = _allRows;
+  if (!all.length) return;
+  const wins    = all.filter(r => r.win_rate > 50).length;
+  const sig     = all.filter(r => r.pvalue < 0.05).length;
+  const medWr   = median(all.map(r => r.win_rate));
+  const medEv   = median(all.map(r => r.ev_score || 0));
+  const totalVol= all.reduce((s, r) => s + (r.gross_in_usdc || 0), 0);
+  const totalPnl= all.reduce((s, r) => s + (r.net_pnl_usdc || 0), 0);
+  const clusters = {};
+  all.forEach(r => { clusters[r.cluster] = (clusters[r.cluster] || 0) + 1; });
+  const topCluster = Object.entries(clusters).sort((a,b)=>b[1]-a[1])[0];
+
+  $("stats-grid").innerHTML = `
+    <div class="stat-card"><div class="label">Qualifying Wallets</div><div class="value blue">${all.length}</div></div>
+    <div class="stat-card"><div class="label">Statistically Sig.</div><div class="value green">${sig} <span style="font-size:13px;color:var(--muted)">(${(sig/all.length*100).toFixed(0)}%)</span></div></div>
+    <div class="stat-card"><div class="label">Above 50% Win Rate</div><div class="value blue">${wins}</div></div>
+    <div class="stat-card"><div class="label">Median Win Rate</div><div class="value ${medWr>50?"green":"red"}">${medWr.toFixed(1)}%</div></div>
+    <div class="stat-card"><div class="label">Median EV Score</div><div class="value ${medEv>=0?"green":"red"}">${medEv>=0?"+":""}${medEv.toFixed(4)}</div></div>
+    <div class="stat-card"><div class="label">Total Volume In</div><div class="value yellow">${usd(totalVol)}</div></div>
+    <div class="stat-card"><div class="label">Aggregate P&amp;L</div><div class="value ${totalPnl>=0?"green":"red"}">${totalPnl>=0?"+":""}${usd(totalPnl)}</div></div>
+    <div class="stat-card"><div class="label">Top Cluster</div><div class="value purple">${topCluster?topCluster[0]:"—"}</div></div>
+  `;
+}
+
+function renderClusterBar() {
+  const clusters = ["all", "sharp", "edge", "hft_bot", "developing", "fading", "noise"];
+  const counts   = {};
+  _allRows.forEach(r => { counts[r.cluster] = (counts[r.cluster] || 0) + 1; });
+  counts["all"] = _allRows.length;
+
+  $("cluster-bar").innerHTML = clusters.map(c => {
+    const active = _cluster === c ? " active" : "";
+    const n = counts[c] || 0;
+    return `<span class="cluster-pill ${c}${active}" data-cluster="${c}">${c} (${n})</span>`;
+  }).join("");
+
+  $("cluster-bar").querySelectorAll(".cluster-pill").forEach(el => {
+    el.addEventListener("click", () => {
+      _cluster = el.dataset.cluster;
+      renderAll();
+    });
+  });
+}
+
+function renderTable() {
+  const rows = getFiltered();
+  const tbody = $("rankings-body");
+
+  // Update sort headers
+  document.querySelectorAll("thead th").forEach(th => {
+    th.classList.remove("sorted-asc", "sorted-desc");
+    if (th.dataset.col === _sortCol) {
+      th.classList.add(_sortAsc ? "sorted-asc" : "sorted-desc");
+    }
+  });
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--muted)">No wallets match filters.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map((r, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><a class="addr" title="${r.address}" href="https://polymarket.com/profile/${r.address}" target="_blank">${shortAddr(r.address)}</a></td>
+      <td>${r.trades.toLocaleString()}</td>
+      <td>${fmt(r.trades_per_day, 1)}</td>
+      <td>${r.active_days}</td>
+      <td>${fmt(r.win_rate, 1)}%</td>
+      <td>${fmtEv(r.ev_score)}</td>
+      <td>${fmtPval(r.pvalue)}</td>
+      <td>${fmtDecay(r.alpha_decay)}</td>
+      <td>${fmtHold(r.median_hold_secs)}</td>
+      <td>${fmtPnl(r.net_pnl_usdc)}</td>
+      <td style="color:var(--muted)">${usd(r.gross_in_usdc)}</td>
+      <td style="color:var(--muted)">${r.strategy || "—"}</td>
+      <td>${clusterBadge(r.cluster || "?")}</td>
+    </tr>
+  `).join("");
+}
+
+function renderDive() {
+  const top5 = getFiltered().slice(0, 5);
+  $("dive-grid").innerHTML = top5.map((r, i) => {
+    const holdH = r.median_hold_secs ? (r.median_hold_secs / 3600).toFixed(1) + "h" : "—";
+    const sig   = r.pvalue < 0.05 ? "SIGNIFICANT" : "not significant";
+    const sigCls= r.pvalue < 0.05 ? "sig" : "notsig";
+    return `
+      <div class="dive-card">
+        <div class="rank">#${i + 1} &mdash; ${r.strategy || "?"} &mdash; ${r.cluster}</div>
+        <div class="addr-full">${r.address}</div>
+        <table>
+          <tr><td style="color:var(--muted)">Cluster</td><td>${clusterBadge(r.cluster)}</td></tr>
+          <tr><td style="color:var(--muted)">EV/trade</td><td>${fmtEv(r.ev_score)}</td></tr>
+          <tr><td style="color:var(--muted)">p-value</td><td>${fmtPval(r.pvalue)} <span class="${sigCls}" style="font-size:10px">(${sig})</span></td></tr>
+          <tr><td style="color:var(--muted)">&alpha; Decay</td><td>${fmtDecay(r.alpha_decay)}</td></tr>
+          <tr><td style="color:var(--muted)">Med Hold</td><td>${holdH}</td></tr>
+          <tr><td style="color:var(--muted)">Win Rate</td><td>${fmt(r.win_rate, 1)}% (${r.profitable_exits}/${r.total_exits})</td></tr>
+          <tr><td style="color:var(--muted)">Net P&amp;L</td><td>${fmtPnl(r.net_pnl_usdc)}</td></tr>
+          <tr><td style="color:var(--muted)">Vol In</td><td style="color:var(--muted)">${usd(r.gross_in_usdc)}</td></tr>
+          <tr><td style="color:var(--muted)">T/day</td><td>${fmt(r.trades_per_day, 1)}</td></tr>
+          <tr><td style="color:var(--muted)">Active Days</td><td>${r.active_days}</td></tr>
+        </table>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderAll() {
+  renderStats();
+  renderClusterBar();
+  renderTable();
+  renderDive();
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function median(arr) {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+// ── Wire up events ────────────────────────────────────────────────────────────
+function wireEvents() {
+  document.querySelectorAll("thead th[data-col]").forEach(th => {
+    th.addEventListener("click", () => {
+      if (_sortCol === th.dataset.col) {
+        _sortAsc = !_sortAsc;
+      } else {
+        _sortCol = th.dataset.col;
+        _sortAsc = false;
+      }
+      renderAll();
+    });
+  });
+
+  ["f-min-trades", "f-max-pval", "f-min-ev", "f-top-n"].forEach(id => {
+    $(id).addEventListener("input", renderAll);
+  });
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async () => {
+  const result = await loadData();
+
+  if (!result) {
+    $("loading").style.display = "none";
+    const em = $("error-msg");
+    em.style.display = "block";
+    em.textContent = "Could not load wallet_rankings_demo.json or wallet_rankings.json. "
+      + "Run: python3 polymarket_wallet_analysis.py --demo  then refresh.";
+    return;
+  }
+
+  _allRows = result.rows;
+  $("loading").style.display = "none";
+  $("content").style.display = "block";
+
+  const ts = new Date().toUTCString();
+  $("footer").textContent = `Data: ${result.src}  ·  Rendered ${ts}  ·  ${_allRows.length} wallets`;
+
+  wireEvents();
+  renderAll();
+})();
+</script>
+</body>
+</html>
