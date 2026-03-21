@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import {
   createChart,
+  CandlestickSeries,
+  HistogramSeries,
   type IChartApi,
   type ISeriesApi,
   type CandlestickData,
@@ -67,7 +69,7 @@ export function TradingChart() {
       watermark: { visible: false },
     })
 
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#00d4aa',
       downColor: '#ff4757',
       borderUpColor: '#00d4aa',
@@ -76,7 +78,7 @@ export function TradingChart() {
       wickDownColor: '#ff4757',
     })
 
-    const volumeSeries = chart.addHistogramSeries({
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
       priceScaleId: 'vol',
     })
