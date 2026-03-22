@@ -16,6 +16,7 @@ import { PerpetualsPage } from './components/Pages/PerpetualsPage'
 import { YieldPage } from './components/Pages/YieldPage'
 import VisionPage from './components/Pages/VisionPage'
 import RewardsPage from './components/Pages/RewardsPage'
+import { CopyTradePage } from './components/CopyTrade/CopyTradePage'
 import { useTerminalStore } from './store/terminalStore'
 import type { RightTab } from './store/terminalStore'
 import { Zap, BarChart2, Users, Clock, Wallet, Search } from 'lucide-react'
@@ -121,6 +122,7 @@ function MainContent() {
     case 'discover':    return <DiscoverView />
     case 'pulse':       return <div className="flex flex-1 overflow-hidden"><TokenScanner /></div>
     case 'trackers':    return <div className="flex-1 overflow-hidden"><TrackersTabs /></div>
+    case 'copytrade':   return <div className="flex-1 overflow-hidden"><CopyTradePage /></div>
     case 'perpetuals':  return <div className="flex-1 overflow-hidden"><PerpetualsPage /></div>
     case 'yield':       return <div className="flex-1 overflow-hidden"><YieldPage /></div>
     case 'vision':      return <div className="flex-1 overflow-hidden"><VisionPage /></div>

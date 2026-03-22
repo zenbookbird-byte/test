@@ -12,12 +12,13 @@ import clsx from 'clsx'
 const NAV_ITEMS: { id: PageView; label: string; badge?: string; hot?: boolean }[] = [
   { id: 'discover',   label: 'Discover' },
   { id: 'pulse',      label: 'Pulse' },
+  { id: 'copytrade',  label: 'CopyTrade', badge: 'NEW' },
   { id: 'trackers',   label: 'Trackers' },
   { id: 'perpetuals', label: 'Perpetuals' },
   { id: 'yield',      label: 'Yield' },
   { id: 'vision',     label: 'Vision', hot: true },
   { id: 'portfolio',  label: 'Portfolio' },
-  { id: 'rewards',    label: 'Rewards', badge: 'NEW' },
+  { id: 'rewards',    label: 'Rewards' },
 ]
 
 // flipit.gg SVG Logo
