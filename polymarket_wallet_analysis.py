@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Polymarket War-Market Wallet Analyzer + Multi-Period Copy-Trade Engine
+Polymarket War-Market Wallet Analyzer + Advanced Copy-Trade Engine
 ───────────────────────────────────────────────────────────────────────
 Pulls on-chain trade data from Polymarket for Iran / US / Israel
 war-related prediction markets and produces:
@@ -9,8 +9,18 @@ war-related prediction markets and produces:
   2. Multi-period consistency table — wallets profitable in BOTH
      February 2026 AND March 2026 (required), plus June 2025 (bonus)
   3. Top-50 most profitable active wallets
-  4. Copy-trade signals from multi-period wallets (primary) or
-     top-50 wallets (fallback), sized with 85% assumed success rate
+  4. Sybil / copycat wallet detection (suppress fake consensus)
+  5. Smart money convergence alerts (3+ sharp wallets entering same market)
+  6. Exit / de-risk signals (sharp wallets selling positions)
+  7. Contrarian edge scoring (smart money vs. crowd divergence)
+  8. Copy-trade signals with Kelly criterion sizing
+  9. Telegram / Discord alerts via alerts.py
+ 10. Wallet watchlist tracking via watchlist.py
+
+Run standalone:  python polymarket_wallet_analysis.py
+Run on schedule: python scheduler.py --loop 60
+Alert test:      python alerts.py test
+Watchlist:       python watchlist.py add 0xABC... "My label"
 """
 
 import csv
@@ -1679,6 +1689,27 @@ def main():
 
     # Always show market overview at end
     print_market_strategy(open_enriched)
+
+    # ── Optional: alerts + watchlist (if modules available) ───────────────────
+    try:
+        import alerts as alert_mod
+        import watchlist as wl_mod
+
+        cfg = alert_mod.load_config()
+        wl_hits = wl_mod.check_watchlist(all_rows, market_titles)
+        wl_mod.print_watchlist_hits(wl_hits)
+
+        alert_mod.dispatch_alerts(
+            cfg                = cfg,
+            copy_signals       = all_signals,
+            convergence_events = convergence_events,
+            exit_signals       = exit_signals,
+            contrarian_signals = contrarian_signals,
+            market_titles      = market_titles,
+            watchlist_hits     = wl_hits,
+        )
+    except ImportError:
+        pass  # alerts/watchlist not required to run the analysis
 
 
 if __name__ == "__main__":

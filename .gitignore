@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .cache/
+scheduler.log
+alerts_config.json
+watchlist.json
