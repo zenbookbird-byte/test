@@ -19,10 +19,15 @@ Runs alongside copy_trader.py. Both processes share bot_state.json.
 
 import argparse
 import json
+import mimetypes
 import os
+import queue
 import socketserver
+import threading
+import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 
 try:
     from dotenv import load_dotenv
@@ -38,8 +43,24 @@ except ImportError:
     _AI_AVAILABLE = False
     _anthropic = None  # type: ignore
 
-STATE_FILE = os.getenv('BOT_STATE_FILE', 'bot_state.json')
-AI_MODEL   = 'claude-opus-4-6'
+STATE_FILE  = os.getenv('BOT_STATE_FILE', 'bot_state.json')
+STATIC_ROOT = Path(__file__).parent      # serve .html/.js/.css from same dir
+AI_MODEL    = 'claude-opus-4-6'
+
+# ── Event bus for /events SSE ─────────────────────────────────────────────────
+_event_subs: list[queue.Queue] = []
+_event_lock = threading.Lock()
+
+def _broadcast(event: dict) -> None:
+    with _event_lock:
+        dead = []
+        for q in _event_subs:
+            try:
+                q.put_nowait(event)
+            except queue.Full:
+                dead.append(q)
+        for q in dead:
+            _event_subs.remove(q)
 
 CORS_HEADERS = {
     'Access-Control-Allow-Origin':  '*',
@@ -167,15 +188,86 @@ class Handler(BaseHTTPRequestHandler):
                 'ai_available': _AI_AVAILABLE,
                 'api_key_set':  bool(os.getenv('ANTHROPIC_API_KEY')),
             }))
+        elif path == '/events':
+            self._handle_events()
+        elif path in ('/', ''):
+            self._serve_file('bot_dashboard.html')
         else:
+            self._serve_file(path.lstrip('/'))
+
+    def _serve_file(self, filename: str):
+        # Only serve safe extensions from the project directory
+        allowed = {'.html', '.js', '.css', '.ico', '.png', '.svg', '.json'}
+        fp = STATIC_ROOT / Path(filename).name   # prevent path traversal
+        if fp.suffix not in allowed or not fp.exists():
             self._send(404, json.dumps({'error': 'Not found'}))
+            return
+        mime, _ = mimetypes.guess_type(str(fp))
+        mime = mime or 'application/octet-stream'
+        data = fp.read_bytes()
+        self.send_response(200)
+        self.send_header('Content-Type', mime)
+        self.send_header('Content-Length', str(len(data)))
+        for k, v in CORS_HEADERS.items():
+            self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _handle_events(self):
+        """SSE stream: polls bot_state for new recent_events and pushes them."""
+        self.send_response(200)
+        self.send_header('Content-Type',   'text/event-stream')
+        self.send_header('Cache-Control',  'no-cache')
+        self.send_header('Connection',     'keep-alive')
+        for k, v in CORS_HEADERS.items():
+            self.send_header(k, v)
+        self.end_headers()
+
+        seen_ids: set[str] = set()
+        try:
+            while True:
+                state  = _load_state()
+                events = state.get('recent_events', [])
+                for ev in reversed(events):           # oldest first
+                    eid = ev.get('id')
+                    if eid and eid not in seen_ids:
+                        seen_ids.add(eid)
+                        data = json.dumps(ev)
+                        self.wfile.write(f'data: {data}\n\n'.encode())
+                # keep last 200 seen IDs only
+                if len(seen_ids) > 200:
+                    seen_ids = set(list(seen_ids)[-200:])
+                self.wfile.flush()
+                time.sleep(1)
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
 
     def do_POST(self):
         path = self.path.split('?')[0]
         if path == '/agent':
             self._handle_agent()
+        elif path == '/pause':
+            self._set_paused(True)
+        elif path == '/resume':
+            self._set_paused(False)
         else:
             self._send(404, json.dumps({'error': 'Not found'}))
+
+    def _set_paused(self, value: bool):
+        try:
+            state = _load_state()
+            if 'error' in state:
+                self._send(503, json.dumps({'error': state['error']}))
+                return
+            state['paused'] = value
+            with open(STATE_FILE, 'w') as f:
+                json.dump(state, f, indent=2)
+            label  = 'paused' if value else 'resumed'
+            ev_typ = 'pause'  if value else 'resume'
+            _broadcast({'type': ev_typ, 'at': datetime.now(timezone.utc).isoformat()})
+            self._send(200, json.dumps({'ok': True, 'paused': value, 'message': f'Bot {label}'}))
+        except Exception as e:
+            self._send(500, json.dumps({'error': str(e)}))
 
     # ── /agent — SSE streaming chat ──────────────────────────────────────────
     def _handle_agent(self):
@@ -283,7 +375,11 @@ def main():
 
     print(f'CopyTrade Pro API  →  http://{args.host}:{args.port}')
     print(f'  GET  /state   →  live bot data from {STATE_FILE}')
+    print(f'  GET  /events  →  SSE event stream (trades, signals, alerts)')
+    print(f'  POST /pause   →  pause bot signal scanning')
+    print(f'  POST /resume  →  resume bot signal scanning')
     print(f'  POST /agent   →  SSE streaming AI analyst  [{ai_status}]')
+    print(f'  GET  /*.html  →  serves HTML files from {STATIC_ROOT}')
     print(f'  GET  /health  →  health check')
     print()
 

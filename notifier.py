@@ -15,8 +15,8 @@ If those vars are not set, all calls are silently no-ops — the main bot
 keeps running normally.
 """
 
-import os, json, requests
-from datetime import datetime
+import os, json, requests, random, string
+from datetime import datetime, timezone
 
 try:
     from dotenv import load_dotenv
@@ -46,6 +46,11 @@ _state: dict = {
     'last_trades': [],      # last 20 closed trades
     'poll_count':  0,       # total subgraph polls this session
     'last_poll':   '',      # ISO timestamp of last poll
+    # ── analytics ─────────────────────────────────────────────────────────────
+    'pnl_history':   [],   # [{id, ts, pnl, title}] last 300 — equity curve
+    'daily_pnl':     {},   # {'2024-01-15': 1.23} — P&L calendar
+    'recent_events': [],   # [{id, type, title, pnl?, size?, at}] last 50 — toasts
+    'signals':       {},   # {market_id: {title, votes, threshold, updated_at}}
 }
 
 
@@ -59,6 +64,21 @@ def _flush() -> None:
             json.dump(_state, f, indent=2)
     except Exception:
         pass   # never crash the bot over a file write
+
+
+def _uid() -> str:
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z')
+
+
+def _add_event(ev: dict) -> None:
+    ev.setdefault('id', 'ev-' + _uid())
+    ev.setdefault('at', _now_iso())
+    _state['recent_events'].insert(0, ev)
+    _state['recent_events'] = _state['recent_events'][:50]
 
 
 def _send(text: str) -> None:
@@ -90,21 +110,38 @@ def init(paper: bool, mode: str, budget: float) -> None:
     except Exception:
         pass
 
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    # Preserve cross-session analytics from previous run
+    try:
+        with open(STATE_FILE) as f:
+            prev = json.load(f)
+            prev_history    = prev.get('pnl_history', [])
+            prev_daily      = prev.get('daily_pnl', {})
+            # Carry forward only history from previous days (today resets)
+            prev_daily.pop(today, None)
+    except Exception:
+        prev_history = []
+        prev_daily   = {}
+
     _state.update({
-        'paper':       paper,
-        'mode':        mode,
-        'budget':      budget,
-        'started_at':  datetime.utcnow().isoformat(),
-        'paused':      False,
-        'positions':   {},
-        'today_pnl':   0.0,
-        'wins':        0,
-        'losses':      0,
-        'all_wins':    prev_all_wins,
-        'all_losses':  prev_all_losses,
-        'last_trades': [],
-        'poll_count':  0,
-        'last_poll':   '',
+        'paper':         paper,
+        'mode':          mode,
+        'budget':        budget,
+        'started_at':    _now_iso(),
+        'paused':        False,
+        'positions':     {},
+        'today_pnl':     0.0,
+        'wins':          0,
+        'losses':        0,
+        'all_wins':      prev_all_wins,
+        'all_losses':    prev_all_losses,
+        'last_trades':   [],
+        'poll_count':    0,
+        'last_poll':     '',
+        'pnl_history':   prev_history,
+        'daily_pnl':     prev_daily,
+        'recent_events': [],
+        'signals':       {},
     })
     _flush()
 
@@ -131,17 +168,21 @@ def is_paused() -> bool:
 def record_buy(market_id: str, title: str, price: float,
                size: float, tokens: float) -> None:
     _state['positions'][market_id] = {
-        'title':     title,
-        'price':     price,
-        'size':      size,
-        'tokens':    tokens,
-        'opened_at': datetime.utcnow().isoformat(),
+        'title':         title,
+        'price':         price,
+        'size':          size,
+        'tokens':        tokens,
+        'current_price': price,   # updated by record_price_update()
+        'opened_at':     _now_iso(),
     }
+    _add_event({'type': 'buy', 'title': title[:60], 'size': round(size, 2), 'price': price})
     _flush()
 
 
 def record_sell(market_id: str, pnl: float) -> None:
-    pos = _state['positions'].pop(market_id, {})
+    pos   = _state['positions'].pop(market_id, {})
+    title = pos.get('title', market_id[:40])
+    pnl   = round(pnl, 2)
     if pnl >= 0:
         _state['wins']      += 1
         _state['all_wins']  += 1
@@ -149,14 +190,56 @@ def record_sell(market_id: str, pnl: float) -> None:
         _state['losses']     += 1
         _state['all_losses'] += 1
     _state['today_pnl'] = round(_state['today_pnl'] + pnl, 2)
+
+    # Last-trades feed
     _state['last_trades'].insert(0, {
-        'title': pos.get('title', market_id[:40]),
-        'pnl':   round(pnl, 2),
+        'id':    'tr-' + _uid(),
+        'title': title,
+        'pnl':   pnl,
         'cost':  round(pos.get('size', 0), 2),
-        'at':    datetime.utcnow().isoformat(),
+        'at':    _now_iso(),
     })
     _state['last_trades'] = _state['last_trades'][:20]
+
+    # Equity curve — append point (newest first, JS reverses for display)
+    _state['pnl_history'].insert(0, {
+        'id':    'ph-' + _uid(),
+        'ts':    _now_iso(),
+        'pnl':   pnl,
+        'title': title[:60],
+    })
+    _state['pnl_history'] = _state['pnl_history'][:300]
+
+    # P&L calendar
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    _state['daily_pnl'][today] = round(
+        _state['daily_pnl'].get(today, 0.0) + pnl, 2)
+
+    # Event for toast/sound/notification
+    _add_event({'type': 'win' if pnl >= 0 else 'loss',
+                'title': title[:60], 'pnl': pnl})
     _flush()
+
+
+def record_signal(market_id: str, title: str, votes: int, threshold: int) -> None:
+    """Record current vote count for a market — used for consensus meter."""
+    _state['signals'][market_id] = {
+        'title':      title[:80],
+        'votes':      votes,
+        'threshold':  threshold,
+        'updated_at': _now_iso(),
+    }
+    if votes >= threshold:
+        _add_event({'type': 'signal', 'title': title[:60],
+                    'votes': votes, 'threshold': threshold})
+    _flush()
+
+
+def record_price_update(market_id: str, current_price: float) -> None:
+    """Update live price on an open position — enables unrealized P&L display."""
+    if market_id in _state['positions']:
+        _state['positions'][market_id]['current_price'] = round(current_price, 4)
+        # flush() is deliberately omitted here — called in bulk by poll cycle
 
 
 def set_running(value: bool) -> None:

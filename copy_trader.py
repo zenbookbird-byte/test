@@ -463,6 +463,10 @@ class CopyTrader:
             if ttype == 'BUY':
                 self.buy_votes[mid].add(addr)
                 self.sell_votes[mid].discard(addr)   # reset any prior sell vote
+                if _TG:
+                    minfo = self.tracked_markets.get(mid, {})
+                    _tg.record_signal(mid, minfo.get('title', mid[:40]),
+                                      len(self.buy_votes[mid]), MIN_WALLETS)
                 self._maybe_copy_buy(mid)
             elif ttype == 'SELL':
                 self.sell_votes[mid].add(addr)
@@ -609,6 +613,14 @@ class CopyTrader:
                 else:
                     if cycle == 1:
                         log.warning('No wallets/markets loaded — retrying next cycle')
+
+                # Refresh live prices for open positions every 4 cycles (~1 min)
+                if _TG and cycle % 4 == 0 and self.our_positions:
+                    for mid in list(self.our_positions):
+                        p = get_live_price(mid)
+                        if p is not None:
+                            _tg.record_price_update(mid, p)
+                    _tg._flush()   # single flush after bulk updates
 
                 # Print open positions every 20 cycles (~5 min)
                 if cycle % 20 == 0:

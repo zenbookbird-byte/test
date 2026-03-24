@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Polymarket — Bot Dashboard</title>
+<script src="/shared.js"></script>
 <style>
 /* ── Reset ──────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -268,6 +269,97 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 /* ── Flash animation ───────────────────────────────────────── */
 @keyframes flashbg { 0%,100%{background:transparent} 40%{background:rgba(0,255,106,.05)} }
 .flash { animation: flashbg .5s ease-out; }
+
+/* ═══════════════════════════════════════════════════════════
+   BOT CONTROLS BAR
+═══════════════════════════════════════════════════════════ */
+.ctrl-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 16px;
+}
+.ctrl-btn {
+  font-size: 0.65rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 6px 14px; border-radius: 7px; cursor: pointer; transition: all .12s;
+  border: 1px solid var(--border2); background: var(--muted2); color: var(--text);
+}
+.ctrl-btn:hover { opacity: .8; }
+.ctrl-btn.pause  { background: var(--yellow-dim); color: var(--yellow); border-color: rgba(255,208,0,.25); }
+.ctrl-btn.resume { background: var(--green-dim);  color: var(--green);  border-color: rgba(0,255,106,.25); }
+.ctrl-btn.export { color: var(--muted); }
+.ctrl-btn.sound-on  { color: var(--green); }
+.ctrl-btn.sound-off { color: var(--muted); text-decoration: line-through; }
+.ctrl-sep { width: 1px; height: 20px; background: var(--border2); margin: 0 4px; }
+.ctrl-status { font-size: 0.65rem; color: var(--muted); margin-left: auto; }
+.ctrl-status strong { color: var(--text); }
+
+/* ═══════════════════════════════════════════════════════════
+   EQUITY CURVE
+═══════════════════════════════════════════════════════════ */
+.eq-panel { }
+.eq-chart-wrap { padding: 16px 18px 10px; }
+.eq-chart { width: 100%; height: 120px; display: block; overflow: visible; }
+.eq-empty { padding: 28px; text-align: center; font-size: .75rem; color: var(--muted); }
+.eq-footer {
+  display: flex; gap: 20px; padding: 6px 18px 12px;
+  font-size: .62rem; color: var(--muted);
+}
+.eq-stat-val { font-size: .78rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.eq-stat-val.g { color: var(--green); }
+.eq-stat-val.r { color: var(--red); }
+
+/* ═══════════════════════════════════════════════════════════
+   RISK METRICS
+═══════════════════════════════════════════════════════════ */
+.risk-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+@media(max-width:760px){ .risk-grid { grid-template-columns: 1fr 1fr; } }
+.risk-cell {
+  padding: 14px 16px; border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 4px;
+}
+.risk-cell:last-child { border-right: none; }
+.risk-label { font-size: .57rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+.risk-val   { font-size: 1.1rem; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--text); }
+.risk-val.g { color: var(--green); }
+.risk-val.r { color: var(--red); }
+.risk-sub   { font-size: .62rem; color: var(--muted); }
+
+/* ═══════════════════════════════════════════════════════════
+   P&L CALENDAR
+═══════════════════════════════════════════════════════════ */
+.cal-body { padding: 14px 18px 16px; }
+.cal-grid {
+  display: flex; gap: 3px; flex-wrap: nowrap; overflow-x: auto;
+}
+.cal-week { display: flex; flex-direction: column; gap: 3px; }
+.cal-cell {
+  width: 13px; height: 13px; border-radius: 2px; flex-shrink: 0;
+  background: var(--muted2); cursor: default; position: relative;
+  transition: transform .1s;
+}
+.cal-cell:hover { transform: scale(1.4); z-index: 1; }
+.cal-cell[title] { cursor: pointer; }
+.cal-legend { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: .6rem; color: var(--muted); }
+.cal-legend-cell { width: 11px; height: 11px; border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════════════════
+   SIGNAL CONSENSUS METER
+═══════════════════════════════════════════════════════════ */
+.signal-section { padding: 12px 18px 4px; border-top: 1px solid var(--border); }
+.signal-item {
+  padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.03);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.signal-item:last-child { border-bottom: none; }
+.signal-top { display: flex; align-items: center; justify-content: space-between; }
+.signal-title { font-size: .74rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; margin-right: 10px; }
+.signal-votes { font-size: .65rem; font-weight: 800; color: var(--green); white-space: nowrap; }
+.signal-bar { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.signal-bar-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .5s; }
+.signal-bar-fill.near { background: var(--yellow); }
 
 /* ═══════════════════════════════════════════════════════════
    AI ANALYST PANEL
@@ -575,6 +667,73 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   <div class="sbc"><div class="sbc-l">Uptime</div><div class="sbc-v" id="sb-uptime">—</div></div>
   <div class="sbc"><div class="sbc-l">Wallets</div><div class="sbc-v" id="sb-wallets">—</div></div>
   <div class="sbc"><div class="sbc-l">Server</div><div class="sbc-v g" id="sb-server">—</div></div>
+</div>
+
+<!-- ─── CONTROL BAR ──────────────────────────────────────────── -->
+<div class="ctrl-bar">
+  <button class="ctrl-btn pause"  id="ctrl-pause"  onclick="botPause()">⏸ Pause Bot</button>
+  <button class="ctrl-btn resume" id="ctrl-resume" onclick="botResume()" style="display:none">▶ Resume Bot</button>
+  <div class="ctrl-sep"></div>
+  <button class="ctrl-btn export" onclick="doExport()">↓ Export CSV</button>
+  <div class="ctrl-sep"></div>
+  <button class="ctrl-btn sound-on" id="ctrl-sound" onclick="toggleSound()">♪ Sound ON</button>
+  <button class="ctrl-btn" onclick="CTP.requestNotifPermission().then(ok=>CTP.toast('info',ok?'Notifications enabled':'Permission denied'))">🔔 Notifications</button>
+  <div class="ctrl-sep"></div>
+  <button class="ctrl-btn" onclick="CTP.showShortcutHelp()" title="Keyboard shortcuts">? Shortcuts</button>
+  <div class="ctrl-status" id="ctrl-status">—</div>
+</div>
+
+<!-- ─── EQUITY CURVE + RISK METRICS ─────────────────────────── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+
+  <div class="panel eq-panel">
+    <div class="ph">
+      <div><div class="ptitle">Equity Curve</div><div class="psub">Cumulative P&amp;L per trade</div></div>
+      <div class="phright" id="eq-ts">—</div>
+    </div>
+    <div id="eq-wrap">
+      <div class="eq-empty" id="eq-empty">No closed trades yet — curve will appear after first exit</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><div class="ptitle">Risk Metrics</div></div>
+    <div class="risk-grid">
+      <div class="risk-cell"><div class="risk-label">Max Drawdown</div><div class="risk-val r" id="rm-dd">—</div><div class="risk-sub" id="rm-dd-sub">peak-to-trough</div></div>
+      <div class="risk-cell"><div class="risk-label">Current Streak</div><div class="risk-val" id="rm-streak">—</div><div class="risk-sub" id="rm-streak-sub">—</div></div>
+      <div class="risk-cell"><div class="risk-label">Best Trade</div><div class="risk-val g" id="rm-best">—</div><div class="risk-sub" id="rm-best-sub">—</div></div>
+      <div class="risk-cell"><div class="risk-label">Worst Trade</div><div class="risk-val r" id="rm-worst">—</div><div class="risk-sub" id="rm-worst-sub">—</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─── P&L CALENDAR + SIGNAL RADAR ─────────────────────────── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+
+  <div class="panel">
+    <div class="ph"><div class="ptitle">P&amp;L Calendar</div><div class="psub">Daily performance — last 90 days</div></div>
+    <div class="cal-body">
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend">
+        <span>Loss</span>
+        <div class="cal-legend-cell" style="background:#7f1d1d"></div>
+        <div class="cal-legend-cell" style="background:#991b1b"></div>
+        <div class="cal-legend-cell" style="background:var(--muted2)"></div>
+        <div class="cal-legend-cell" style="background:#14532d"></div>
+        <div class="cal-legend-cell" style="background:#166534"></div>
+        <span>Gain</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><div class="ptitle">Signal Radar</div><div class="psub">Live wallet consensus per market</div></div>
+    <div class="signal-section" id="signal-list">
+      <div class="empty-msg">Waiting for wallet activity…</div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ─── AI ANALYST PANEL ────────────────────────────────────── -->
@@ -1120,11 +1279,294 @@ function _aiSetChipsDisabled(val) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   CONTROL BAR — pause / resume / export / sound
+══════════════════════════════════════════════════════════════ */
+async function botPause() {
+  try {
+    const r = await fetch('/pause', { method: 'POST' }).then(r => r.json());
+    if (r.ok) { CTP.toast('pause', 'Bot paused — no new entries'); renderPausedState(true); }
+    else        CTP.toast('error', r.error || 'Pause failed');
+  } catch { CTP.toast('error', 'Server unreachable'); }
+}
+async function botResume() {
+  try {
+    const r = await fetch('/resume', { method: 'POST' }).then(r => r.json());
+    if (r.ok) { CTP.toast('resume', 'Bot resumed — back to scanning'); renderPausedState(false); }
+    else        CTP.toast('error', r.error || 'Resume failed');
+  } catch { CTP.toast('error', 'Server unreachable'); }
+}
+function renderPausedState(paused) {
+  $('ctrl-pause').style.display  = paused ? 'none'  : '';
+  $('ctrl-resume').style.display = paused ? '' : 'none';
+  $('ctrl-status').innerHTML = paused
+    ? '<strong style="color:var(--yellow)">⏸ PAUSED</strong>'
+    : '<strong style="color:var(--green)">▶ ACTIVE</strong>';
+}
+function toggleSound() {
+  CTP.setSoundEnabled(!CTP.isSoundEnabled());
+  const btn = $('ctrl-sound');
+  btn.className = 'ctrl-btn ' + (CTP.isSoundEnabled() ? 'sound-on' : 'sound-off');
+  btn.textContent = '♪ Sound ' + (CTP.isSoundEnabled() ? 'ON' : 'OFF');
+}
+function doExport() {
+  if (!botState) { CTP.toast('error', 'No bot state — is the server running?'); return; }
+  const trades = (botState.last_trades || []).map(t => ({
+    title: t.title, pnl: t.pnl, cost: t.cost || '', at: t.at,
+  }));
+  if (!trades.length) { CTP.toast('info', 'No trades to export yet'); return; }
+  CTP.exportCSV(trades, `trades-${new Date().toISOString().slice(0,10)}.csv`);
+  CTP.toast('info', `Exported ${trades.length} trades`);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   EQUITY CURVE
+══════════════════════════════════════════════════════════════ */
+function renderEquityCurve(history) {
+  const wrap  = $('eq-wrap');
+  const empty = $('eq-empty');
+  if (!history || !history.length) {
+    if (empty) empty.style.display = '';
+    const existing = wrap.querySelector('.eq-chart-wrap');
+    if (existing) existing.remove();
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  // Build chronological points (history is newest-first)
+  const pts = [...history].reverse();
+  let cum = 0;
+  const values = pts.map(p => { cum += p.pnl; return cum; });
+  const minV = Math.min(0, ...values);
+  const maxV = Math.max(0, ...values);
+  const range = maxV - minV || 1;
+
+  const W = 500, H = 100, PAD = 4;
+  const toX = i => PAD + (i / (values.length - 1 || 1)) * (W - PAD * 2);
+  const toY = v => PAD + (1 - (v - minV) / range) * (H - PAD * 2);
+
+  // Build SVG path
+  const coords = values.map((v, i) => `${toX(i)},${toY(v)}`).join(' ');
+  const zeroY  = toY(0);
+  const net    = values[values.length - 1] ?? 0;
+  const color  = net >= 0 ? '#00ff6a' : '#ff3b3b';
+  const fillPts = `${toX(0)},${zeroY} ${coords} ${toX(values.length-1)},${zeroY}`;
+
+  let html = `
+    <div class="eq-chart-wrap">
+      <svg class="eq-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="eq-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="${color}" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- zero line -->
+        <line x1="${PAD}" y1="${zeroY}" x2="${W-PAD}" y2="${zeroY}" stroke="#282828" stroke-width="1"/>
+        <!-- fill -->
+        <polygon points="${fillPts}" fill="url(#eq-grad)"/>
+        <!-- line -->
+        <polyline points="${coords}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/>
+        <!-- last dot -->
+        <circle cx="${toX(values.length-1)}" cy="${toY(net)}" r="3" fill="${color}"/>
+      </svg>
+    </div>`;
+
+  // Footer stats
+  const best  = Math.max(...history.map(p => p.pnl));
+  const worst = Math.min(...history.map(p => p.pnl));
+  html += `
+    <div class="eq-footer">
+      <div><div class="risk-label" style="font-size:.55rem">NET</div>
+           <div class="eq-stat-val ${net>=0?'g':'r'}">${net>=0?'+':''}\$${Math.abs(net).toFixed(2)}</div></div>
+      <div><div class="risk-label" style="font-size:.55rem">TRADES</div>
+           <div class="eq-stat-val">${history.length}</div></div>
+      <div><div class="risk-label" style="font-size:.55rem">BEST</div>
+           <div class="eq-stat-val g">+\$${best.toFixed(2)}</div></div>
+      <div><div class="risk-label" style="font-size:.55rem">WORST</div>
+           <div class="eq-stat-val r">-\$${Math.abs(worst).toFixed(2)}</div></div>
+    </div>`;
+
+  const existing = wrap.querySelector('.eq-chart-wrap, .eq-footer');
+  if (existing) wrap.innerHTML = html;
+  else          wrap.insertAdjacentHTML('beforeend', html);
+  $('eq-ts').textContent = `${history.length} trades`;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RISK METRICS
+══════════════════════════════════════════════════════════════ */
+function renderRiskMetrics(history, trades) {
+  if (!history || !history.length) return;
+
+  const pts = [...history].reverse();
+  let cum = 0, peak = 0, maxDD = 0;
+  for (const p of pts) {
+    cum  += p.pnl;
+    peak  = Math.max(peak, cum);
+    maxDD = Math.max(maxDD, peak - cum);
+  }
+  $('rm-dd').textContent     = `-\$${maxDD.toFixed(2)}`;
+  $('rm-dd-sub').textContent = `of \$${peak.toFixed(2)} peak`;
+
+  // Streak from most-recent trades
+  const tList = (trades || []).slice();
+  let streak = 0, streakType = '';
+  if (tList.length) {
+    streakType = tList[0].pnl >= 0 ? 'W' : 'L';
+    for (const t of tList) {
+      if ((t.pnl >= 0) === (streakType === 'W')) streak++;
+      else break;
+    }
+  }
+  const sEl = $('rm-streak');
+  sEl.textContent = streak ? `${streak}${streakType}` : '—';
+  sEl.className   = 'risk-val ' + (streakType === 'W' ? 'g' : streakType === 'L' ? 'r' : '');
+  $('rm-streak-sub').textContent = streakType === 'W' ? 'win streak' : streakType === 'L' ? 'loss streak' : '—';
+
+  const pnls = history.map(p => p.pnl);
+  const best  = Math.max(...pnls), worst = Math.min(...pnls);
+  $('rm-best').textContent      = `+\$${best.toFixed(2)}`;
+  $('rm-best-sub').textContent  = history.find(p => p.pnl === best)?.title?.slice(0,22) || '—';
+  $('rm-worst').textContent     = `-\$${Math.abs(worst).toFixed(2)}`;
+  $('rm-worst-sub').textContent = history.find(p => p.pnl === worst)?.title?.slice(0,22) || '—';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   P&L CALENDAR
+══════════════════════════════════════════════════════════════ */
+function renderCalendar(dailyPnl) {
+  const grid = $('cal-grid');
+  if (!grid) return;
+
+  const today   = new Date();
+  const days    = 91;   // 13 weeks
+  // Colour scale
+  function cellColor(pnl) {
+    if (pnl == null) return 'var(--muted2)';
+    if (pnl === 0)   return '#1a1a1a';
+    if (pnl > 0) return pnl > 2 ? '#166534' : pnl > 0.5 ? '#14532d' : '#052e16';
+    return pnl < -2 ? '#991b1b' : pnl < -0.5 ? '#7f1d1d' : '#450a0a';
+  }
+
+  // Build a 13-column (week) grid, starting from Sunday
+  const startDay = new Date(today);
+  startDay.setDate(today.getDate() - days + 1);
+  // Align to Sunday
+  startDay.setDate(startDay.getDate() - startDay.getDay());
+
+  const weeks = [];
+  let cur = new Date(startDay);
+  while (cur <= today) {
+    const week = [];
+    for (let d = 0; d < 7 && cur <= today; d++, cur.setDate(cur.getDate() + 1)) {
+      const iso  = cur.toISOString().slice(0, 10);
+      const pnl  = dailyPnl?.[iso] ?? null;
+      week.push({ iso, pnl, isFuture: cur > today });
+    }
+    weeks.push(week);
+  }
+
+  grid.innerHTML = weeks.map(week =>
+    `<div class="cal-week">${week.map(d =>
+      `<div class="cal-cell" style="background:${cellColor(d.pnl)}"
+        title="${d.iso}${d.pnl != null ? ': ' + (d.pnl >= 0 ? '+' : '') + '$' + d.pnl.toFixed(2) : ''}"></div>`
+    ).join('')}</div>`
+  ).join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SIGNAL CONSENSUS RADAR
+══════════════════════════════════════════════════════════════ */
+function renderSignals(signals) {
+  const list = $('signal-list');
+  if (!list) return;
+  const entries = Object.values(signals || {})
+    .filter(s => s.votes > 0)
+    .sort((a, b) => b.votes / b.threshold - a.votes / a.threshold)
+    .slice(0, 6);
+
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-msg">No wallet signals yet</div>';
+    return;
+  }
+  list.innerHTML = entries.map(s => {
+    const pct  = Math.min(100, Math.round(s.votes / s.threshold * 100));
+    const near = pct >= 66;
+    return `
+      <div class="signal-item">
+        <div class="signal-top">
+          <div class="signal-title">${s.title?.slice(0,60) || '—'}</div>
+          <div class="signal-votes">${s.votes}/${s.threshold}</div>
+        </div>
+        <div class="signal-bar">
+          <div class="signal-bar-fill ${near?'near':''}" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   UNREALIZED P&L — augments position list rendering
+══════════════════════════════════════════════════════════════ */
+function renderPositions(positions) {
+  const list = $('pos-list');
+  const entries = Object.entries(positions);
+  if (!entries.length) { list.innerHTML = '<div class="empty-msg">No open positions</div>'; return; }
+  list.innerHTML = entries.map(([, p]) => {
+    const curP   = p.current_price ?? p.price;
+    const upnl   = curP && p.tokens ? round2((curP - p.price) * p.tokens) : null;
+    const upnlCl = upnl == null ? '' : upnl >= 0 ? 'pos' : 'neg';
+    const upnlTx = upnl == null ? 'OPEN'
+      : (upnl >= 0 ? '+' : '') + `\$${Math.abs(upnl).toFixed(2)} uPnL`;
+    return `
+      <div class="pos-item">
+        <div class="pos-dot"></div>
+        <div class="pos-title">${p.title || '—'}</div>
+        <div class="pos-meta">
+          <span class="pos-size">\$${(p.size||0).toFixed(2)} @ ${(p.price||0).toFixed(3)}</span>
+          <span class="pos-tag ${upnlCl}">${upnlTx}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+const round2 = v => Math.round(v * 100) / 100;
+
+/* ══════════════════════════════════════════════════════════════
+   HOOK renderBot TO DRIVE NEW PANELS
+══════════════════════════════════════════════════════════════ */
+const _origRenderBot = renderBot;
+renderBot = function(s) {
+  _origRenderBot(s);
+  renderPausedState(s.paused || false);
+  renderEquityCurve(s.pnl_history || []);
+  renderRiskMetrics(s.pnl_history || [], s.last_trades || []);
+  renderCalendar(s.daily_pnl || {});
+  renderSignals(s.signals || {});
+  $('ctrl-status').innerHTML = s.paused
+    ? '<strong style="color:var(--yellow)">⏸ PAUSED</strong>'
+    : '<strong style="color:var(--green)">▶ ACTIVE</strong>';
+};
+
+/* ══════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+══════════════════════════════════════════════════════════════ */
+function _registerShortcuts() {
+  if (!window.CTP) return;
+  CTP.addShortcut('p', 'Pause bot',          botPause);
+  CTP.addShortcut('r', 'Resume bot',         botResume);
+  CTP.addShortcut('e', 'Export trades CSV',  doExport);
+  CTP.addShortcut('a', 'Toggle AI analyst',  aiToggle);
+  CTP.addShortcut('f', 'Force data refresh', pollBot);
+}
+
+/* ══════════════════════════════════════════════════════════════
    BOOT
 ══════════════════════════════════════════════════════════════ */
 pollBot();
 fetchPrices();
 checkAiHealth();
+if (window.CTP) { CTP.init({ events: true, notifications: false }); _registerShortcuts(); }
+renderCalendar({});   // render empty calendar immediately
 </script>
 </body>
 </html>
