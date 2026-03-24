@@ -1,7 +1,8 @@
 import axios from 'axios'
 import type { TokenPair, OHLCVBar } from '../types'
+import { DEXSCREENER_BASE, GECKOTERMINAL_BASE } from './apiConfig'
 
-const BASE = 'https://api.dexscreener.com'
+const BASE = DEXSCREENER_BASE
 
 const api = axios.create({ baseURL: BASE, timeout: 10000 })
 
@@ -69,7 +70,7 @@ export async function getOHLCV(
   limit: number = 300
 ): Promise<OHLCVBar[]> {
   try {
-    const url = `https://api.geckoterminal.com/api/v2/networks/solana/pools/${poolAddress}/ohlcv/${timeframe}?aggregate=${aggregate}&limit=${limit}&currency=usd&token=base`
+    const url = `${GECKOTERMINAL_BASE}/networks/solana/pools/${poolAddress}/ohlcv/${timeframe}?aggregate=${aggregate}&limit=${limit}&currency=usd&token=base`
     const { data } = await axios.get(url, { timeout: 10000 })
     const ohlcv = data?.data?.attributes?.ohlcv_list
     if (!ohlcv) return []

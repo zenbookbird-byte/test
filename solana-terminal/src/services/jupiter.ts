@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { JUPITER_QUOTE, JUPITER_PRICE, JUPITER_TOKENS } from './apiConfig'
 
-const JUPITER_API = 'https://quote-api.jup.ag/v6'
-const TOKEN_LIST = 'https://tokens.jup.ag/tokens?tags=verified'
+const JUPITER_API = JUPITER_QUOTE
+const TOKEN_LIST = JUPITER_TOKENS
 
 export interface JupiterQuote {
   inputMint: string
@@ -101,7 +102,7 @@ export const USDT_MINT = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'
 
 export async function getTokenPrice(mint: string): Promise<number | null> {
   try {
-    const { data } = await axios.get(`https://price.jup.ag/v6/price?ids=${mint}`, {
+    const { data } = await axios.get(`${JUPITER_PRICE}/price?ids=${mint}`, {
       timeout: 8000,
     })
     return data?.data?.[mint]?.price ?? null
@@ -113,7 +114,7 @@ export async function getTokenPrice(mint: string): Promise<number | null> {
 export async function getTokenPrices(mints: string[]): Promise<Record<string, number>> {
   try {
     const ids = mints.join(',')
-    const { data } = await axios.get(`https://price.jup.ag/v6/price?ids=${ids}`, {
+    const { data } = await axios.get(`${JUPITER_PRICE}/price?ids=${ids}`, {
       timeout: 8000,
     })
     const result: Record<string, number> = {}
