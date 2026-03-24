@@ -508,6 +508,461 @@ def detect_strategy(trades_per_day: float) -> str:
     return "swing"
 
 
+# ── Sybil / Copycat Detection ────────────────────────────────────────────
+# Detects wallets that trade the same markets within a tight time window,
+# indicating they may be the same entity or coordinated actors.
+# Returns a dict of cluster_id → [addresses] and tags each address.
+
+SYBIL_WINDOW_SECS = 120   # trades within 2 min = suspicious
+SYBIL_MIN_OVERLAP = 3     # min co-timed trades to flag as sybil pair
+
+
+def detect_sybils(trades_by_wallet: dict) -> dict:
+    """
+    Build a trade-timing fingerprint per wallet, then find pairs whose trades
+    overlap within SYBIL_WINDOW_SECS on the same markets at least
+    SYBIL_MIN_OVERLAP times. Returns {cluster_id: [addr, ...], ...}.
+    """
+    # Build fingerprint: {addr: [(market_id, timestamp), ...]}
+    fingerprints = {}
+    for addr, trades in trades_by_wallet.items():
+        events = []
+        for t in trades:
+            mid = (t.get("fpmm") or {}).get("id", "") or t.get("_market", "")
+            ts = int(t.get("creationTimestamp", 0) or t.get("timestamp", 0) or 0)
+            if mid and ts:
+                events.append((mid, ts))
+        if len(events) >= SYBIL_MIN_OVERLAP:
+            fingerprints[addr] = sorted(events, key=lambda x: x[1])
+
+    addrs = list(fingerprints.keys())
+    # Union-Find for clustering
+    parent = {a: a for a in addrs}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    # Pairwise comparison (only for wallets with enough trades)
+    for i in range(len(addrs)):
+        fp_i = fingerprints[addrs[i]]
+        for j in range(i + 1, len(addrs)):
+            fp_j = fingerprints[addrs[j]]
+            overlap = 0
+            ji = 0
+            for mid_i, ts_i in fp_i:
+                while ji < len(fp_j) and fp_j[ji][1] < ts_i - SYBIL_WINDOW_SECS:
+                    ji += 1
+                k = ji
+                while k < len(fp_j) and fp_j[k][1] <= ts_i + SYBIL_WINDOW_SECS:
+                    if fp_j[k][0] == mid_i:
+                        overlap += 1
+                        break
+                    k += 1
+            if overlap >= SYBIL_MIN_OVERLAP:
+                union(addrs[i], addrs[j])
+
+    # Build clusters (only groups of 2+)
+    from collections import Counter
+    groups = defaultdict(list)
+    for a in addrs:
+        groups[find(a)].append(a)
+    clusters = {}
+    cid = 0
+    for root, members in groups.items():
+        if len(members) >= 2:
+            clusters[f"sybil_{cid}"] = members
+            cid += 1
+    return clusters
+
+
+def deduplicate_sybil_signals(wallets: list[dict], sybil_clusters: dict) -> list[dict]:
+    """From each sybil cluster, keep only the wallet with highest EV score."""
+    suppressed = set()
+    for cluster_id, members in sybil_clusters.items():
+        best = max(members, key=lambda a: next(
+            (w.get("ev_score", 0) for w in wallets if w["address"] == a), 0
+        ))
+        for a in members:
+            if a != best:
+                suppressed.add(a)
+    return [w for w in wallets if w["address"] not in suppressed]
+
+
+def print_sybil_report(sybil_clusters: dict):
+    if not sybil_clusters:
+        print("\n── Sybil Detection ─────────────────────────────────────")
+        print("  No sybil clusters detected. All wallets appear independent.")
+        print("────────────────────────────────────────────────────────\n")
+        return
+    sep = "─" * 72
+    print(f"\n── Sybil / Copycat Detection ({'⚠ ' + str(len(sybil_clusters)) + ' clusters found'}) ──")
+    print(sep)
+    for cid, members in sybil_clusters.items():
+        print(f"  Cluster {cid} ({len(members)} wallets — likely same entity):")
+        for a in members:
+            print(f"    • {a}")
+    print(sep)
+    print(f"  → {sum(len(m) - 1 for m in sybil_clusters.values())} duplicate wallets will be"
+          f" suppressed from consensus signals.\n")
+
+
+# ── Smart Money Convergence Alerts ────────────────────────────────────────
+# Detects when multiple INDEPENDENT sharp wallets enter the same market
+# within a tight time window — the strongest possible buy signal.
+
+CONVERGENCE_WINDOW_HOURS = 24   # look for clustering within this window
+CONVERGENCE_MIN_WALLETS  = 3    # minimum independent wallets
+
+
+def detect_convergence(
+    sharp_wallets: list[dict],
+    trades_by_wallet: dict,
+    sybil_clusters: dict,
+) -> list[dict]:
+    """
+    Find markets where 3+ independent sharp wallets opened BUY positions
+    within CONVERGENCE_WINDOW_HOURS of each other.
+    Returns list of convergence events sorted by strength.
+    """
+    # Build sybil lookup: addr → representative
+    sybil_rep = {}
+    for cid, members in sybil_clusters.items():
+        rep = members[0]
+        for m in members:
+            sybil_rep[m] = rep
+
+    sharp_addrs = {w["address"] for w in sharp_wallets}
+    window = CONVERGENCE_WINDOW_HOURS * 3600
+
+    # Collect BUY events per market from sharp wallets
+    market_buys = defaultdict(list)  # market_id → [(ts, addr), ...]
+    for addr in sharp_addrs:
+        trades = trades_by_wallet.get(addr, [])
+        for t in trades:
+            ttype = (t.get("type") or "").upper()
+            if ttype != "BUY":
+                side = (t.get("maker_side") or t.get("side") or "").upper()
+                if side != "BUY":
+                    continue
+            mid = (t.get("fpmm") or {}).get("id", "") or t.get("_market", "")
+            ts = int(t.get("creationTimestamp", 0) or t.get("timestamp", 0) or 0)
+            if mid and ts:
+                market_buys[mid].append((ts, addr))
+
+    events = []
+    for mid, buys in market_buys.items():
+        buys.sort()
+        # Sliding window to find clusters
+        for i in range(len(buys)):
+            cluster_addrs = set()
+            independent = set()
+            for j in range(i, len(buys)):
+                if buys[j][0] - buys[i][0] > window:
+                    break
+                addr = buys[j][1]
+                rep = sybil_rep.get(addr, addr)  # collapse sybils
+                independent.add(rep)
+                cluster_addrs.add(addr)
+            if len(independent) >= CONVERGENCE_MIN_WALLETS:
+                events.append({
+                    "market_id": mid,
+                    "window_start": buys[i][0],
+                    "window_end": min(buys[i][0] + window, buys[-1][0]),
+                    "wallets": list(cluster_addrs),
+                    "independent_count": len(independent),
+                    "strength": len(independent),  # more independent = stronger
+                })
+                break  # one event per market
+
+    events.sort(key=lambda e: e["strength"], reverse=True)
+    return events
+
+
+def print_convergence_alerts(events: list[dict], market_titles: dict):
+    sep = "═" * 72
+    print(f"\n{sep}")
+    print(f"  SMART MONEY CONVERGENCE ALERTS")
+    print(f"  {len(events)} markets with independent sharp-wallet clustering")
+    print(sep)
+    if not events:
+        print("  No convergence events detected in the current window.\n")
+        print(sep)
+        return
+    for i, e in enumerate(events, 1):
+        title = market_titles.get(e["market_id"], e["market_id"][:16] + "…")
+        t0 = datetime.fromtimestamp(e["window_start"], tz=timezone.utc).strftime("%b %d %H:%M")
+        t1 = datetime.fromtimestamp(e["window_end"], tz=timezone.utc).strftime("%b %d %H:%M")
+        strength_bar = "█" * e["independent_count"] + "░" * (10 - e["independent_count"])
+        print(f"\n  #{i}  Strength: [{strength_bar}] {e['independent_count']} independent wallets")
+        print(f"  Market : {title[:68]}")
+        print(f"  Window : {t0} → {t1} UTC")
+        print(f"  Wallets:")
+        for a in e["wallets"][:8]:
+            print(f"    • {a}")
+        if len(e["wallets"]) > 8:
+            print(f"    … +{len(e['wallets']) - 8} more")
+    print(f"\n{sep}\n")
+
+
+# ── Kelly Criterion Position Sizing ──────────────────────────────────────
+# Replace flat 85% assumption with mathematically optimal sizing
+# based on each wallet's actual win rate and average payoff ratio.
+
+def kelly_fraction(win_rate: float, avg_win: float, avg_loss: float) -> float:
+    """
+    Kelly fraction: f* = (p * b - q) / b
+    where p = win prob, q = 1-p, b = avg_win/avg_loss (odds ratio).
+    Returns fraction of bankroll to risk (0.0–1.0, clamped).
+    """
+    if avg_loss == 0 or win_rate <= 0:
+        return 0.0
+    p = win_rate
+    q = 1.0 - p
+    b = abs(avg_win / avg_loss) if avg_loss != 0 else 0.0
+    if b == 0:
+        return 0.0
+    f = (p * b - q) / b
+    # Half-Kelly for safety (standard practice)
+    return max(0.0, min(0.5, f * 0.5))
+
+
+def compute_kelly_for_wallet(matched: list) -> dict:
+    """Compute Kelly sizing parameters from a wallet's matched trades."""
+    if not matched:
+        return {"kelly_f": 0.0, "avg_win_pct": 0.0, "avg_loss_pct": 0.0, "payoff_ratio": 0.0}
+    wins = [m for m in matched if m["won"]]
+    losses = [m for m in matched if not m["won"]]
+
+    def _pct(m):
+        cost = m["entry_price"] * m["size"]
+        return m["pnl"] / cost if cost > 0 else 0.0
+
+    avg_win_pct = sum(_pct(m) for m in wins) / len(wins) if wins else 0.0
+    avg_loss_pct = abs(sum(_pct(m) for m in losses) / len(losses)) if losses else 0.0
+    wr = len(wins) / len(matched)
+    kf = kelly_fraction(wr, avg_win_pct, avg_loss_pct)
+    payoff = avg_win_pct / avg_loss_pct if avg_loss_pct > 0 else 0.0
+    return {
+        "kelly_f": round(kf, 4),
+        "avg_win_pct": round(avg_win_pct, 4),
+        "avg_loss_pct": round(avg_loss_pct, 4),
+        "payoff_ratio": round(payoff, 2),
+    }
+
+
+def allocate_budget_kelly(signals: list[dict], budget: float) -> list[dict]:
+    """
+    Size copy-trade positions using per-signal Kelly fractions
+    instead of flat assumptions.
+    """
+    for s in signals:
+        # Aggregate Kelly from contributing wallets
+        kelly_fracs = []
+        for h in s.get("wallets", []):
+            kf = h.get("kelly_f", 0.0)
+            if kf > 0:
+                kelly_fracs.append(kf)
+        if not kelly_fracs:
+            s["kelly_alloc"] = 0.0
+            s["kelly_shares"] = 0.0
+            continue
+        avg_kelly = sum(kelly_fracs) / len(kelly_fracs)
+        s["kelly_f"] = round(avg_kelly, 4)
+
+    # Normalize allocations to fit within budget
+    total_kelly = sum(s.get("kelly_f", 0) for s in signals)
+    if total_kelly == 0:
+        return signals
+    for s in signals:
+        frac = s.get("kelly_f", 0) / total_kelly
+        alloc = round(budget * frac, 2)
+        s["kelly_alloc"] = alloc
+        s["kelly_shares"] = round(alloc / s["yes_price"], 1) if s.get("yes_price", 0) > 0 else 0
+    return signals
+
+
+# ── Exit / De-Risk Signal Detection ──────────────────────────────────────
+# Detects when sharp wallets are SELLING positions — equally valuable as
+# buy signals. Means the edge is gone or they're taking profit.
+
+def detect_exit_signals(
+    sharp_wallets: list[dict],
+    trades_by_wallet: dict,
+    lookback_hours: int = 48,
+) -> list[dict]:
+    """
+    Find recent SELL events from sharp wallets.
+    Groups by market and returns exit signals sorted by urgency.
+    """
+    cutoff = int(time.time()) - lookback_hours * 3600
+    sharp_addrs = {w["address"] for w in sharp_wallets}
+
+    market_exits = defaultdict(list)  # market_id → [(ts, addr, tokens_sold)]
+    for addr in sharp_addrs:
+        trades = trades_by_wallet.get(addr, [])
+        for t in trades:
+            ttype = (t.get("type") or "").upper()
+            if ttype != "SELL":
+                side = (t.get("maker_side") or t.get("side") or "").upper()
+                if side != "SELL":
+                    continue
+            ts = int(t.get("creationTimestamp", 0) or t.get("timestamp", 0) or 0)
+            if ts < cutoff:
+                continue
+            mid = (t.get("fpmm") or {}).get("id", "") or t.get("_market", "")
+            tokens = int(t.get("outcomeTokensTraded", 0)) / 1e6
+            if not tokens:
+                tokens = float(t.get("size", 0) or 0)
+            if mid:
+                market_exits[mid].append({"ts": ts, "addr": addr, "tokens": tokens})
+
+    signals = []
+    for mid, exits in market_exits.items():
+        exits.sort(key=lambda x: x["ts"], reverse=True)
+        unique_wallets = list({e["addr"] for e in exits})
+        total_tokens = sum(e["tokens"] for e in exits)
+        latest_ts = exits[0]["ts"]
+        hours_ago = round((time.time() - latest_ts) / 3600, 1)
+
+        if len(unique_wallets) >= 2:  # at least 2 sharp wallets exiting
+            signals.append({
+                "market_id": mid,
+                "exit_count": len(exits),
+                "unique_wallets": len(unique_wallets),
+                "wallets": unique_wallets,
+                "total_tokens_sold": round(total_tokens, 2),
+                "latest_exit_hours_ago": hours_ago,
+                "urgency": len(unique_wallets) * (1.0 / max(hours_ago, 0.1)),
+            })
+
+    signals.sort(key=lambda s: s["urgency"], reverse=True)
+    return signals
+
+
+def print_exit_signals(signals: list[dict], market_titles: dict):
+    sep = "═" * 72
+    print(f"\n{sep}")
+    print(f"  EXIT / DE-RISK SIGNALS  (sharp wallets selling)")
+    print(sep)
+    if not signals:
+        print("  No exit signals detected in the last 48h.\n")
+        print(sep)
+        return
+    for i, s in enumerate(signals, 1):
+        title = market_titles.get(s["market_id"], s["market_id"][:16] + "…")
+        urgency = "🔴 HIGH" if s["urgency"] > 5 else "🟡 MEDIUM" if s["urgency"] > 2 else "🟢 LOW"
+        print(f"\n  #{i}  Urgency: {urgency}")
+        print(f"  Market     : {title[:64]}")
+        print(f"  Exits      : {s['exit_count']} sells from {s['unique_wallets']} sharp wallets")
+        print(f"  Tokens sold: {s['total_tokens_sold']:.1f}")
+        print(f"  Latest     : {s['latest_exit_hours_ago']:.1f}h ago")
+        print(f"  Wallets exiting:")
+        for a in s["wallets"][:5]:
+            print(f"    • {a}")
+    print(f"\n  ⚠ If you hold positions in these markets, consider reducing exposure.")
+    print(f"\n{sep}\n")
+
+
+# ── Contrarian Edge Score ────────────────────────────────────────────────
+# Measures divergence between smart-money positioning and market price.
+# High score = sharp wallets disagree with the crowd → potential alpha.
+
+def contrarian_edge(
+    sharp_wallets: list[dict],
+    open_enriched: list[dict],
+) -> list[dict]:
+    """
+    For each open market, compute the gap between:
+      - Smart money implied probability (% of sharp wallets long YES)
+      - Market price (crowd's implied probability)
+    Positive edge = smart money thinks YES is more likely than the crowd.
+    Negative edge = smart money thinks NO is more likely than the crowd.
+    """
+    signals = []
+    for mkt in open_enriched:
+        mid = mkt["market_id"]
+        price = mkt.get("yes_price")
+        if not mid or price is None or price < 0.02 or price > 0.98:
+            continue
+
+        # Count sharp wallets with open YES positions
+        long_count = 0
+        short_or_neutral = 0
+        total_tokens_long = 0.0
+        for w in sharp_wallets:
+            pos = w.get("positions", {}).get(mid)
+            if pos and pos["net_tokens"] > 0.5:
+                long_count += 1
+                total_tokens_long += pos["net_tokens"]
+            else:
+                short_or_neutral += 1
+
+        total_checked = long_count + short_or_neutral
+        if total_checked < 3:  # need enough wallets for meaningful signal
+            continue
+
+        smart_money_prob = long_count / total_checked
+        edge = smart_money_prob - price  # positive = smart money more bullish
+        abs_edge = abs(edge)
+
+        if abs_edge < 0.05:  # less than 5pp divergence = not interesting
+            continue
+
+        signals.append({
+            "market_id": mid,
+            "market_title": mkt.get("title", mid[:20]),
+            "market_price": price,
+            "smart_money_prob": round(smart_money_prob, 3),
+            "crowd_prob": round(price, 3),
+            "contrarian_edge": round(edge, 3),
+            "abs_edge": round(abs_edge, 3),
+            "direction": "BULLISH" if edge > 0 else "BEARISH",
+            "long_wallets": long_count,
+            "total_wallets": total_checked,
+            "tokens_long": round(total_tokens_long, 1),
+        })
+
+    signals.sort(key=lambda s: s["abs_edge"], reverse=True)
+    return signals
+
+
+def print_contrarian_signals(signals: list[dict]):
+    sep = "═" * 72
+    print(f"\n{sep}")
+    print(f"  CONTRARIAN EDGE SIGNALS  (smart money vs. crowd)")
+    print(sep)
+    if not signals:
+        print("  No significant divergence between smart money and market prices.\n")
+        print(sep)
+        return
+    print(f"\n  {'Market':<42} {'Crowd':>6} {'Smart$':>7} {'Edge':>7} {'Dir':>8} {'Wallets':>8}")
+    print(f"  {'─'*42} {'─'*6} {'─'*7} {'─'*7} {'─'*8} {'─'*8}")
+    for s in signals:
+        edge_pct = s["contrarian_edge"] * 100
+        color_prefix = "+" if edge_pct > 0 else ""
+        print(
+            f"  {s['market_title'][:42]:<42}"
+            f" {s['crowd_prob']*100:>5.1f}%"
+            f" {s['smart_money_prob']*100:>6.1f}%"
+            f" {color_prefix}{edge_pct:>5.1f}pp"
+            f" {s['direction']:>8}"
+            f" {s['long_wallets']}/{s['total_wallets']:>5}"
+        )
+    print(f"\n  Interpretation:")
+    print(f"  • BULLISH + large edge → smart money sees YES as underpriced by the crowd")
+    print(f"  • BEARISH + large edge → smart money avoiding a market the crowd is long on")
+    print(f"  • Largest edges often precede major price moves\n")
+    print(sep)
+
+
 # ── Step 4: Score & build rows ────────────────────────────────────────────────
 def score_wallets(wallets: dict, trades_by_wallet: dict = None) -> list[dict]:
     now  = int(time.time())
@@ -534,6 +989,8 @@ def score_wallets(wallets: dict, trades_by_wallet: dict = None) -> list[dict]:
         for p, pp in w["period_pnl"].items():
             period_pnl_summary[p] = round(pp["gross_out"] - pp["gross_in"], 2)
 
+        matched_trades = match_positions(trades_by_wallet[addr]) if trades_by_wallet and addr in trades_by_wallet else []
+
         rows.append({
             "address":            addr,
             "trades":             w["trades"],
@@ -555,16 +1012,30 @@ def score_wallets(wallets: dict, trades_by_wallet: dict = None) -> list[dict]:
             "positions":          w["positions"], # dict — removed before JSON
             # ── new analytics ──────────────────────────────────────────────
             "strategy":           detect_strategy(round(w["trades"] / active_days, 1)),
-            "ev_score":           ev_score(match_positions(trades_by_wallet[addr]) if trades_by_wallet and addr in trades_by_wallet else []),
+            "ev_score":           ev_score(matched_trades),
             "pvalue":             round(binomial_pvalue(w["profitable_exits"], exits), 4) if exits > 0 else 1.0,
-            "alpha_decay":        alpha_decay(match_positions(trades_by_wallet[addr]) if trades_by_wallet and addr in trades_by_wallet else []),
-            "median_hold_secs":   hold_time_stats(match_positions(trades_by_wallet[addr]) if trades_by_wallet and addr in trades_by_wallet else [])["median_hold_secs"],
-            "mean_hold_secs":     hold_time_stats(match_positions(trades_by_wallet[addr]) if trades_by_wallet and addr in trades_by_wallet else [])["mean_hold_secs"],
+            "alpha_decay":        alpha_decay(matched_trades),
+            "median_hold_secs":   hold_time_stats(matched_trades)["median_hold_secs"],
+            "mean_hold_secs":     hold_time_stats(matched_trades)["mean_hold_secs"],
             "cluster":            "",             # filled by cluster_wallets()
+            "sybil_cluster":      "",             # filled by tag_sybils()
+            # ── Kelly criterion sizing ──────────────────────────────────────
+            **compute_kelly_for_wallet(matched_trades),
         })
 
     # Primary sort by EV score (true edge), then win rate, then P&L
     rows.sort(key=lambda r: (r["ev_score"], r["win_rate"], r["net_pnl_usdc"]), reverse=True)
+    return rows
+
+
+def tag_sybils(rows: list, sybil_clusters: dict) -> list:
+    """Tag each row with its sybil cluster ID (if any)."""
+    addr_to_cluster = {}
+    for cid, members in sybil_clusters.items():
+        for a in members:
+            addr_to_cluster[a] = cid
+    for r in rows:
+        r["sybil_cluster"] = addr_to_cluster.get(r["address"], "")
     return rows
 
 
@@ -1050,7 +1521,7 @@ def main():
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     banner  = "═" * 72
     print(banner)
-    print("  Polymarket War Wallet Analyzer + Multi-Period Copy-Trade Engine")
+    print("  Polymarket War Wallet Analyzer + Advanced Copy-Trade Engine")
     print(f"  {now_str}")
     print(f"  Scanning: Mar 2026 (current) + Feb 2026 + Jun 2025 (bonus)")
     print(banner)
@@ -1096,9 +1567,16 @@ def main():
     print(f"  Unique wallets seen: {len(wallets)}")
 
     # ── 4. Score & cluster ────────────────────────────────────────────────────
-    print("\n[4/6] Scoring and ranking wallets...")
+    print("\n[4/9] Scoring and ranking wallets...")
     all_rows    = score_wallets(wallets, trades_by_wallet=trades_by_wallet)
     cluster_wallets(all_rows)
+
+    # ── 5. Sybil detection ────────────────────────────────────────────────────
+    print("\n[5/9] Running sybil / copycat detection...")
+    sybil_clusters = detect_sybils(trades_by_wallet)
+    tag_sybils(all_rows, sybil_clusters)
+    print_sybil_report(sybil_clusters)
+
     mp_wallets  = multi_period_wallets(all_rows)
     top50       = top_profitable_active(all_rows)
 
@@ -1125,6 +1603,7 @@ def main():
         "winrate_ranking":      [strip(r) for r in all_rows],
         "multi_period_wallets": [strip(r) for r in mp_wallets],
         "top50_profitable":     [strip(r) for r in top50],
+        "sybil_clusters":       sybil_clusters,
     }
     with open("war_wallet_rankings.json", "w") as f:
         json.dump(output, f, indent=2)
@@ -1132,20 +1611,42 @@ def main():
     export_csv(all_rows)
     snapshot_rankings(all_rows)
 
-    # ── 5. Live odds ──────────────────────────────────────────────────────────
-    print("\n[5/6] Fetching live market odds...")
+    # ── 6. Live odds ──────────────────────────────────────────────────────────
+    print("\n[6/9] Fetching live market odds...")
     open_enriched = fetch_open_war_markets_with_odds(markets)
 
-    # ── 6. Copy signals ───────────────────────────────────────────────────────
-    print("\n[6/6] Building copy-trade signals...")
+    # Build market_id → title lookup for reports
+    market_titles = {m["market_id"]: m["title"] for m in open_enriched if m.get("market_id")}
+
+    # ── 7. Smart money convergence + contrarian + exit signals ────────────────
+    print("\n[7/9] Analyzing smart money convergence...")
+    sharp_rows = [r for r in all_rows if r.get("cluster") in ("sharp", "edge")]
+    convergence_events = detect_convergence(sharp_rows, trades_by_wallet, sybil_clusters)
+    print_convergence_alerts(convergence_events, market_titles)
+
+    print("\n[8/9] Scanning for exit / de-risk signals & contrarian edges...")
+    exit_signals = detect_exit_signals(sharp_rows, trades_by_wallet)
+    print_exit_signals(exit_signals, market_titles)
+
+    contrarian_signals = contrarian_edge(sharp_rows, open_enriched)
+    print_contrarian_signals(contrarian_signals)
+
+    # ── 9. Copy signals (with Kelly sizing) ───────────────────────────────────
+    print("\n[9/9] Building copy-trade signals (with Kelly sizing)...")
+
+    # Deduplicate sybils from signal sources
+    mp_clean  = deduplicate_sybil_signals(mp_wallets, sybil_clusters)
+    t50_clean = deduplicate_sybil_signals(top50, sybil_clusters)
 
     # Primary: multi-period wallets (highest confidence)
-    mp_signals = build_copy_signals(mp_wallets, open_enriched, label="multi_period")
+    mp_signals = build_copy_signals(mp_clean, open_enriched, label="multi_period")
     mp_signals = allocate_budget(mp_signals, COPY_BUDGET)
+    mp_signals = allocate_budget_kelly(mp_signals, COPY_BUDGET)
 
     # Fallback: top-50 profitable active wallets
-    t50_signals = build_copy_signals(top50, open_enriched, label="top50_profitable")
+    t50_signals = build_copy_signals(t50_clean, open_enriched, label="top50_profitable")
     t50_signals = allocate_budget(t50_signals, COPY_BUDGET)
+    t50_signals = allocate_budget_kelly(t50_signals, COPY_BUDGET)
 
     if mp_signals:
         print_copy_signals(mp_signals, source_label="Multi-Period Consistent Wallets (★ primary)")
@@ -1157,12 +1658,24 @@ def main():
     elif not mp_signals:
         print_market_strategy(open_enriched)
 
-    # Save signals
+    # Save signals (including new analysis)
     all_signals = mp_signals + [s for s in t50_signals if s not in mp_signals]
     with open("copy_signals.json", "w") as f:
         json.dump(all_signals, f, indent=2, default=str)
     print(f"\nSignals saved → copy_signals.json  "
-          f"({len(mp_signals)} multi-period  |  {len(t50_signals)} top-50)\n")
+          f"({len(mp_signals)} multi-period  |  {len(t50_signals)} top-50)")
+
+    # Save advanced analysis
+    advanced = {
+        "generated_at":         now_str,
+        "sybil_clusters":       sybil_clusters,
+        "convergence_events":   convergence_events,
+        "exit_signals":         exit_signals,
+        "contrarian_signals":   contrarian_signals,
+    }
+    with open("advanced_signals.json", "w") as f:
+        json.dump(advanced, f, indent=2, default=str)
+    print("Advanced analysis saved → advanced_signals.json\n")
 
     # Always show market overview at end
     print_market_strategy(open_enriched)
