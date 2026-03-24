@@ -497,20 +497,25 @@
     border-radius:14px; padding:20px 24px; }
   .adv-title { font-size:1rem; font-weight:800; margin-bottom:4px; }
   .adv-sub { font-size:0.78rem; color:var(--muted); margin-bottom:14px; line-height:1.5; }
-  .adv-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px,1fr)); gap:14px; }
-  .adv-card { background:rgba(0,0,0,.25); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
-  .adv-card-title { font-size:0.82rem; font-weight:700; margin-bottom:6px; }
-  .adv-card-stat { font-size:0.75rem; color:var(--muted); margin-bottom:3px; }
+  .adv-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:12px; }
+  .adv-card { background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.13);
+    border-left-width:3px; border-radius:10px; padding:14px 16px; }
+  .adv-card.sybil-card      { border-left-color:var(--red); }
+  .adv-card.convergence-card{ border-left-color:var(--accent); }
+  .adv-card.exit-card        { border-left-color:var(--yellow); }
+  .adv-card.contrarian-card  { border-left-color:var(--green); }
+  .adv-card-title { font-size:0.82rem; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:8px; }
+  .adv-card-stat { font-size:0.75rem; color:var(--muted); margin-bottom:4px; }
   .adv-card-stat span { color:var(--text); font-weight:700; }
-  .adv-badge { display:inline-block; font-size:0.62rem; font-weight:800; letter-spacing:0.5px;
-    text-transform:uppercase; border-radius:4px; padding:2px 7px; }
-  .adv-badge.sybil { background:rgba(239,68,68,.12); color:var(--red); }
-  .adv-badge.convergence { background:rgba(0,245,255,.12); color:var(--accent); }
-  .adv-badge.exit { background:rgba(255,214,10,.12); color:var(--yellow); }
-  .adv-badge.contrarian { background:rgba(0,255,136,.12); color:var(--green); }
-  .adv-wallets { font-size:0.72rem; color:var(--muted); margin-top:6px; font-family:monospace; }
-  .strength-bar { display:inline-block; height:8px; border-radius:4px; background:var(--accent); }
-  .strength-bg { display:inline-block; height:8px; border-radius:4px; background:rgba(255,255,255,.06); width:80px; }
+  .adv-badge { display:inline-block; font-size:0.6rem; font-weight:800; letter-spacing:0.6px;
+    text-transform:uppercase; border-radius:4px; padding:2px 8px; }
+  .adv-badge.sybil       { background:rgba(239,68,68,.18); color:var(--red); }
+  .adv-badge.convergence { background:rgba(0,245,255,.18); color:var(--accent); }
+  .adv-badge.exit        { background:rgba(255,214,10,.18); color:var(--yellow); }
+  .adv-badge.contrarian  { background:rgba(0,255,136,.18); color:var(--green); }
+  .adv-wallets { font-size:0.71rem; color:var(--muted); margin-top:8px; font-family:monospace; line-height:1.6; }
+  .strength-bar { display:inline-block; height:6px; border-radius:3px; background:var(--accent); vertical-align:middle; }
+  .strength-bg  { display:inline-block; height:6px; border-radius:3px; background:rgba(255,255,255,.08); width:80px; vertical-align:middle; margin:0 6px; }
   .edge-bar-pos { background:var(--green); }
   .edge-bar-neg { background:var(--red); }
 
@@ -1579,7 +1584,7 @@ function buildSybilPanel() {
     return;
   }
   grid.innerHTML = entries.map(([cid, wallets]) => `
-    <div class="adv-card">
+    <div class="adv-card sybil-card">
       <div class="adv-card-title"><span class="adv-badge sybil">SYBIL</span> Cluster ${cid.replace('sybil_','#')}</div>
       <div class="adv-card-stat">${wallets.length} wallets — likely same entity</div>
       <div class="adv-card-stat">Best kept: <span>${wallets.sort((a,b)=>b.ev_score-a.ev_score)[0].address}</span></div>
@@ -1612,7 +1617,7 @@ function buildConvergencePanel() {
   grid.innerHTML = events.map(e => {
     const pct = Math.min(100, e.count * 10);
     return `
-    <div class="adv-card">
+    <div class="adv-card convergence-card">
       <div class="adv-card-title"><span class="adv-badge convergence">CONVERGENCE</span> ${e.count} independent wallets</div>
       <div class="adv-card-stat" style="margin-bottom:8px;">${e.market.title.slice(0,60)}</div>
       <div class="adv-card-stat">Strength: <div class="strength-bg"><div class="strength-bar" style="width:${pct}%"></div></div> ${e.count} wallets</div>
@@ -1646,7 +1651,7 @@ function buildExitPanel() {
     const urg = e.urgency > 5 ? 'HIGH' : e.urgency > 2 ? 'MEDIUM' : 'LOW';
     const urgColor = e.urgency > 5 ? 'var(--red)' : e.urgency > 2 ? 'var(--yellow)' : 'var(--muted)';
     return `
-    <div class="adv-card">
+    <div class="adv-card exit-card">
       <div class="adv-card-title"><span class="adv-badge exit">EXIT</span> <span style="color:${urgColor}">${urg} urgency</span></div>
       <div class="adv-card-stat" style="margin-bottom:8px;">${e.market.title.slice(0,60)}</div>
       <div class="adv-card-stat">${e.sellers.length} sharp wallets selling</div>
@@ -1689,7 +1694,7 @@ function buildContrarianPanel() {
     const barW = Math.min(100, s.absEdge * 200);
     const barCls = s.edge > 0 ? 'edge-bar-pos' : 'edge-bar-neg';
     return `
-    <div class="adv-card">
+    <div class="adv-card contrarian-card">
       <div class="adv-card-title"><span class="adv-badge contrarian">${s.direction}</span> ${s.edge>0?'+':''}${edgePct}pp edge</div>
       <div class="adv-card-stat" style="margin-bottom:8px;">${s.market.title.slice(0,60)}</div>
       <div class="adv-card-stat">Crowd: <span>${(s.crowdProb*100).toFixed(0)}%</span> vs Smart Money: <span style="color:${color}">${(s.smartProb*100).toFixed(0)}%</span></div>
