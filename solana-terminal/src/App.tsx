@@ -1,3 +1,4 @@
+import { useState, lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { SolanaWalletProvider } from './providers/WalletProvider'
@@ -12,18 +13,26 @@ import { Portfolio } from './components/Portfolio/Portfolio'
 import { TradesFeed } from './components/Trades/TradesFeed'
 import { HolderAnalysis } from './components/Holders/HolderAnalysis'
 import { WalletTracker } from './components/WalletTracker/WalletTracker'
-import { PerpetualsPage } from './components/Pages/PerpetualsPage'
-import { YieldPage } from './components/Pages/YieldPage'
-import VisionPage from './components/Pages/VisionPage'
-import RewardsPage from './components/Pages/RewardsPage'
-import { CopyTradePage } from './components/CopyTrade/CopyTradePage'
 import { useTerminalStore } from './store/terminalStore'
 import type { RightTab } from './store/terminalStore'
 import { Zap, BarChart2, Users, Clock, Wallet, Search } from 'lucide-react'
 import clsx from 'clsx'
 
+// Lazy-load heavy pages to reduce initial bundle size
+const PerpetualsPage = lazy(() => import('./components/Pages/PerpetualsPage').then(m => ({ default: m.PerpetualsPage })))
+const YieldPage      = lazy(() => import('./components/Pages/YieldPage').then(m => ({ default: m.YieldPage })))
+const VisionPage     = lazy(() => import('./components/Pages/VisionPage'))
+const RewardsPage    = lazy(() => import('./components/Pages/RewardsPage'))
+const CopyTradePage  = lazy(() => import('./components/CopyTrade/CopyTradePage').then(m => ({ default: m.CopyTradePage })))
+
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 2, refetchOnWindowFocus: false } },
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      refetchOnWindowFocus: false,
+      gcTime: 5 * 60 * 1000, // keep cache 5 min
+    },
+  },
 })
 
 const RIGHT_TABS: { id: RightTab; label: string; icon: React.ReactNode }[] = [
@@ -32,6 +41,15 @@ const RIGHT_TABS: { id: RightTab; label: string; icon: React.ReactNode }[] = [
   { id: 'holders', label: 'Holders', icon: <Users size={11} /> },
   { id: 'trades',  label: 'Trades',  icon: <Clock size={11} /> },
 ]
+
+function PageFallback() {
+  return (
+    <div className="flex flex-1 items-center justify-center text-text-muted text-xs">
+      <div className="w-4 h-4 border-2 border-green-DEFAULT/30 border-t-green-DEFAULT rounded-full animate-spin mr-2" />
+      Loading…
+    </div>
+  )
+}
 
 function RightPanel() {
   const { rightTab, setRightTab } = useTerminalStore()
@@ -70,8 +88,8 @@ function TrackersTabs() {
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex border-b border-ax-border px-4 shrink-0">
         {([
-          { id: 'wallets', label: 'Wallet Tracker', icon: <Wallet size={11} /> },
-          { id: 'copytrading', label: 'Copy Trading', icon: <Search size={11} /> },
+          { id: 'wallets',     label: 'Wallet Tracker', icon: <Wallet size={11} /> },
+          { id: 'copytrading', label: 'Copy Trading',   icon: <Search size={11} /> },
         ] as const).map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={clsx('scan-tab flex items-center gap-1.5', tab === t.id && 'active')}>
@@ -80,37 +98,36 @@ function TrackersTabs() {
         ))}
       </div>
       <div className="flex-1 overflow-hidden">
-        <WalletTracker />
+        {tab === 'wallets' ? (
+          <WalletTracker />
+        ) : (
+          <Suspense fallback={<PageFallback />}>
+            <CopyTradePage />
+          </Suspense>
+        )}
       </div>
     </div>
   )
 }
 
-// Need useState for TrackersTabs
-import { useState } from 'react'
-
 function DiscoverView() {
   const { selectedPair } = useTerminalStore()
   return (
     <div className="flex flex-1 overflow-hidden">
-      {/* Scanner or chart depending on selection */}
       {!selectedPair ? (
         <div className="flex-1 overflow-hidden">
           <TokenScanner />
         </div>
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          {/* Left: scanner (narrow) */}
           <div className="hidden xl:flex w-64 2xl:w-72 shrink-0 border-r border-ax-border overflow-hidden">
             <TokenScanner />
           </div>
-          {/* Center: chart */}
           <div className="flex-1 flex flex-col overflow-hidden min-w-0">
             <TradingChart />
           </div>
         </div>
       )}
-      {/* Right panel */}
       {selectedPair && <RightPanel />}
     </div>
   )
@@ -119,15 +136,35 @@ function DiscoverView() {
 function MainContent() {
   const { pageView } = useTerminalStore()
   switch (pageView) {
-    case 'discover':    return <DiscoverView />
-    case 'pulse':       return <div className="flex flex-1 overflow-hidden"><TokenScanner /></div>
-    case 'trackers':    return <div className="flex-1 overflow-hidden"><TrackersTabs /></div>
-    case 'copytrade':   return <div className="flex-1 overflow-hidden"><CopyTradePage /></div>
-    case 'perpetuals':  return <div className="flex-1 overflow-hidden"><PerpetualsPage /></div>
-    case 'yield':       return <div className="flex-1 overflow-hidden"><YieldPage /></div>
-    case 'vision':      return <div className="flex-1 overflow-hidden"><VisionPage /></div>
-    case 'rewards':     return <div className="flex-1 overflow-hidden"><RewardsPage /></div>
-    case 'portfolio':   return (
+    case 'discover':   return <DiscoverView />
+    case 'pulse':      return <div className="flex flex-1 overflow-hidden"><TokenScanner /></div>
+    case 'trackers':   return <div className="flex-1 overflow-hidden"><TrackersTabs /></div>
+    case 'copytrade':  return (
+      <div className="flex-1 overflow-hidden">
+        <Suspense fallback={<PageFallback />}><CopyTradePage /></Suspense>
+      </div>
+    )
+    case 'perpetuals': return (
+      <div className="flex-1 overflow-hidden">
+        <Suspense fallback={<PageFallback />}><PerpetualsPage /></Suspense>
+      </div>
+    )
+    case 'yield':      return (
+      <div className="flex-1 overflow-hidden">
+        <Suspense fallback={<PageFallback />}><YieldPage /></Suspense>
+      </div>
+    )
+    case 'vision':     return (
+      <div className="flex-1 overflow-hidden">
+        <Suspense fallback={<PageFallback />}><VisionPage /></Suspense>
+      </div>
+    )
+    case 'rewards':    return (
+      <div className="flex-1 overflow-hidden">
+        <Suspense fallback={<PageFallback />}><RewardsPage /></Suspense>
+      </div>
+    )
+    case 'portfolio':  return (
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 overflow-hidden"><Portfolio /></div>
         <RightPanel />

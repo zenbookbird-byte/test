@@ -20,6 +20,7 @@ export function LeftSidebar() {
   const { data: solBal = 0 } = useSOLBalance()
   const { data: tokens } = useWalletTokens()
   const [chatInput, setChatInput] = useState('')
+  const [onlineCount] = useState(() => 7200 + Math.floor(Math.random() * 100))
   const [msgs, setMsgs] = useState<ChatMsg[]>(DEMO_MSGS)
   const [, setCopied] = useState(false)
 
@@ -130,7 +131,7 @@ export function LeftSidebar() {
         <div className="flex items-center gap-1.5 px-3 py-2 border-b border-ax-border">
           <MessageCircle size={11} className="text-text-muted" />
           <span className="text-2xs font-semibold text-text-muted uppercase tracking-wider">Community</span>
-          <span className="ml-auto text-2xs text-green-DEFAULT">● {7200 + Math.floor(Math.random() * 100)} online</span>
+          <span className="ml-auto text-2xs text-green-DEFAULT">● {onlineCount} online</span>
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
           {msgs.map(m => (

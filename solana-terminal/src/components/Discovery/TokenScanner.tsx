@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, memo } from 'react'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { useConnection } from '@solana/wallet-adapter-react'
 import { VersionedTransaction } from '@solana/web3.js'
@@ -234,7 +234,7 @@ export function TokenScanner() {
   )
 }
 
-function TokenRow({ pair, idx, selected, watched, onSelect, onWatch, onQuickBuy, isQuickBuying }: {
+const TokenRow = memo(function TokenRow({ pair, idx, selected, watched, onSelect, onWatch, onQuickBuy, isQuickBuying }: {
   pair: TokenPair; idx: number; selected: boolean; watched: boolean
   onSelect: (p: TokenPair) => void; onWatch: (a: string) => void
   onQuickBuy: (p: TokenPair, e: React.MouseEvent) => void; isQuickBuying: boolean
@@ -273,7 +273,7 @@ function TokenRow({ pair, idx, selected, watched, onSelect, onWatch, onQuickBuy,
       <div className="flex items-center gap-2 px-3 py-2 min-w-0">
         <div className="relative shrink-0">
           {pair.info?.imageUrl && !imgErr
-            ? <img src={pair.info.imageUrl} alt="" width={32} height={32} className="rounded-full object-cover" onError={() => setImgErr(true)} />
+            ? <img src={pair.info.imageUrl} alt="" width={32} height={32} loading="lazy" className="rounded-full object-cover" onError={() => setImgErr(true)} />
             : <div className="w-8 h-8 rounded-full bg-ax-card border border-ax-border flex items-center justify-center text-xs font-bold text-text-primary">
                 {pair.baseToken.symbol[0]}
               </div>
@@ -394,7 +394,15 @@ function TokenRow({ pair, idx, selected, watched, onSelect, onWatch, onQuickBuy,
       </div>
     </div>
   )
-}
+}, (prev, next) =>
+  prev.pair.pairAddress === next.pair.pairAddress &&
+  prev.pair.priceUsd === next.pair.priceUsd &&
+  prev.pair.volume?.h24 === next.pair.volume?.h24 &&
+  prev.pair.liquidity?.usd === next.pair.liquidity?.usd &&
+  prev.selected === next.selected &&
+  prev.watched === next.watched &&
+  prev.isQuickBuying === next.isQuickBuying
+)
 
 function FilterInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   return (

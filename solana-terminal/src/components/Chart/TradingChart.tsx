@@ -84,7 +84,7 @@ export function TradingChart() {
           <div className="relative flex-1 min-h-0">
             {embedUrl ? (
               <iframe
-                key={embedUrl}
+                key={selectedPair?.pairAddress}
                 src={embedUrl}
                 className="absolute inset-0 w-full h-full border-0"
                 title="DexScreener Chart"

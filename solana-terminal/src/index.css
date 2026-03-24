@@ -154,6 +154,7 @@ body {
 }
 .perp-execute-long:hover { box-shadow: 0 0 24px #00d08440; transform: translateY(-1px); }
 .perp-execute-long:active { transform: translateY(0); }
+.perp-execute-long, .perp-execute-short { will-change: transform; }
 
 .perp-execute-short {
   width: 100%;
@@ -264,8 +265,8 @@ body {
 }
 
 /* Price flash */
-.price-flash-up   { animation: flashUp 0.5s ease-out; }
-.price-flash-down { animation: flashDown 0.5s ease-out; }
+.price-flash-up   { animation: flashUp 0.5s ease-out; will-change: color; }
+.price-flash-down { animation: flashDown 0.5s ease-out; will-change: color; }
 @keyframes flashUp   { 0% { color: #00d084; } 100% { color: inherit; } }
 @keyframes flashDown { 0% { color: #ff3b5c; } 100% { color: inherit; } }
 
@@ -280,6 +281,7 @@ body {
   transition: opacity 0.1s, transform 0.1s;
   white-space: nowrap;
 }
+.btn-buy { will-change: transform; }
 .btn-buy:hover { opacity: 0.88; transform: scale(1.02); }
 .btn-buy:active { transform: scale(0.97); }
 
@@ -338,8 +340,8 @@ body {
 .ax-input::placeholder { color: #2e3450; }
 
 /* ── Animations ── */
-.flash-green { animation: rowFlashGreen 0.8s ease-out; }
-.flash-red   { animation: rowFlashRed 0.8s ease-out; }
+.flash-green { animation: rowFlashGreen 0.8s ease-out; will-change: background; }
+.flash-red   { animation: rowFlashRed 0.8s ease-out; will-change: background; }
 @keyframes rowFlashGreen { 0% { background: #00d08418; } 100% { background: transparent; } }
 @keyframes rowFlashRed   { 0% { background: #ff3b5c18; } 100% { background: transparent; } }
 

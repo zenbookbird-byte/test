@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import type { TokenPair } from '../../types'
 
 interface Props {
@@ -12,10 +13,8 @@ function generatePoints(pair: TokenPair): number[] {
   const c6h  = pair.priceChange?.h6  ?? 0
   const c24h = pair.priceChange?.h24 ?? 0
 
-  // 8 synthetic data points going left→right (old→new)
-  // We reconstruct a rough price path from cumulative changes
   const base = 100
-  const p = [
+  return [
     base,
     base + c24h * 0.15,
     base + c24h * 0.35,
@@ -26,35 +25,35 @@ function generatePoints(pair: TokenPair): number[] {
     base + c5m  * 2,
     base + c5m  * 2.5,
   ]
-  return p
 }
 
-export function Sparkline({ pair, width = 80, height = 28 }: Props) {
-  const points = generatePoints(pair)
-  const min = Math.min(...points)
-  const max = Math.max(...points)
-  const range = Math.max(max - min, 0.001)
-  const c24h = pair.priceChange?.h24 ?? 0
-  const color = c24h >= 0 ? '#16c784' : '#ea3943'
+export const Sparkline = memo(function Sparkline({ pair, width = 80, height = 28 }: Props) {
+  const { d, fillD, color, fillId } = useMemo(() => {
+    const points = generatePoints(pair)
+    const min = Math.min(...points)
+    const max = Math.max(...points)
+    const range = Math.max(max - min, 0.001)
+    const c24h = pair.priceChange?.h24 ?? 0
+    const col = c24h >= 0 ? '#16c784' : '#ea3943'
 
-  // Map to SVG coords
-  const pts = points.map((v, i) => ({
-    x: (i / (points.length - 1)) * width,
-    y: height - ((v - min) / range) * (height - 4) - 2,
-  }))
+    const pts = points.map((v, i) => ({
+      x: (i / (points.length - 1)) * width,
+      y: height - ((v - min) / range) * (height - 4) - 2,
+    }))
 
-  // Build smooth bezier path
-  let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
-  for (let i = 1; i < pts.length; i++) {
-    const p0 = pts[i - 1]
-    const p1 = pts[i]
-    const cpx = (p0.x + p1.x) / 2
-    d += ` C ${cpx.toFixed(1)} ${p0.y.toFixed(1)} ${cpx.toFixed(1)} ${p1.y.toFixed(1)} ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`
-  }
+    let path = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
+    for (let i = 1; i < pts.length; i++) {
+      const p0 = pts[i - 1]
+      const p1 = pts[i]
+      const cpx = (p0.x + p1.x) / 2
+      path += ` C ${cpx.toFixed(1)} ${p0.y.toFixed(1)} ${cpx.toFixed(1)} ${p1.y.toFixed(1)} ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`
+    }
 
-  // Fill path (close back to baseline)
-  const fillD = `${d} L ${pts[pts.length - 1].x} ${height} L 0 ${height} Z`
-  const fillId = `spark-${pair.pairAddress.slice(0, 8)}`
+    const fill = `${path} L ${pts[pts.length - 1].x} ${height} L 0 ${height} Z`
+    const id = `spark-${pair.pairAddress.slice(0, 8)}`
+
+    return { d: path, fillD: fill, color: col, fillId: id }
+  }, [pair.pairAddress, pair.priceChange?.m5, pair.priceChange?.h1, pair.priceChange?.h6, pair.priceChange?.h24, width, height])
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} fill="none" className="overflow-visible">
@@ -68,4 +67,4 @@ export function Sparkline({ pair, width = 80, height = 28 }: Props) {
       <path d={d} stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
-}
+})

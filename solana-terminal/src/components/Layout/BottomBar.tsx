@@ -9,7 +9,8 @@ export function BottomBar() {
   const { activePreset, setActivePreset, pageView, setPageView } = useTerminalStore()
   const { connected } = useWallet()
   const [solPrice, setSolPrice] = useState<number | null>(null)
-  const [tps, setTps] = useState(Math.floor(2800 + Math.random() * 800))
+  const [tps, setTps] = useState(() => Math.floor(2800 + Math.random() * 800))
+  const [onlineUsers] = useState(() => 728000 + Math.floor(Math.random() * 1000))
   const [ethPrice] = useState(3840)
   const [btcPrice] = useState(97420)
   const [region] = useState('EU-C')
@@ -108,7 +109,7 @@ export function BottomBar() {
         {/* Online users */}
         <div className="hidden md:flex items-center gap-1 border-r border-ax-border pr-2">
           <span className="w-1.5 h-1.5 rounded-full bg-green-DEFAULT" />
-          <span className="font-mono">{(728000 + Math.floor(Math.random() * 1000)).toLocaleString()}</span>
+          <span className="font-mono">{onlineUsers.toLocaleString()}</span>
         </div>
 
         {/* Region */}

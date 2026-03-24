@@ -21,4 +21,16 @@ export default defineConfig({
   optimizeDeps: {
     include: ['buffer', 'process'],
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/@solana')) return 'vendor-solana'
+          if (id.includes('node_modules/@tanstack')) return 'vendor-query'
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) return 'vendor-react'
+        },
+      },
+    },
+  },
 })
