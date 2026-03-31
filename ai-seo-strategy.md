@@ -134,6 +134,96 @@ Optimize content to be cited by AI chatbots (ChatGPT, Perplexity, Google AI Over
 
 ---
 
+## BioRegWiki.com — New Domain Launch Plan
+
+### Site Profile
+- **Domain:** bioregwiki.com
+- **Niche:** Biotech regulatory (FDA, EMA, EU MDR, 510(k), IVD, ATMP, etc.)
+- **Format:** Wiki-style knowledge base
+- **Status:** Brand new domain (not yet indexed)
+
+### Competitors to Study
+| Competitor | What They Do | What to Steal |
+|-----------|-------------|---------------|
+| bioreg-advice.com | ATMP regulatory consultancy | Their topic list (gene therapy, cell therapy, tissue engineering) |
+| bioregservices.com | Medical device regulatory affairs | Startup-focused content angles |
+| bioreghub.com | AI-powered regulatory intelligence | Their keyword targets (FDA guidelines, regulatory data) |
+| bioregistry.io | Open source bio-registry | Technical/data-driven content approach |
+
+### Week-by-Week Launch Plan
+
+#### Week 1: Foundation (Cost: $0)
+- [ ] Verify DNS is propagated and site loads for all visitors (fix 403 errors)
+- [ ] Check robots.txt allows Googlebot, Bingbot, and AI crawlers (GPTBot, ClaudeBot, PerplexityBot)
+- [ ] Set up Google Search Console — verify domain, submit sitemap.xml
+- [ ] Set up Bing Webmaster Tools + IndexNow
+- [ ] Set up GA4 for traffic tracking
+- [ ] Write and publish 5 cornerstone pages:
+  - "What is FDA 510(k)?" — high search volume, foundational
+  - "EU MDR Classification Rules Explained" — EU traffic, underserved
+  - "ATMP Regulatory Pathway: Complete Guide" — niche authority builder
+  - "IVD Regulation (IVDR) Overview" — growing search demand
+  - "Biotech Regulatory Glossary A-Z" — link magnet, long-tail traffic
+- [ ] Add FAQ schema to every page using Merkle Schema Generator (free)
+
+#### Week 2: Content Expansion (Cost: ~$5 Claude API)
+- [ ] Write 5 more pages targeting long-tail queries:
+  - "FDA vs EMA Approval Process Comparison"
+  - "How to Write a 510(k) Submission"
+  - "EU MDR vs MDD: Key Differences"
+  - "Biotech Startup Regulatory Checklist"
+  - "Clinical Trial Phases Explained (Phase I-IV)"
+- [ ] Build internal links between all wiki pages (hub-and-spoke model)
+- [ ] Submit all new URLs via Google Search Console URL Inspection tool
+- [ ] Ping IndexNow after each publish
+
+#### Week 3: Optimization Start (Cost: $29/mo — Ahrefs Starter)
+- [ ] Sign up for Ahrefs Starter ($29/mo)
+- [ ] Run competitor keyword analysis on bioreg-advice.com, bioregservices.com, bioreghub.com
+- [ ] Export their top 50 ranking keywords — prioritize by: low difficulty + high intent
+- [ ] Plan next 10 articles based on keyword gaps competitors rank for but you don't
+- [ ] Check Google Search Console for first impressions/crawl data
+
+#### Week 4: Content Quality Push (Cost: +$15/mo — Frase Solo)
+- [ ] Sign up for Frase Solo ($15/mo)
+- [ ] Run each existing page through Frase SERP analysis — add missing semantic terms
+- [ ] Publish 5 new keyword-gap articles optimized with Frase from day one
+- [ ] Start building topical clusters:
+  - Cluster 1: FDA Pathways (510(k), PMA, De Novo, EUA)
+  - Cluster 2: EU Regulations (MDR, IVDR, ATMP)
+  - Cluster 3: Biotech Startup Guides (funding, regulatory strategy, clinical trials)
+
+#### Month 2-3: Growth Phase (Cost: $44/mo total)
+- [ ] Target 30+ indexed pages
+- [ ] Monitor GSC for rising keywords — double down on what's working
+- [ ] Add "People Also Ask" content sections to top-performing pages (use AlsoAsked free tier)
+- [ ] Start outreach: comment on biotech forums, LinkedIn, Reddit r/biotech with helpful links
+- [ ] Apply for Google News inclusion if publishing timely regulatory updates
+- [ ] Optimize for AI citations (Perplexity, ChatGPT) — add quotable definitions, cite sources
+
+#### Month 4+: Scale (Upgrade when revenue justifies it)
+- [ ] Upgrade Ahrefs to Lite ($129/mo) when you need deeper backlink analysis
+- [ ] Upgrade Frase to Basic + AI add-on ($80/mo) when content volume increases
+- [ ] Consider Screaming Frog paid (£199/yr) once site exceeds 500 pages
+- [ ] Start link building with Postaga free tier (3 campaigns)
+
+### Budget Timeline
+
+| Period | Monthly Cost | Tools |
+|--------|-------------|-------|
+| Week 1-2 | $0 | GSC, GA4, Bing Webmaster, IndexNow, Merkle, Claude free tier |
+| Week 3 | $29/mo | + Ahrefs Starter |
+| Week 4+ | $44/mo | + Frase Solo |
+| Month 4+ | $80-175/mo | Upgraded Ahrefs + Frase (when revenue supports it) |
+
+### Why BioRegWiki Will Win
+1. **Wiki format = SEO gold** — internal links, topical depth, long-tail coverage
+2. **Niche is underserved** — competitors are consultancy brochures, not actual educational content
+3. **High-value audience** — biotech professionals, startups, investors = premium ad/affiliate/consulting revenue
+4. **AI-citation friendly** — clear definitions and structured data get cited by ChatGPT/Perplexity
+
+---
+
 ## Key Metric: What to Track
 
 | Metric | Tool | Why It Matters |
