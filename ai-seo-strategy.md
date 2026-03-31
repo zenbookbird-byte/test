@@ -38,6 +38,57 @@
 
 ---
 
+## Pricing Breakdown (All Tools)
+
+### Content Creation & Optimization
+
+| Tool | Starter/Entry | Mid-Tier | Top-Tier | Billing |
+|------|--------------|----------|----------|---------|
+| **Surfer SEO** | $99/mo (Essential, 30 credits) | $219/mo (Scale, 100 credits) | Custom (Enterprise) | Monthly or annual (save ~20%) |
+| **Clearscope** | $189/mo (Essentials, 1 user, 20 reports) | $350/mo (Professional, 3+ users, 50+ reports) | Custom (Enterprise) | Monthly |
+| **MarketMuse** | Free (limited) / $99/mo (Optimize) | $249/mo (Research, 500 topics) | $499/mo (Strategy, 10K topics) | Monthly |
+| **Frase** | $15/mo (Solo, 4 articles) | $45/mo (Basic, 15 projects) | $115/mo (Team, unlimited articles, 3 users) | Monthly or annual (save ~15%) |
+
+> **Note:** Frase's AI writing add-on is +$35/mo on any plan for unlimited AI content.
+
+### Keyword & Competitor Intelligence
+
+| Tool | Starter/Entry | Mid-Tier | Top-Tier | Billing |
+|------|--------------|----------|----------|---------|
+| **Semrush** | $140/mo (Pro, 5 projects, 500 keywords) | $250/mo (Guru, 15 projects, 1,500 keywords) | $500/mo (Business, 40 projects, 5K keywords) | Monthly or annual (save 17%) |
+| **Ahrefs** | $29/mo (Starter) / $129/mo (Lite, 5 projects) | $249/mo (Standard, 20 projects) | $449/mo (Advanced) / $1,499/mo (Enterprise) | Monthly or annual (save ~17%) |
+| **AlsoAsked** | $15/mo (Basic, 100 searches) | $29/mo (Lite, 300 searches + CSV) | $59/mo (Pro, API access) | Monthly |
+| **AnswerThePublic** | Free (limited searches) | ~$133/mo annual ($1,592/yr) | Custom | Monthly or annual (save up to 71%) |
+
+> **Note:** Ahrefs extras: +$40-80/mo per additional user, +$50/mo daily rank tracking, +$99/mo AI content tools.
+
+### Technical SEO & Site Performance
+
+| Tool | Starter/Entry | Mid-Tier | Top-Tier | Billing |
+|------|--------------|----------|----------|---------|
+| **Screaming Frog** | Free (up to 500 URLs) | £199/yr (~$225/yr) per licence (unlimited) | Bulk discounts for 5+ licences | Annual |
+| **Sitebulb** | $14/mo (Lite, 10K pages) | $35/mo (Pro, 500K pages) | £195+/mo (Cloud, 10M pages) | Monthly or annual |
+| **IndexNow** | Free | Free | Free | N/A |
+
+### AI-Powered Link Building
+
+| Tool | Starter/Entry | Mid-Tier | Top-Tier | Billing |
+|------|--------------|----------|----------|---------|
+| **Postaga** | Free (3 campaigns) | $99/mo (Pro, 5 users, 2K contacts) | $299/mo (Agency, 30 accounts, 15K contacts) | Monthly or annual (save ~15%) |
+| **Respona** | $198/mo (Starter, 2 email accounts) | $495/mo (Pro, 5 email accounts) | $799/mo (Unlimited) | Monthly |
+
+### Search Experience Optimization (GEO/AEO)
+
+| Tool | Starter/Entry | Mid-Tier | Top-Tier | Billing |
+|------|--------------|----------|----------|---------|
+| **Claude API (Anthropic)** | Haiku 4.5: $1/$5 per 1M tokens (in/out) | Sonnet 4.6: $3/$15 per 1M tokens | Opus 4.6: $5/$25 per 1M tokens | Pay-per-use (50% off with Batch API) |
+| **Schema Pro** | $67-79/yr (annual licence) | $249 (lifetime licence) | — | Annual or one-time |
+| **Merkle Schema Generator** | Free | Free | Free | N/A |
+
+> **Tip:** Claude API costs can be cut up to 95% by combining prompt caching (90% savings) + Batch API (50% off).
+
+---
+
 ## Recommended Stack (Budget-Tiered)
 
 ### Starter ($0-50/mo)
