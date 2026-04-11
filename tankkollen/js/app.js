@@ -313,6 +313,14 @@
   /* -------------------- Map -------------------- */
 
   function initMap() {
+    if (typeof L === "undefined") {
+      console.warn("Leaflet not available — map disabled");
+      const el = document.getElementById("map");
+      if (el)
+        el.innerHTML =
+          '<div class="empty-state" style="padding:4rem 2rem"><strong>Karta otillgänglig</strong>Kartbiblioteket kunde inte laddas.</div>';
+      return;
+    }
     const map = L.map("map", {
       center: [62.0, 15.5], // Center of Sweden
       zoom: 5,
@@ -334,7 +342,7 @@
   }
 
   function renderMarkers() {
-    if (!state.markerLayer) return;
+    if (!state.markerLayer || typeof L === "undefined") return;
     state.markerLayer.clearLayers();
     state.markers.clear();
 

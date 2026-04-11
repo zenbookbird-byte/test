@@ -2,7 +2,7 @@
  * Enables offline use and app-shell caching for PWA install.
  */
 
-const CACHE = "tankkollen-v2";
+const CACHE = "tankkollen-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,6 +13,8 @@ const ASSETS = [
   "./js/app.js",
   "./js/desktop.js",
   "./js/stations.js",
+  "./vendor/leaflet/leaflet.css",
+  "./vendor/leaflet/leaflet.js",
   "./icons/icon.svg",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

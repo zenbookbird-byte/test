@@ -352,6 +352,14 @@
   /* -------------------- Map -------------------- */
 
   function initMap() {
+    if (typeof L === "undefined") {
+      console.warn("Leaflet not available — map disabled");
+      const el = document.getElementById("dkMap");
+      if (el)
+        el.innerHTML =
+          '<div class="empty-state" style="padding:4rem 2rem"><strong>Karta otillgänglig</strong>Kartbiblioteket kunde inte laddas.</div>';
+      return;
+    }
     const map = L.map("dkMap", {
       center: [62.0, 15.5],
       zoom: 5,
@@ -372,7 +380,7 @@
   }
 
   function renderMarkers() {
-    if (!state.markerLayer) return;
+    if (!state.markerLayer || typeof L === "undefined") return;
     state.markerLayer.clearLayers();
     state.markers.clear();
     if (state.filtered.length === 0) return;

@@ -32,8 +32,10 @@
   --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 30px var(--primary-glow);
 
-  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
 }
 
 [data-theme="light"] {
