@@ -139,6 +139,60 @@
       </section>
 
       <!-- ============================================================
+           NORDIC HEATMAP (Nordics-only, fuel-prices.eu/heatmap inspired)
+           ============================================================ -->
+      <section class="dk-section dk-heatmap">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Norden · 4 länder · 52 veckor</div>
+              <h2 class="section-title">Prisvärme i Norden</h2>
+              <p class="section-sub">
+                Veckobaserad prisutveckling för Norge, Danmark, Sverige
+                och Finland under det senaste året, normaliserat till
+                EUR per liter för rättvis jämförelse. Tryck play för att
+                spela upp året — eller dra slidern för att hoppa till en
+                specifik vecka.
+              </p>
+            </div>
+            <div class="section-actions">
+              <div class="heatmap-fuel-tabs">
+                <button class="seg-btn active" data-hm-fuel="bensin95">Bensin 95</button>
+                <button class="seg-btn" data-hm-fuel="diesel">Diesel</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="heatmap-controls">
+            <button id="hmPlayBtn" class="hm-play-btn" aria-label="Spela upp">
+              <svg class="hm-icon-play" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="hm-icon-pause" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="display:none"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+              <span class="hm-play-label">Spela upp året</span>
+            </button>
+            <input type="range" id="hmSlider" class="hm-slider" min="0" max="51" value="51" />
+            <div class="hm-week-display">
+              <div class="hm-week-label">Vecka</div>
+              <div class="hm-week-value" id="hmWeekValue">v52 · idag</div>
+            </div>
+          </div>
+
+          <div class="heatmap-wrap">
+            <div id="dkHeatmap" class="heatmap-grid"></div>
+            <div class="heatmap-legend">
+              <div class="heatmap-legend-label">Pris (EUR/L)</div>
+              <div class="heatmap-legend-bar">
+                <span class="hm-legend-min" id="hmLegendMin">–</span>
+                <div class="hm-legend-gradient"></div>
+                <span class="hm-legend-max" id="hmLegendMax">–</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="heatmap-stats" id="dkHeatmapStats"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================
            MULTI-FUEL OVERVIEW (all 6 fuels at a glance)
            ============================================================ -->
       <section class="dk-section dk-overview">
