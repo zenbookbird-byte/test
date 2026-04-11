@@ -38,33 +38,6 @@
     ></script>
   </head>
   <body>
-    <!-- file:// fallback banner — shown only when opened by double-click.
-         Uses inline styles so it works even if the external stylesheets
-         fail to load (which is exactly the case where we need it). -->
-    <div id="fileProtoBanner"
-         style="position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(14,12,10,0.96);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#f5efe4;">
-      <div style="max-width:560px;background:#18140f;border:1px solid #40362b;border-radius:16px;padding:28px 32px;box-shadow:0 20px 60px rgba(0,0,0,0.55);">
-        <div style="font-size:1.25rem;font-weight:700;color:#d4a056;margin-bottom:12px;">Öppna Tankkollen via lokal server</div>
-        <p style="margin:0 0 16px 0;line-height:1.55;">
-          Du har öppnat sidan direkt från filsystemet. Appen behöver en lokal
-          webbserver för att ladda karta, live-priser och filter.
-        </p>
-        <p style="margin:0 0 8px 0;line-height:1.55;">Gör så här:</p>
-        <ul style="margin:0 0 16px 20px;padding:0;line-height:1.7;">
-          <li><strong>Windows:</strong> dubbelklicka på <code style="background:#2c251c;padding:2px 6px;border-radius:4px;">tankkollen/start.bat</code></li>
-          <li><strong>Mac / Linux:</strong> kör <code style="background:#2c251c;padding:2px 6px;border-radius:4px;">./tankkollen/start.sh</code> i terminalen</li>
-        </ul>
-        <p style="margin:0;font-size:0.9rem;color:#b8ac96;">
-          Kräver Python 3. Servern startar på <code style="background:#2c251c;padding:2px 6px;border-radius:4px;">http://localhost:8765</code> och webbläsaren öppnas automatiskt.
-        </p>
-      </div>
-    </div>
-    <script>
-      if (location.protocol === "file:") {
-        document.getElementById("fileProtoBanner").style.display = "flex";
-      }
-    </script>
-
     <!-- LANDING HERO -->
     <section id="landing" class="landing">
       <nav class="top-nav">
