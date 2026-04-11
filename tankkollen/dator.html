@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0A0E1A" />
+    <meta name="description" content="Tankkollen Pro - desktop dashboard för drivmedelspriser i Sverige" />
+    <title>Tankkollen Pro · Desktop Dashboard</title>
+
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+    <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/desktop.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!--
+      Google AdSense, replace ca-pub-XXXXXXXXXXXXXXXX with your
+      AdSense publisher ID after approval.
+    -->
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body class="desktop-app">
+    <!-- TOP BAR -->
+    <header class="dk-topbar">
+      <div class="dk-brand">
+        <div class="brand-mark">
+          <svg viewBox="0 0 40 40" aria-hidden="true">
+            <defs>
+              <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#00D9A3" />
+                <stop offset="100%" stop-color="#00B4FF" />
+              </linearGradient>
+            </defs>
+            <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#grad1)" />
+            <path d="M13 10h9a4 4 0 0 1 4 4v13h2v-9l-2-2v-2l3 3v12h-3v-4H13V10zm3 3v5h7v-5h-7z" fill="#0A0E1A"/>
+          </svg>
+        </div>
+        <div>
+          <div class="dk-brand-name">Tankkollen <span class="pro-tag">PRO</span></div>
+          <div class="dk-brand-sub">Desktop Dashboard</div>
+        </div>
+      </div>
+
+      <div class="dk-stats">
+        <div class="stat-card" id="statCheapest">
+          <div class="stat-label">Billigast i landet</div>
+          <div class="stat-value">–</div>
+          <div class="stat-sub">–</div>
+        </div>
+        <div class="stat-card" id="statAverage">
+          <div class="stat-label">Nationellt snitt</div>
+          <div class="stat-value">–</div>
+          <div class="stat-sub">kr/liter</div>
+        </div>
+        <div class="stat-card" id="statHighest">
+          <div class="stat-label">Dyrast i landet</div>
+          <div class="stat-value">–</div>
+          <div class="stat-sub">–</div>
+        </div>
+        <div class="stat-card" id="statTrend">
+          <div class="stat-label">Trend senaste dygnet</div>
+          <div class="stat-value">–</div>
+          <div class="stat-sub">–</div>
+        </div>
+      </div>
+
+      <div class="dk-actions">
+        <a href="index.html" class="icon-btn-text" title="Tillbaka till hemsidan">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Hem
+        </a>
+        <button id="dkThemeToggle" class="icon-btn" aria-label="Byt tema">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </button>
+        <div class="dk-live">
+          <span class="dot-live"></span>
+          <span id="dkLastUpdated">LIVE</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN GRID: filter sidebar | map | station panel -->
+    <main class="dk-main">
+      <!-- LEFT: FILTER SIDEBAR -->
+      <aside class="dk-filters">
+        <section class="filter-section">
+          <h3>Drivmedel</h3>
+          <div class="fuel-radio-grid">
+            <label class="fuel-radio active">
+              <input type="radio" name="dkFuel" value="bensin95" checked />
+              <div class="fuel-radio-body">
+                <div class="fuel-radio-name">Bensin 95</div>
+                <div class="fuel-radio-key">1</div>
+              </div>
+            </label>
+            <label class="fuel-radio">
+              <input type="radio" name="dkFuel" value="bensin98" />
+              <div class="fuel-radio-body">
+                <div class="fuel-radio-name">Bensin 98</div>
+                <div class="fuel-radio-key">2</div>
+              </div>
+            </label>
+            <label class="fuel-radio">
+              <input type="radio" name="dkFuel" value="diesel" />
+              <div class="fuel-radio-body">
+                <div class="fuel-radio-name">Diesel</div>
+                <div class="fuel-radio-key">3</div>
+              </div>
+            </label>
+            <label class="fuel-radio">
+              <input type="radio" name="dkFuel" value="hvo100" />
+              <div class="fuel-radio-body">
+                <div class="fuel-radio-name">HVO100</div>
+                <div class="fuel-radio-key">4</div>
+              </div>
+            </label>
+            <label class="fuel-radio">
+              <input type="radio" name="dkFuel" value="e85" />
+              <div class="fuel-radio-body">
+                <div class="fuel-radio-name">E85</div>
+                <div class="fuel-radio-key">5</div>
+              </div>
+            </label>
+            <label class="fuel-radio">
+              <input type="radio" name="dkFuel" value="ad-blue" />
+              <div class="fuel-radio-body">
+                <div class="fuel-radio-name">AdBlue</div>
+                <div class="fuel-radio-key">6</div>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <section class="filter-section">
+          <h3>Sök</h3>
+          <div class="search-wrap">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="dkSearch" type="search" placeholder="Stad, adress, kedja… ( / )" autocomplete="off" />
+          </div>
+        </section>
+
+        <section class="filter-section">
+          <h3>Kedjor</h3>
+          <div id="dkBrandList" class="brand-checklist"></div>
+        </section>
+
+        <section class="filter-section">
+          <h3>Stad</h3>
+          <select id="dkCitySelect" class="select full">
+            <option value="">Alla städer</option>
+          </select>
+        </section>
+
+        <section class="filter-section">
+          <h3>Filter</h3>
+          <label class="toggle">
+            <input type="checkbox" id="dkOpen24" />
+            <span>Öppet dygnet runt</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="dkCarWash" />
+            <span>Har biltvätt</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="dkFastCharge" />
+            <span>Har snabbladdning</span>
+          </label>
+        </section>
+
+        <section class="filter-section">
+          <h3>Sortering</h3>
+          <select id="dkSort" class="select full">
+            <option value="price">Lägsta pris</option>
+            <option value="priceDesc">Högsta pris</option>
+            <option value="distance">Avstånd</option>
+            <option value="name">Namn (A–Ö)</option>
+            <option value="updated">Senast uppdaterad</option>
+            <option value="rating">Högst betyg</option>
+          </select>
+          <button id="dkLocateBtn" class="btn btn-secondary full-btn">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+            Använd min plats
+          </button>
+          <button id="dkClearFilters" class="btn-text full-btn">Återställ alla filter</button>
+        </section>
+      </aside>
+
+      <!-- CENTER: MAP -->
+      <section class="dk-map-section">
+        <div class="map-header">
+          <div class="legend">
+            <div class="legend-item">
+              <span class="legend-dot cheapest"></span>
+              Billigast i området
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot below"></span>
+              Under snitt
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot normal"></span>
+              I nivå med snitt
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot above"></span>
+              Över snitt
+            </div>
+          </div>
+          <div class="map-controls">
+            <button class="seg-btn active" data-view="all">Alla</button>
+            <button class="seg-btn" data-view="cheap">Billigast 20</button>
+            <button class="seg-btn" data-view="nearby">Närmast</button>
+          </div>
+        </div>
+        <div id="dkMap" class="dk-map"></div>
+        <div class="map-footer">
+          <div class="footer-stat">
+            <strong id="dkMatchCount">0</strong>
+            <span>stationer matchar</span>
+          </div>
+          <div class="footer-stat">
+            <strong id="dkAvgFiltered">–</strong>
+            <span>snittpris urval</span>
+          </div>
+          <div class="footer-stat">
+            <strong id="dkSavings">–</strong>
+            <span>besparing vs dyrast</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: STATION LIST / DETAIL -->
+      <aside class="dk-sidebar-right">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="list">Lista</button>
+          <button class="tab-btn" data-tab="top10">Topp 10</button>
+          <button class="tab-btn" data-tab="detail">Detaljer</button>
+        </div>
+        <div id="dkTabList" class="tab-panel">
+          <div id="dkStationList" class="station-list compact"></div>
+        </div>
+        <div id="dkTabTop10" class="tab-panel hidden">
+          <div id="dkTop10" class="top10-list"></div>
+        </div>
+        <div id="dkTabDetail" class="tab-panel hidden">
+          <div id="dkStationDetail" class="station-detail empty">
+            <div class="empty-state">
+              <strong>Ingen station vald</strong>
+              Välj en station i listan eller på kartan.
+            </div>
+          </div>
+        </div>
+        <!-- AD SLOT: right sidebar -->
+        <aside class="ad-slot ad-sidebar compact" aria-label="Annons">
+          <span class="ad-label">Annons</span>
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="5555555555"
+               data-ad-format="rectangle"
+               data-full-width-responsive="true"></ins>
+          <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+        </aside>
+      </aside>
+    </main>
+
+    <!-- BOTTOM: BRAND COMPARISON CHART -->
+    <section class="dk-chart-section">
+      <div class="dk-chart-head">
+        <div>
+          <h3>Snittpris per kedja</h3>
+          <span class="sub" id="dkChartFuelLabel">Bensin 95 • alla stationer</span>
+        </div>
+        <div class="chart-toggle">
+          <button class="seg-btn active" data-chart="brand">Per kedja</button>
+          <button class="seg-btn" data-chart="city">Per stad</button>
+        </div>
+      </div>
+      <div id="dkBrandChart" class="bar-chart"></div>
+    </section>
+
+    <!-- KEYBOARD SHORTCUTS HINT -->
+    <div class="kbd-hint">
+      <span><kbd>1</kbd>–<kbd>6</kbd> drivmedel</span>
+      <span><kbd>/</kbd> sök</span>
+      <span><kbd>Esc</kbd> rensa</span>
+      <span><kbd>L</kbd> min plats</span>
+      <span><kbd>T</kbd> tema</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="vendor/leaflet/leaflet.js"></script>
+    <script src="js/stations.js"></script>
+    <script src="js/prices.js"></script>
+    <script src="js/desktop.js"></script>
+  </body>
+</html>

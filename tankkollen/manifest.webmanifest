@@ -1,0 +1,54 @@
+{
+  "name": "Tankkollen — Drivmedelspriser i Sverige",
+  "short_name": "Tankkollen",
+  "description": "Jämför priser på bensin, diesel, HVO100, el och etanol från alla stora kedjor i Sverige. Live-priser och kartvy.",
+  "lang": "sv-SE",
+  "dir": "ltr",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "categories": ["travel", "utilities", "navigation", "shopping"],
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Karta",
+      "short_name": "Karta",
+      "description": "Visa alla stationer på kartan",
+      "url": "./index.html#karta"
+    },
+    {
+      "name": "Ladda ner",
+      "short_name": "Installera",
+      "description": "Installera Tankkollen",
+      "url": "./index.html#ladda-ner"
+    }
+  ]
+}
