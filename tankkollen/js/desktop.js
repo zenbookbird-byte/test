@@ -1106,6 +1106,383 @@
     document.getElementById("dkBrentCorr").textContent = corr.toFixed(2);
   }
 
+  /* -------------------- Nordic heatmap (52 weeks × 4 countries) -------------------- */
+
+  // 4 Nordic countries with their flags, codes, and approximate
+  // April 2026 baseline prices in EUR/L for petrol and diesel.
+  // Real numbers will replace the synthetic ones once we have a
+  // multi-country scraper feed.
+  const NORDIC = [
+    {
+      key: "no",
+      flag: "🇳🇴",
+      name: "Norge",
+      code: "NOR · NOK",
+      base: { bensin95: 1.84, diesel: 1.71 },
+      volatility: 0.10,
+    },
+    {
+      key: "dk",
+      flag: "🇩🇰",
+      name: "Danmark",
+      code: "DNK · DKK",
+      base: { bensin95: 1.92, diesel: 1.78 },
+      volatility: 0.12,
+    },
+    {
+      key: "se",
+      flag: "🇸🇪",
+      name: "Sverige",
+      code: "SWE · SEK",
+      base: { bensin95: 1.59, diesel: 1.55 },
+      volatility: 0.08,
+    },
+    {
+      key: "fi",
+      flag: "🇫🇮",
+      name: "Finland",
+      code: "FIN · EUR",
+      base: { bensin95: 1.78, diesel: 1.65 },
+      volatility: 0.09,
+    },
+  ];
+
+  const HEATMAP_STATE = {
+    fuel: "bensin95",
+    week: 51, // 0..51, latest week last
+    playing: false,
+    playInterval: null,
+    data: {}, // { countryKey: [52 weekly prices] }
+  };
+
+  function generateNordicData() {
+    HEATMAP_STATE.data = {};
+    const FUELS = ["bensin95", "diesel"];
+
+    NORDIC.forEach((country) => {
+      HEATMAP_STATE.data[country.key] = {};
+      FUELS.forEach((fuel) => {
+        const base = country.base[fuel];
+        const vol = country.volatility;
+        // Deterministic seed per country+fuel
+        let seed = hashCode(`${country.key}-${fuel}`);
+        function rand() {
+          seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+          return seed / 0x7fffffff;
+        }
+        const series = [];
+        // Start 52 weeks ago slightly lower, drift toward today's base
+        let value = base - vol * 0.6 + (rand() - 0.5) * vol * 0.4;
+        for (let w = 0; w < 52; w++) {
+          // Mean reversion to base
+          const drift = (base - value) * 0.04;
+          // Weekly noise
+          const noise = (rand() - 0.5) * vol * 0.18;
+          // Yearly seasonal pattern: a bit higher in summer (weeks 24-36)
+          const seasonal = Math.sin((w / 52) * Math.PI * 2 - Math.PI / 2) * vol * 0.08;
+          value = value + drift + noise + seasonal;
+          series.push(+value.toFixed(3));
+        }
+        // Force the LAST week to equal today's base for honesty
+        series[51] = base;
+        HEATMAP_STATE.data[country.key][fuel] = series;
+      });
+    });
+  }
+
+  function priceColor(price, min, max) {
+    // 5-stop gradient: dark green → green → amber → orange → dark red
+    const stops = [
+      { p: 0.0, r: 0x2d, g: 0x5e, b: 0x3a },
+      { p: 0.18, r: 0x5e, g: 0x8a, b: 0x4d },
+      { p: 0.5, r: 0xc9, g: 0xa5, b: 0x5a },
+      { p: 0.78, r: 0xc9, g: 0x7a, b: 0x5a },
+      { p: 1.0, r: 0x8a, g: 0x3a, b: 0x3a },
+    ];
+    const t = max === min ? 0.5 : (price - min) / (max - min);
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (t <= stops[i + 1].p) {
+        const a = stops[i];
+        const b = stops[i + 1];
+        const localT = (t - a.p) / (b.p - a.p);
+        const r = Math.round(a.r + (b.r - a.r) * localT);
+        const g = Math.round(a.g + (b.g - a.g) * localT);
+        const bl = Math.round(a.b + (b.b - a.b) * localT);
+        return `rgb(${r}, ${g}, ${bl})`;
+      }
+    }
+    const last = stops[stops.length - 1];
+    return `rgb(${last.r}, ${last.g}, ${last.b})`;
+  }
+
+  function renderHeatmap() {
+    if (Object.keys(HEATMAP_STATE.data).length === 0) {
+      generateNordicData();
+    }
+
+    const grid = document.getElementById("dkHeatmap");
+    if (!grid) return;
+    const fuel = HEATMAP_STATE.fuel;
+    const wk = HEATMAP_STATE.week;
+
+    // Find min/max across all countries × all weeks for the selected fuel
+    let min = Infinity, max = -Infinity;
+    NORDIC.forEach((c) => {
+      const series = HEATMAP_STATE.data[c.key][fuel];
+      series.forEach((p) => {
+        if (p < min) min = p;
+        if (p > max) max = p;
+      });
+    });
+
+    grid.innerHTML = NORDIC.map((c) => {
+      const series = HEATMAP_STATE.data[c.key][fuel];
+      const cells = series
+        .map((p, i) => {
+          const cls = i === wk ? "current-week" : "";
+          return `<div class="hm-cell ${cls}" style="background:${priceColor(p, min, max)}" data-country="${c.key}" data-week="${i}" data-price="${p}"></div>`;
+        })
+        .join("");
+      return `
+        <div class="hm-row">
+          <div class="hm-country">
+            <span class="hm-country-flag">${c.flag}</span>
+            <div class="hm-country-name">
+              <span>${c.name}</span>
+              <span class="hm-country-code">${c.code}</span>
+            </div>
+          </div>
+          <div class="hm-cells">${cells}</div>
+        </div>`;
+    }).join("");
+
+    // Append axis label row (months)
+    const monthLabels = [
+      "Maj", "", "", "Jun", "", "", "Jul", "", "", "Aug", "", "",
+      "Sep", "", "", "Okt", "", "", "Nov", "", "", "Dec", "", "",
+      "Jan", "", "", "Feb", "", "", "Mar", "", "", "Apr", "", "",
+      "Maj", "", "", "Jun", "", "", "Jul", "", "", "Aug", "", "",
+      "Sep", "", "", "Okt", "",
+    ].slice(0, 52);
+    const axisHtml = `
+      <div class="hm-axis-row">
+        <div class="hm-axis-spacer"></div>
+        <div class="hm-axis-labels">
+          ${monthLabels.map((m, i) => `<div class="hm-axis-label ${m ? "" : "empty"}">${m}</div>`).join("")}
+        </div>
+      </div>`;
+    grid.insertAdjacentHTML("afterend", axisHtml);
+    // Remove any previous axis row to avoid duplication on re-render
+    const allAxisRows = grid.parentNode.querySelectorAll(".hm-axis-row");
+    if (allAxisRows.length > 1) {
+      for (let i = 0; i < allAxisRows.length - 1; i++) allAxisRows[i].remove();
+    }
+
+    // Update legend
+    document.getElementById("hmLegendMin").textContent = `${min.toFixed(2)} €`;
+    document.getElementById("hmLegendMax").textContent = `${max.toFixed(2)} €`;
+
+    // Update week display
+    const weekValue = document.getElementById("hmWeekValue");
+    if (weekValue) {
+      const weekDate = new Date();
+      weekDate.setDate(weekDate.getDate() - (51 - wk) * 7);
+      const weekStr = weekDate.toLocaleDateString("sv-SE", {
+        day: "numeric",
+        month: "short",
+      });
+      weekValue.textContent = wk === 51 ? `v52 · idag` : `${weekStr}`;
+    }
+
+    // Wire hover tooltips
+    let tooltip = document.getElementById("hmTooltipEl");
+    if (!tooltip) {
+      tooltip = document.createElement("div");
+      tooltip.id = "hmTooltipEl";
+      tooltip.className = "hm-tooltip";
+      document.body.appendChild(tooltip);
+    }
+
+    grid.querySelectorAll(".hm-cell").forEach((cell) => {
+      cell.addEventListener("mousemove", (ev) => {
+        const cKey = cell.dataset.country;
+        const w = Number(cell.dataset.week);
+        const price = Number(cell.dataset.price);
+        const country = NORDIC.find((c) => c.key === cKey);
+        const otherFuel = fuel === "bensin95" ? "diesel" : "bensin95";
+        const otherPrice = HEATMAP_STATE.data[cKey][otherFuel][w];
+        const weekDate = new Date();
+        weekDate.setDate(weekDate.getDate() - (51 - w) * 7);
+        const weekStr = weekDate.toLocaleDateString("sv-SE", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+        tooltip.innerHTML = `
+          <div class="hm-tt-country">${country.flag} ${country.name}</div>
+          <div class="hm-tt-week">${weekStr} · vecka ${w + 1}</div>
+          <div class="hm-tt-prices">
+            <div class="hm-tt-price-row"><span>Bensin 95</span><strong>${(fuel === "bensin95" ? price : otherPrice).toFixed(2)} €/L</strong></div>
+            <div class="hm-tt-price-row"><span>Diesel</span><strong>${(fuel === "diesel" ? price : otherPrice).toFixed(2)} €/L</strong></div>
+          </div>`;
+        tooltip.classList.add("visible");
+        // Position tooltip near cursor
+        const x = ev.clientX + 14;
+        const y = ev.clientY + 14;
+        const rect = tooltip.getBoundingClientRect();
+        const maxX = window.innerWidth - rect.width - 10;
+        const maxY = window.innerHeight - rect.height - 10;
+        tooltip.style.left = Math.min(x, maxX) + "px";
+        tooltip.style.top = Math.min(y, maxY) + "px";
+      });
+      cell.addEventListener("mouseleave", () => {
+        tooltip.classList.remove("visible");
+      });
+      cell.addEventListener("click", () => {
+        HEATMAP_STATE.week = Number(cell.dataset.week);
+        document.getElementById("hmSlider").value = HEATMAP_STATE.week;
+        renderHeatmap();
+      });
+    });
+
+    // Update stats
+    renderHeatmapStats(min, max);
+  }
+
+  function renderHeatmapStats(min, max) {
+    const fuel = HEATMAP_STATE.fuel;
+    const wk = HEATMAP_STATE.week;
+    const statsEl = document.getElementById("dkHeatmapStats");
+    if (!statsEl) return;
+
+    // Current week prices for all 4 countries
+    const current = NORDIC.map((c) => ({
+      country: c,
+      price: HEATMAP_STATE.data[c.key][fuel][wk],
+    }));
+    const sorted = [...current].sort((a, b) => a.price - b.price);
+    const cheapest = sorted[0];
+    const most = sorted[sorted.length - 1];
+    const sweden = current.find((x) => x.country.key === "se");
+    const swedenRank = sorted.findIndex((x) => x.country.key === "se") + 1;
+
+    // Biggest weekly mover (compare wk to wk-1 if possible)
+    let biggest = { country: null, delta: 0 };
+    if (wk > 0) {
+      NORDIC.forEach((c) => {
+        const today = HEATMAP_STATE.data[c.key][fuel][wk];
+        const prev = HEATMAP_STATE.data[c.key][fuel][wk - 1];
+        const delta = today - prev;
+        if (Math.abs(delta) > Math.abs(biggest.delta)) {
+          biggest = { country: c, delta };
+        }
+      });
+    }
+
+    statsEl.innerHTML = `
+      <div class="hm-stat">
+        <div class="hm-stat-label">Lägst i Norden</div>
+        <div class="hm-stat-value">${cheapest.country.flag} ${cheapest.price.toFixed(2)} €</div>
+        <div class="hm-stat-sub">${cheapest.country.name}</div>
+      </div>
+      <div class="hm-stat">
+        <div class="hm-stat-label">Högst i Norden</div>
+        <div class="hm-stat-value">${most.country.flag} ${most.price.toFixed(2)} €</div>
+        <div class="hm-stat-sub">${most.country.name}</div>
+      </div>
+      <div class="hm-stat">
+        <div class="hm-stat-label">Skillnad</div>
+        <div class="hm-stat-value">${(most.price - cheapest.price).toFixed(2)} €</div>
+        <div class="hm-stat-sub">${(((most.price - cheapest.price) / cheapest.price) * 100).toFixed(1)}% dyrare</div>
+      </div>
+      <div class="hm-stat">
+        <div class="hm-stat-label">Sveriges placering</div>
+        <div class="hm-stat-value">${swedenRank}/4</div>
+        <div class="hm-stat-sub">${sweden.price.toFixed(2)} € · ${
+      swedenRank === 1
+        ? "billigast"
+        : swedenRank === 4
+        ? "dyrast"
+        : "i mitten"
+    }</div>
+      </div>`;
+  }
+
+  function initHeatmap() {
+    generateNordicData();
+    renderHeatmap();
+
+    // Fuel tab buttons
+    document.querySelectorAll("[data-hm-fuel]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document
+          .querySelectorAll("[data-hm-fuel]")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        HEATMAP_STATE.fuel = btn.dataset.hmFuel;
+        renderHeatmap();
+      });
+    });
+
+    // Slider
+    const slider = document.getElementById("hmSlider");
+    if (slider) {
+      slider.addEventListener("input", () => {
+        HEATMAP_STATE.week = parseInt(slider.value, 10);
+        renderHeatmap();
+      });
+    }
+
+    // Play/pause
+    const playBtn = document.getElementById("hmPlayBtn");
+    if (playBtn) {
+      playBtn.addEventListener("click", () => {
+        if (HEATMAP_STATE.playing) {
+          stopHeatmapPlayback();
+        } else {
+          startHeatmapPlayback();
+        }
+      });
+    }
+  }
+
+  function startHeatmapPlayback() {
+    HEATMAP_STATE.playing = true;
+    const playBtn = document.getElementById("hmPlayBtn");
+    if (playBtn) {
+      playBtn.classList.add("playing");
+      playBtn.querySelector(".hm-icon-play").style.display = "none";
+      playBtn.querySelector(".hm-icon-pause").style.display = "";
+      playBtn.querySelector(".hm-play-label").textContent = "Pausa";
+    }
+    HEATMAP_STATE.week = 0; // start at the beginning
+    HEATMAP_STATE.playInterval = setInterval(() => {
+      HEATMAP_STATE.week++;
+      if (HEATMAP_STATE.week > 51) {
+        stopHeatmapPlayback();
+        HEATMAP_STATE.week = 51;
+      }
+      const slider = document.getElementById("hmSlider");
+      if (slider) slider.value = HEATMAP_STATE.week;
+      renderHeatmap();
+    }, 120);
+  }
+
+  function stopHeatmapPlayback() {
+    HEATMAP_STATE.playing = false;
+    if (HEATMAP_STATE.playInterval) {
+      clearInterval(HEATMAP_STATE.playInterval);
+      HEATMAP_STATE.playInterval = null;
+    }
+    const playBtn = document.getElementById("hmPlayBtn");
+    if (playBtn) {
+      playBtn.classList.remove("playing");
+      playBtn.querySelector(".hm-icon-play").style.display = "";
+      playBtn.querySelector(".hm-icon-pause").style.display = "none";
+      playBtn.querySelector(".hm-play-label").textContent = "Spela upp året";
+    }
+  }
+
   // Master refresh — wire all renderers
   function updateStats() {
     renderHero();
@@ -1759,6 +2136,7 @@
     initBrandChecklist();
     initCitySelect();
     initCalculator();
+    initHeatmap();
     initMap();
     wireControls();
     refresh();
