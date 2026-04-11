@@ -10,15 +10,18 @@ REM Double-click this .bat file instead -- it starts a
 REM tiny local web server and opens the app in your
 REM default browser.
 
-cd /d "%~dp0\.."
+REM Serve from the tankkollen folder itself (the .bat's own
+REM directory), so the URLs work whether the folder is inside
+REM a parent repo or extracted standalone.
+cd /d "%~dp0"
 
 set PORT=8765
-set URL=http://localhost:%PORT%/tankkollen/index.html
+set URL=http://localhost:%PORT%/index.html
 
 echo ============================================
 echo  Tankkollen local server
 echo   ^> %URL%
-echo   ^> Pro Dashboard: http://localhost:%PORT%/tankkollen/dator.html
+echo   ^> Pro Dashboard: http://localhost:%PORT%/dator.html
 echo.
 echo  Close this window to stop the server.
 echo ============================================

@@ -10,17 +10,18 @@
 
 set -e
 
-# Make sure we're in the tankkollen directory (the script's own folder)
+# Serve from the tankkollen folder itself (the script's own
+# directory), so the URLs work whether the folder is inside a
+# parent repo or extracted standalone.
 cd "$(dirname "$0")"
-cd ..  # up one level so we serve from the repo root
 
 PORT="${TANKKOLLEN_PORT:-8765}"
-URL="http://localhost:${PORT}/tankkollen/index.html"
+URL="http://localhost:${PORT}/index.html"
 
 echo "============================================"
 echo " Tankkollen local server"
 echo "  → ${URL}"
-echo "  → Pro Dashboard: http://localhost:${PORT}/tankkollen/dator.html"
+echo "  → Pro Dashboard: http://localhost:${PORT}/dator.html"
 echo ""
 echo " Press Ctrl+C to stop."
 echo "============================================"
