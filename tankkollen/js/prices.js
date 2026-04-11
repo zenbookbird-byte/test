@@ -169,10 +169,17 @@
   // ------------------------------------------------------------------
   async function fetchLivePrices() {
     try {
-      const url = `${LIVE_URL}?t=${Date.now()}`;
-      const resp = await fetch(url, { cache: "no-store" });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const json = await resp.json();
+      let json;
+      // Standalone bundle: prices baked into the HTML as a global.
+      // Skip the network entirely since fetch() fails on file://.
+      if (window.__LIVE_PRICES_DATA__) {
+        json = window.__LIVE_PRICES_DATA__;
+      } else {
+        const url = `${LIVE_URL}?t=${Date.now()}`;
+        const resp = await fetch(url, { cache: "no-store" });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        json = await resp.json();
+      }
       window.LIVE_PRICES = json;
       const reports = loadUserReports();
       applyLivePrices(json, reports);
@@ -233,7 +240,10 @@
 
   // ------------------------------------------------------------------
   // Auto-load + periodic refresh
+  // In standalone mode the data is baked in, so skip the interval.
   // ------------------------------------------------------------------
   fetchLivePrices();
-  setInterval(fetchLivePrices, REFRESH_MS);
+  if (!window.__LIVE_PRICES_DATA__) {
+    setInterval(fetchLivePrices, REFRESH_MS);
+  }
 })();
