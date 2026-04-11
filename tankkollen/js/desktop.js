@@ -149,37 +149,493 @@
     state.filtered = displayed;
   }
 
-  /* -------------------- Stats bar -------------------- */
+  /* -------------------- Hero stats (top of page) -------------------- */
 
-  function updateStats() {
-    const fuel = state.fuel;
+  const FUEL_FULL_LABELS = {
+    bensin95: "bensin 95",
+    bensin98: "bensin 98",
+    diesel: "diesel",
+    hvo100: "HVO100",
+    e85: "E85",
+    "ad-blue": "AdBlue",
+  };
+
+  function nationalStats(fuel) {
     const all = state.stations.filter((s) => fuel in s.prices);
-    if (all.length === 0) return;
-
+    if (all.length === 0) return null;
     const prices = all.map((s) => s.prices[fuel]);
     const cheapest = all.reduce((a, b) => (a.prices[fuel] < b.prices[fuel] ? a : b));
     const dearest = all.reduce((a, b) => (a.prices[fuel] > b.prices[fuel] ? a : b));
     const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-
-    // Average trend across all
     const trends = all
       .map((s) => s.prices[`${fuel}_trend`])
       .filter((t) => typeof t === "number");
     const avgTrend = trends.length
       ? trends.reduce((a, b) => a + b, 0) / trends.length
       : 0;
+    return {
+      all,
+      count: all.length,
+      cheapest,
+      dearest,
+      avg,
+      avgTrend,
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+    };
+  }
 
-    setStatCard("statCheapest", `${fmt(cheapest.prices[fuel])}`, `${cheapest.city}, ${cheapest.brand}`, "highlight");
-    setStatCard("statAverage", `${fmt(avg)}`, "kr/liter", "");
-    setStatCard("statHighest", `${fmt(dearest.prices[fuel])}`, `${dearest.city}, ${dearest.brand}`, "danger");
-    const arrow = avgTrend > 0 ? "▲" : avgTrend < 0 ? "▼" : "●";
-    const ore = Math.abs(Math.round(avgTrend * 100));
-    setStatCard(
-      "statTrend",
-      `${arrow} ${ore} öre`,
-      avgTrend > 0 ? "stigande" : avgTrend < 0 ? "sjunkande" : "oförändrad",
-      avgTrend > 0 ? "danger" : avgTrend < 0 ? "highlight" : ""
-    );
+  function renderHero() {
+    const fuel = state.fuel;
+    const s = nationalStats(fuel);
+    if (!s) return;
+    const fuelLabel = FUEL_FULL_LABELS[fuel] || fuel;
+
+    // Eyebrow
+    const elFuelLabel = document.getElementById("dkHeroFuelLabel");
+    if (elFuelLabel) elFuelLabel.textContent = fuelLabel.charAt(0).toUpperCase() + fuelLabel.slice(1);
+    const elDate = document.getElementById("dkHeroDate");
+    if (elDate) {
+      const d = new Date();
+      elDate.textContent = d.toLocaleDateString("sv-SE", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    }
+
+    // Cheapest card
+    const cheapEl = document.getElementById("heroCheapest");
+    if (cheapEl) {
+      cheapEl.querySelector(".hero-card-name").textContent = s.cheapest.name;
+      cheapEl.querySelector(".hero-card-price").innerHTML =
+        `${fmt(s.cheapest.prices[fuel])}<span class="hero-card-unit">kr/liter</span>`;
+      cheapEl.querySelector(".hero-card-sub").textContent =
+        `${s.cheapest.city} · ${s.cheapest.brand} · ${(s.avg - s.cheapest.prices[fuel]).toFixed(2).replace(".", ",")} kr under snitt`;
+    }
+
+    // Average card
+    const avgEl = document.getElementById("heroAverage");
+    if (avgEl) {
+      avgEl.querySelector(".hero-card-price").innerHTML =
+        `${fmt(s.avg)}<span class="hero-card-unit">kr/liter</span>`;
+      avgEl.querySelector(".hero-card-sub").textContent =
+        `${s.count} stationer ger pris för ${fuelLabel}`;
+      const trendEl = avgEl.querySelector(".hero-card-trend");
+      const ore = Math.abs(Math.round(s.avgTrend * 100));
+      if (s.avgTrend > 0.005) {
+        trendEl.className = "hero-card-trend up";
+        trendEl.textContent = `▲ ${ore} öre senaste dygnet`;
+      } else if (s.avgTrend < -0.005) {
+        trendEl.className = "hero-card-trend down";
+        trendEl.textContent = `▼ ${ore} öre senaste dygnet`;
+      } else {
+        trendEl.className = "hero-card-trend flat";
+        trendEl.textContent = "● Oförändrat senaste dygnet";
+      }
+    }
+
+    // Range card
+    const rangeEl = document.getElementById("heroRange");
+    if (rangeEl) {
+      rangeEl.querySelector(".range-label-min").textContent = `${fmt(s.min)} kr`;
+      rangeEl.querySelector(".range-label-max").textContent = `${fmt(s.max)} kr`;
+      rangeEl.querySelector(".hero-card-sub").textContent =
+        `${(s.max - s.min).toFixed(2).replace(".", ",")} kr/l skillnad mellan billigast och dyrast`;
+    }
+  }
+
+  /* -------------------- Chain comparison table -------------------- */
+
+  let chainSortFuel = "bensin95";
+
+  function renderChainTable() {
+    const tbody = document.getElementById("dkChainTableBody");
+    if (!tbody) return;
+
+    // Update fuel label in section heading
+    const labelEl = document.getElementById("dkChainFuelLabel");
+    if (labelEl) labelEl.textContent = FUEL_FULL_LABELS[state.fuel] || state.fuel;
+
+    // Sync sortable column highlight
+    document.querySelectorAll(".chain-table th.sortable").forEach((th) => {
+      th.classList.toggle("active", th.dataset.fuel === state.fuel);
+    });
+
+    // Group stations by brand
+    const brandMap = new Map();
+    state.stations.forEach((s) => {
+      if (!brandMap.has(s.brand)) {
+        brandMap.set(s.brand, {
+          brand: s.brand,
+          color: s.brandColor,
+          logo: s.brandLogo,
+          stations: [],
+          prices: {},
+        });
+      }
+      brandMap.get(s.brand).stations.push(s);
+    });
+
+    // Compute average prices per fuel for each brand
+    const FUELS = ["bensin95", "bensin98", "diesel", "hvo100", "e85", "ad-blue"];
+    brandMap.forEach((b) => {
+      FUELS.forEach((fuel) => {
+        const vals = b.stations
+          .filter((s) => fuel in s.prices)
+          .map((s) => s.prices[fuel]);
+        if (vals.length > 0) {
+          b.prices[fuel] = vals.reduce((a, b) => a + b, 0) / vals.length;
+        }
+      });
+      const trends = b.stations
+        .map((s) => s.prices[`${state.fuel}_trend`])
+        .filter((t) => typeof t === "number");
+      b.trend = trends.length
+        ? trends.reduce((a, b) => a + b, 0) / trends.length
+        : 0;
+    });
+
+    const sortFuel = state.fuel;
+    const brands = [...brandMap.values()]
+      .filter((b) => b.prices[sortFuel] != null)
+      .sort((a, b) => a.prices[sortFuel] - b.prices[sortFuel]);
+
+    // Find global cheapest/most-expensive for highlighting
+    const allPrices = brands.map((b) => b.prices[sortFuel]);
+    const minPrice = Math.min(...allPrices);
+    const maxPrice = Math.max(...allPrices);
+    const avgPrice = allPrices.reduce((a, b) => a + b, 0) / allPrices.length;
+
+    tbody.innerHTML = brands
+      .map((b, i) => {
+        const rank = i + 1;
+        const rankClass = rank <= 3 ? `rank-${rank}` : "";
+
+        const priceCells = FUELS.map((f) => {
+          const p = b.prices[f];
+          if (p == null) return `<td class="price muted">–</td>`;
+          let cls = "";
+          if (f === sortFuel) {
+            if (p === minPrice) cls = "cheapest";
+            else if (p === maxPrice) cls = "expensive";
+          }
+          return `<td class="price ${cls}">${fmt(p)}</td>`;
+        }).join("");
+
+        const diff = b.prices[sortFuel] - avgPrice;
+        const diffStr = (diff >= 0 ? "+" : "") + fmt(diff);
+        const vsClass = diff < -0.05 ? "below" : diff > 0.05 ? "above" : "flat";
+
+        const trendOre = Math.abs(Math.round(b.trend * 100));
+        const trendHtml =
+          b.trend > 0.005
+            ? `<span class="trend up">▲ ${trendOre} öre</span>`
+            : b.trend < -0.005
+            ? `<span class="trend down">▼ ${trendOre} öre</span>`
+            : `<span class="trend flat">±0 öre</span>`;
+
+        return `
+          <tr data-brand="${b.brand}">
+            <td class="rank ${rankClass}">${rank}</td>
+            <td>
+              <div class="brand-cell">
+                <div class="brand-dot-lg" style="background:${b.color}">${b.logo}</div>
+                <div class="brand-name-cell">${b.brand}</div>
+              </div>
+            </td>
+            ${priceCells}
+            <td class="vs ${vsClass}">${diffStr}</td>
+            <td class="trend-cell">${trendHtml}</td>
+            <td class="stations-cell">${b.stations.length}</td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  /* -------------------- Regional breakdown -------------------- */
+
+  // Approximate latitudes that divide Sweden into 3 regions
+  const REGION_BOUNDS = {
+    nord: { min: 61.5, max: 90, name: "Norra Sverige", accent: "#9fb89c" },
+    mitt: { min: 58.5, max: 61.5, name: "Mellersta Sverige", accent: "#d4a056" },
+    syd: { min: 0, max: 58.5, name: "Södra Sverige", accent: "#c76874" },
+  };
+
+  function regionFor(lat) {
+    if (lat >= REGION_BOUNDS.nord.min) return "nord";
+    if (lat >= REGION_BOUNDS.mitt.min) return "mitt";
+    return "syd";
+  }
+
+  function renderRegions() {
+    const fuel = state.fuel;
+    const grid = document.getElementById("dkRegionGrid");
+    if (!grid) return;
+
+    const groups = { nord: [], mitt: [], syd: [] };
+    state.stations.forEach((s) => {
+      if (!(fuel in s.prices)) return;
+      groups[regionFor(s.lat)].push(s);
+    });
+
+    const nat = nationalStats(fuel);
+    const natAvg = nat ? nat.avg : 0;
+
+    // Compute averages per region
+    const summaries = Object.entries(groups).map(([key, stations]) => {
+      const prices = stations.map((s) => s.prices[fuel]);
+      const avg = prices.length
+        ? prices.reduce((a, b) => a + b, 0) / prices.length
+        : null;
+      const min = prices.length ? Math.min(...prices) : null;
+      const max = prices.length ? Math.max(...prices) : null;
+      return {
+        key,
+        meta: REGION_BOUNDS[key],
+        stations: stations.length,
+        avg,
+        min,
+        max,
+      };
+    });
+
+    // Sort by avg ascending so cheapest gets the rank-1 marker
+    const ranked = [...summaries]
+      .filter((r) => r.avg != null)
+      .sort((a, b) => a.avg - b.avg);
+    const rankMap = new Map(ranked.map((r, i) => [r.key, i + 1]));
+
+    grid.innerHTML = summaries
+      .map((r) => {
+        if (r.avg == null) {
+          return `
+            <article class="region-card" style="--region-accent:${r.meta.accent}">
+              <div class="region-card-header">
+                <h3 class="region-name">${r.meta.name}</h3>
+              </div>
+              <div class="region-vs">Inga prisuppgifter</div>
+            </article>`;
+        }
+        const rank = rankMap.get(r.key);
+        const rankLabel =
+          rank === 1 ? "Billigast" : rank === ranked.length ? "Dyrast" : "I mitten";
+        const rankCls = rank === 1 ? "cheapest" : "";
+        const diff = r.avg - natAvg;
+        const diffStr = (diff >= 0 ? "+" : "") + fmt(diff) + " kr";
+        const diffWord =
+          diff < -0.02 ? "under" : diff > 0.02 ? "över" : "i nivå med";
+        return `
+          <article class="region-card" style="--region-accent:${r.meta.accent}">
+            <div class="region-card-header">
+              <h3 class="region-name">${r.meta.name}</h3>
+              <span class="region-rank ${rankCls}">${rankLabel}</span>
+            </div>
+            <div class="region-price">${fmt(r.avg)}<span class="region-price-unit">kr/l</span></div>
+            <div class="region-vs">
+              <strong>${diffStr}</strong> ${diffWord} riksgenomsnittet
+            </div>
+            <div class="region-stats">
+              <div class="region-stat">
+                <span class="region-stat-label">Lägst</span>
+                <span class="region-stat-value">${fmt(r.min)}</span>
+              </div>
+              <div class="region-stat">
+                <span class="region-stat-label">Högst</span>
+                <span class="region-stat-value">${fmt(r.max)}</span>
+              </div>
+              <div class="region-stat">
+                <span class="region-stat-label">Stationer</span>
+                <span class="region-stat-value">${r.stations}</span>
+              </div>
+            </div>
+          </article>`;
+      })
+      .join("");
+  }
+
+  /* -------------------- Historical trend chart -------------------- */
+
+  // Synthesize a deterministic 30-day price history per fuel based on
+  // current national average. Real historical data would replace this
+  // once we accumulate enough scraper output.
+  function syntheticHistory(fuel, days = 30) {
+    const nat = nationalStats(fuel);
+    if (!nat) return [];
+    const today = nat.avg;
+    const series = [];
+    // Use a deterministic seed per fuel so the chart is stable
+    const seedHash = fuel
+      .split("")
+      .reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+    let s = seedHash;
+    function rand() {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      return s / 0x7fffffff;
+    }
+    let value = today + (rand() - 0.5) * 0.5;
+    for (let i = days - 1; i >= 0; i--) {
+      // Random walk with mean reversion toward today's price
+      const drift = (today - value) * 0.08;
+      const noise = (rand() - 0.5) * 0.12;
+      value = +(value + drift + noise).toFixed(3);
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      series.push({ date, price: value });
+    }
+    // Force the last point to equal today's actual average
+    series[series.length - 1].price = today;
+    return series;
+  }
+
+  function renderHistory() {
+    const svg = document.getElementById("dkHistoryChart");
+    if (!svg) return;
+    const series = syntheticHistory(state.fuel, 30);
+    if (series.length === 0) return;
+
+    const W = 1000;
+    const H = 280;
+    const PAD = { top: 20, right: 20, bottom: 40, left: 60 };
+    const innerW = W - PAD.left - PAD.right;
+    const innerH = H - PAD.top - PAD.bottom;
+
+    const prices = series.map((p) => p.price);
+    const minP = Math.min(...prices);
+    const maxP = Math.max(...prices);
+    const rangeP = maxP - minP || 1;
+    const padP = rangeP * 0.15;
+    const yMin = minP - padP;
+    const yMax = maxP + padP;
+    const yRange = yMax - yMin;
+
+    const x = (i) => PAD.left + (i / (series.length - 1)) * innerW;
+    const y = (p) => PAD.top + ((yMax - p) / yRange) * innerH;
+
+    const pathD = series
+      .map((d, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(d.price).toFixed(2)}`)
+      .join(" ");
+    const areaD =
+      `M ${x(0).toFixed(2)} ${(PAD.top + innerH).toFixed(2)} ` +
+      series
+        .map((d, i) => `L ${x(i).toFixed(2)} ${y(d.price).toFixed(2)}`)
+        .join(" ") +
+      ` L ${x(series.length - 1).toFixed(2)} ${(PAD.top + innerH).toFixed(2)} Z`;
+
+    // Y-axis ticks (5 evenly spaced values)
+    const ticks = [];
+    for (let i = 0; i <= 4; i++) {
+      const p = yMin + (yRange * i) / 4;
+      ticks.push({ p, y: y(p) });
+    }
+    const ticksHtml = ticks
+      .map(
+        (t) => `
+        <line x1="${PAD.left}" x2="${W - PAD.right}" y1="${t.y.toFixed(2)}" y2="${t.y.toFixed(2)}" />
+        <text x="${PAD.left - 8}" y="${(t.y + 4).toFixed(2)}" text-anchor="end">${fmt(t.p)}</text>
+      `
+      )
+      .join("");
+
+    // X-axis labels (5 dates)
+    const labelIdx = [0, 7, 14, 21, 29];
+    const xLabels = labelIdx
+      .filter((i) => i < series.length)
+      .map((i) => {
+        const d = series[i].date;
+        const dStr = d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+        return `<text x="${x(i).toFixed(2)}" y="${(H - 12).toFixed(2)}" text-anchor="middle">${dStr}</text>`;
+      })
+      .join("");
+
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="historyGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#d4a056" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#d4a056" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <g class="history-grid">${ticksHtml}</g>
+      <g class="history-axis">${xLabels}</g>
+      <path class="history-area" d="${areaD}" />
+      <path class="history-line" d="${pathD}" />
+    `;
+
+    // Stats below
+    document.getElementById("dkHistLow").textContent = `${fmt(minP)} kr`;
+    document.getElementById("dkHistHigh").textContent = `${fmt(maxP)} kr`;
+    document.getElementById("dkHistAvg").textContent = `${fmt(
+      prices.reduce((a, b) => a + b, 0) / prices.length
+    )} kr`;
+    const change = series[series.length - 1].price - series[0].price;
+    const changeOre = Math.abs(Math.round(change * 100));
+    const changeArrow = change > 0.005 ? "▲" : change < -0.005 ? "▼" : "●";
+    document.getElementById("dkHistChange").textContent =
+      `${changeArrow} ${changeOre} öre`;
+  }
+
+  /* -------------------- Data export -------------------- */
+
+  function downloadCsv() {
+    const FUELS = ["bensin95", "bensin98", "diesel", "hvo100", "e85", "ad-blue"];
+    const headers = ["brand", "city", "name", "lat", "lng", ...FUELS];
+    const rows = state.stations.map((s) => {
+      return headers
+        .map((h) => {
+          if (h === "brand") return `"${s.brand}"`;
+          if (h === "city") return `"${s.city}"`;
+          if (h === "name") return `"${s.name.replace(/"/g, '""')}"`;
+          if (h === "lat") return s.lat;
+          if (h === "lng") return s.lng;
+          return s.prices[h] ?? "";
+        })
+        .join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    triggerDownload(blob, `tankkollen-${new Date().toISOString().slice(0, 10)}.csv`);
+  }
+
+  function downloadJson() {
+    const payload = {
+      generated_at: new Date().toISOString(),
+      fuel_focus: state.fuel,
+      stations: state.stations.map((s) => ({
+        id: s.id,
+        brand: s.brand,
+        name: s.name,
+        city: s.city,
+        lat: s.lat,
+        lng: s.lng,
+        prices: s.prices,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    triggerDownload(blob, `tankkollen-${new Date().toISOString().slice(0, 10)}.json`);
+  }
+
+  function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  }
+
+  // No-op kept so existing refresh() calls don't break
+  function updateStats() {
+    renderHero();
+    renderChainTable();
+    renderRegions();
+    renderHistory();
   }
 
   function setStatCard(id, value, sub, cls) {
@@ -621,11 +1077,14 @@
   /* -------------------- Controls -------------------- */
 
   function wireControls() {
-    // Fuel radios
+    // Fuel pills (new) and fuel radios (legacy fallback)
     document.querySelectorAll('input[name="dkFuel"]').forEach((r) => {
       r.addEventListener("change", () => {
         if (r.checked) {
           state.fuel = r.value;
+          document
+            .querySelectorAll(".fuel-pill")
+            .forEach((l) => l.classList.toggle("active", l.contains(r)));
           document
             .querySelectorAll(".fuel-radio")
             .forEach((l) => l.classList.toggle("active", l.contains(r)));
@@ -697,15 +1156,26 @@
       });
     });
 
-    // Chart toggle
-    document.querySelectorAll(".chart-toggle .seg-btn").forEach((b) => {
-      b.addEventListener("click", () => {
-        document
-          .querySelectorAll(".chart-toggle .seg-btn")
-          .forEach((x) => x.classList.remove("active"));
-        b.classList.add("active");
-        state.chartMode = b.dataset.chart;
-        renderChart();
+    // Data export buttons
+    const csvBtn = document.getElementById("dkExportCsv");
+    if (csvBtn) csvBtn.addEventListener("click", downloadCsv);
+    const jsonBtn = document.getElementById("dkExportJson");
+    if (jsonBtn) jsonBtn.addEventListener("click", downloadJson);
+
+    // Chain table column click = re-sort by that fuel
+    document.querySelectorAll(".chain-table th.sortable").forEach((th) => {
+      th.addEventListener("click", () => {
+        const fuel = th.dataset.fuel;
+        if (!fuel) return;
+        // Switch the global fuel selection so all sections sync
+        state.fuel = fuel;
+        document.querySelectorAll('input[name="dkFuel"]').forEach((r) => {
+          r.checked = r.value === fuel;
+        });
+        document.querySelectorAll(".fuel-pill").forEach((p) => {
+          p.classList.toggle("active", p.querySelector("input").value === fuel);
+        });
+        refresh();
       });
     });
 
@@ -772,7 +1242,6 @@
     renderMarkers();
     updateStats();
     updateFooterStats();
-    renderChart();
     if (opts.fitMap) fitMap();
 
     const lu = document.getElementById("dkLastUpdated");

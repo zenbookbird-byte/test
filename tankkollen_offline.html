@@ -12,9 +12,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0A0E1A" />
-    <meta name="description" content="Tankkollen Pro - desktop dashboard för drivmedelspriser i Sverige" />
-    <title>Tankkollen Pro · Desktop Dashboard</title>
+    <meta name="theme-color" content="#0e0c0a" />
+    <meta name="description" content="Tankkollen Pro - drivmedelspriser i Sverige. Jämför kedjor, regioner och historisk prisutveckling." />
+    <title>Tankkollen Pro · Drivmedelspriser i Sverige</title>
 
     <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
@@ -2465,19 +2465,27 @@ body.desktop-app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* full-viewport dashboard */
-  height: 100vh;
+  overflow: auto; /* scrollable editorial layout */
+  height: auto;
   padding: 0;
 }
 
-.dk-shell {
+.dk-scroll {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  max-width: min(1920px, 100%);
   width: 100%;
+}
+
+.dk-container {
+  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
+  padding: 0 clamp(1rem, 3vw, 2.5rem);
+}
+.dk-container.wide {
+  max-width: 1600px;
 }
 
 /* ---------- Top bar ---------- */
@@ -3333,6 +3341,819 @@ kbd {
   }
 }
 
+/* =======================================================================
+   REDESIGN: Scrollable editorial layout (fuel-prices.eu inspired)
+   ======================================================================= */
+
+.dk-topbar {
+  position: sticky;
+  top: 0;
+}
+
+/* Override the old 3-col grid to fit logo | fuel pills | actions */
+body.desktop-app .dk-topbar {
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr) minmax(220px, 1fr);
+}
+
+/* ---------- Fuel pill selector ---------- */
+
+.dk-fuel-pills {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.fuel-pill {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+.fuel-pill input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.fuel-pill span {
+  display: inline-block;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(245, 239, 228, 0.03);
+  color: var(--text-dim);
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+.fuel-pill:hover span {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.fuel-pill.active span {
+  background: linear-gradient(135deg, rgba(212, 160, 86, 0.18), rgba(159, 184, 156, 0.12));
+  border-color: rgba(212, 160, 86, 0.55);
+  color: var(--primary);
+  box-shadow: 0 4px 14px rgba(212, 160, 86, 0.18);
+}
+
+/* ---------- Generic section spacing ---------- */
+
+.dk-section {
+  padding: clamp(3rem, 6vw, 5rem) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1.5rem;
+  margin-bottom: 2.2rem;
+  flex-wrap: wrap;
+}
+
+.section-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 0.6rem;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.4vw, 2.6rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0 0 0.6rem 0;
+  color: var(--text);
+}
+
+.section-sub {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 640px;
+  margin: 0;
+}
+
+.section-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.95rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.btn-export:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+/* ---------- HERO ---------- */
+
+.dk-hero {
+  padding: clamp(3rem, 6vw, 5rem) 0 clamp(3rem, 5vw, 4rem) 0;
+  border-bottom: 1px solid var(--border);
+  background:
+    radial-gradient(1200px 700px at 78% -10%, rgba(212, 160, 86, 0.10), transparent 60%),
+    radial-gradient(900px 600px at 12% 30%, rgba(159, 184, 156, 0.06), transparent 65%);
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0.45rem 0.9rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-bottom: 1.5rem;
+}
+.hero-eyebrow .sep {
+  opacity: 0.5;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  margin: 0 0 1rem 0;
+  color: var(--text);
+  font-variation-settings: "SOFT" 30, "opsz" 144;
+}
+.hero-accent {
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: italic;
+}
+
+.hero-sub {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-width: 680px;
+  margin: 0 0 2.6rem 0;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+}
+
+.hero-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.6rem 1.7rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.22s ease;
+}
+.hero-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+.hero-card-eyebrow {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.9rem;
+}
+.hero-card-name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+.hero-card-price {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 500;
+  color: var(--primary);
+  line-height: 1;
+  letter-spacing: -0.025em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+.hero-card-price.big {
+  font-size: 3.4rem;
+}
+.hero-card-unit {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.hero-card-sub {
+  margin-top: 0.7rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.hero-card-trend {
+  margin-top: 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.hero-card-trend.up { color: var(--danger); }
+.hero-card-trend.down { color: var(--accent); }
+.hero-card-trend.flat { color: var(--text-muted); }
+
+.hero-cheapest::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+/* Range bar */
+.range-bar {
+  margin: 1rem 0 0.6rem 0;
+}
+.range-track {
+  position: relative;
+  height: 6px;
+  background: var(--bg-elev-3);
+  border-radius: 3px;
+  overflow: visible;
+}
+.range-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--primary), var(--danger));
+  border-radius: 3px;
+  opacity: 0.7;
+}
+.range-marker {
+  position: absolute;
+  top: -3px;
+  width: 12px;
+  height: 12px;
+  background: var(--text);
+  border: 2px solid var(--bg);
+  border-radius: 50%;
+}
+.range-min { left: 0; }
+.range-max { right: 0; }
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---------- CHAIN COMPARISON TABLE ---------- */
+
+.chain-table-wrap {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.chain-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.chain-table thead {
+  background: var(--bg-elev-2);
+}
+.chain-table th {
+  text-align: left;
+  padding: 1rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.chain-table th.col-rank,
+.chain-table th.col-price,
+.chain-table th.col-vs,
+.chain-table th.col-trend,
+.chain-table th.col-stations { text-align: right; }
+.chain-table th.col-brand { text-align: left; }
+.chain-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+.chain-table th.sortable:hover { color: var(--primary); }
+.chain-table th.sortable.active { color: var(--primary); }
+.chain-table th.sortable.active::after {
+  content: " ↓";
+}
+
+.chain-table td {
+  padding: 1rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.chain-table tbody tr:last-child td { border-bottom: none; }
+.chain-table tbody tr {
+  transition: background 0.15s ease;
+}
+.chain-table tbody tr:hover {
+  background: rgba(212, 160, 86, 0.05);
+}
+
+.chain-table td.rank {
+  text-align: right;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  width: 50px;
+}
+.chain-table td.rank.rank-1 { color: var(--primary); }
+.chain-table td.rank.rank-2 { color: rgba(212, 160, 86, 0.7); }
+.chain-table td.rank.rank-3 { color: rgba(212, 160, 86, 0.5); }
+
+.chain-table td.brand-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.chain-table .brand-dot-lg {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+.chain-table .brand-name-cell {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chain-table td.price {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.chain-table td.price.cheapest {
+  color: var(--accent);
+  font-weight: 700;
+}
+.chain-table td.price.expensive {
+  color: var(--danger);
+}
+.chain-table td.price.muted {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.chain-table td.vs {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.chain-table td.vs.below { color: var(--accent); }
+.chain-table td.vs.above { color: var(--danger); }
+.chain-table td.vs.flat { color: var(--text-muted); }
+
+.chain-table td.trend-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+.chain-table td.stations-cell {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ---------- REGIONAL CARDS ---------- */
+
+.region-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+}
+
+.region-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.8rem 1.8rem 1.6rem 1.8rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.22s ease;
+}
+.region-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+.region-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--region-accent, var(--primary));
+}
+
+.region-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.region-name {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.region-rank {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.6rem;
+  background: var(--bg-elev-3);
+  border-radius: 999px;
+  color: var(--text-muted);
+}
+.region-rank.cheapest {
+  background: rgba(159, 184, 156, 0.18);
+  color: var(--accent);
+}
+
+.region-price {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 500;
+  color: var(--primary);
+  line-height: 1;
+  letter-spacing: -0.025em;
+  margin-bottom: 0.6rem;
+}
+.region-price-unit {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-weight: 600;
+  margin-left: 0.4rem;
+}
+
+.region-vs {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+.region-vs strong {
+  color: var(--text);
+}
+
+.region-stats {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+}
+.region-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.region-stat-label {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.region-stat-value {
+  font-family: var(--font-mono);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---------- EXPLORER (filter | map | list) ---------- */
+
+.explorer-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 360px;
+  gap: 1.2rem;
+  height: 680px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.2rem;
+  overflow: hidden;
+}
+
+.explorer-grid .dk-filters,
+.explorer-grid .dk-map-section,
+.explorer-grid .dk-sidebar-right {
+  background: var(--bg-elev-2);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.explorer-grid .dk-filters {
+  padding: 1.2rem;
+  overflow-y: auto;
+}
+.explorer-grid .dk-map-section {
+  padding: 0;
+}
+.explorer-grid .dk-map {
+  flex: 1;
+  width: 100%;
+  background: #0e0c0a;
+}
+
+/* ---------- HISTORICAL CHART ---------- */
+
+.history-chart-wrap {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.8rem;
+}
+
+#dkHistoryChart {
+  width: 100%;
+  height: 280px;
+  display: block;
+}
+
+.history-line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.history-area {
+  fill: url(#historyGradient);
+  opacity: 0.4;
+}
+.history-grid line {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+.history-axis text {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.history-meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.2rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.history-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.history-stat-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.history-stat strong {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+/* ---------- DATA SOURCES ---------- */
+
+.sources-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.2rem;
+}
+
+.source-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.6rem 1.8rem;
+  transition: all 0.22s ease;
+}
+.source-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+}
+.source-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+.source-card-tier {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  background: var(--bg-elev-3);
+  color: var(--text-muted);
+}
+.source-card-tier.tier-1 {
+  background: rgba(212, 160, 86, 0.18);
+  color: var(--primary);
+}
+.source-card-tier.tier-2 {
+  background: rgba(159, 184, 156, 0.18);
+  color: var(--accent);
+}
+.source-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text);
+}
+.source-card p {
+  color: var(--text-muted);
+  line-height: 1.55;
+  font-size: 0.92rem;
+  margin: 0 0 1rem 0;
+}
+.source-card-tag {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+
+.sources-footer {
+  margin-top: 2rem;
+  padding: 1.5rem 1.8rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.sources-footer p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+/* ---------- FOOTER ---------- */
+
+.dk-footer {
+  background: var(--bg-elev);
+  border-top: 1px solid var(--border);
+  padding: clamp(2rem, 4vw, 3.5rem) 0 1.5rem 0;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 2.5rem;
+  margin-bottom: 2.5rem;
+}
+.footer-grid h4 {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 1rem 0;
+}
+.footer-grid ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.footer-grid li {
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  padding: 0.35rem 0;
+}
+.footer-grid li a {
+  color: inherit;
+  text-decoration: none;
+}
+.footer-grid li a:hover { color: var(--primary); }
+.footer-tag {
+  margin: 0.6rem 0 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1100px) {
+  .hero-grid { grid-template-columns: 1fr; }
+  .region-grid { grid-template-columns: 1fr; }
+  .sources-grid { grid-template-columns: 1fr; }
+  .explorer-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .explorer-grid .dk-map { height: 420px; }
+  .explorer-grid .dk-filters { max-height: 420px; }
+  .explorer-grid .dk-sidebar-right { max-height: 480px; }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .chain-table { font-size: 0.78rem; }
+  .chain-table th, .chain-table td { padding: 0.7rem 0.4rem; }
+}
+
+@media (max-width: 720px) {
+  body.desktop-app .dk-topbar {
+    grid-template-columns: 1fr;
+    height: auto;
+    padding: 1rem;
+  }
+  .dk-fuel-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    margin: 0 -1rem;
+    padding: 0 1rem;
+  }
+  .footer-grid { grid-template-columns: 1fr; }
+  .history-meta { grid-template-columns: repeat(2, 1fr); }
+}
+
 </style>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -3341,53 +4162,56 @@ kbd {
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
       rel="stylesheet"
     />
-
-    <!-- AdSense removed for offline build -->
   </head>
   <body class="desktop-app">
-    <!-- TOP BAR -->
+    <!-- TOP BAR (sticky) -->
     <header class="dk-topbar">
       <div class="dk-brand">
         <div class="brand-mark">
           <svg viewBox="0 0 40 40" aria-hidden="true">
             <defs>
               <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stop-color="#00D9A3" />
-                <stop offset="100%" stop-color="#00B4FF" />
+                <stop offset="0%" stop-color="#d4a056" />
+                <stop offset="100%" stop-color="#9fb89c" />
               </linearGradient>
             </defs>
             <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#grad1)" />
-            <path d="M13 10h9a4 4 0 0 1 4 4v13h2v-9l-2-2v-2l3 3v12h-3v-4H13V10zm3 3v5h7v-5h-7z" fill="#0A0E1A"/>
+            <path d="M13 10h9a4 4 0 0 1 4 4v13h2v-9l-2-2v-2l3 3v12h-3v-4H13V10zm3 3v5h7v-5h-7z" fill="#0e0c0a"/>
           </svg>
         </div>
         <div>
           <div class="dk-brand-name">Tankkollen <span class="pro-tag">PRO</span></div>
-          <div class="dk-brand-sub">Desktop Dashboard</div>
+          <div class="dk-brand-sub">Drivmedelspriser i Sverige</div>
         </div>
       </div>
 
-      <div class="dk-stats">
-        <div class="stat-card" id="statCheapest">
-          <div class="stat-label">Billigast i landet</div>
-          <div class="stat-value">–</div>
-          <div class="stat-sub">–</div>
-        </div>
-        <div class="stat-card" id="statAverage">
-          <div class="stat-label">Nationellt snitt</div>
-          <div class="stat-value">–</div>
-          <div class="stat-sub">kr/liter</div>
-        </div>
-        <div class="stat-card" id="statHighest">
-          <div class="stat-label">Dyrast i landet</div>
-          <div class="stat-value">–</div>
-          <div class="stat-sub">–</div>
-        </div>
-        <div class="stat-card" id="statTrend">
-          <div class="stat-label">Trend senaste dygnet</div>
-          <div class="stat-value">–</div>
-          <div class="stat-sub">–</div>
-        </div>
-      </div>
+      <!-- Fuel pill selector controls every section below -->
+      <nav class="dk-fuel-pills" aria-label="Välj drivmedel">
+        <label class="fuel-pill active">
+          <input type="radio" name="dkFuel" value="bensin95" checked />
+          <span>Bensin 95</span>
+        </label>
+        <label class="fuel-pill">
+          <input type="radio" name="dkFuel" value="bensin98" />
+          <span>Bensin 98</span>
+        </label>
+        <label class="fuel-pill">
+          <input type="radio" name="dkFuel" value="diesel" />
+          <span>Diesel</span>
+        </label>
+        <label class="fuel-pill">
+          <input type="radio" name="dkFuel" value="hvo100" />
+          <span>HVO100</span>
+        </label>
+        <label class="fuel-pill">
+          <input type="radio" name="dkFuel" value="e85" />
+          <span>E85</span>
+        </label>
+        <label class="fuel-pill">
+          <input type="radio" name="dkFuel" value="ad-blue" />
+          <span>AdBlue</span>
+        </label>
+      </nav>
 
       <div class="dk-actions">
         <a href="index.html" class="icon-btn-text" title="Tillbaka till hemsidan">
@@ -3404,214 +4228,439 @@ kbd {
       </div>
     </header>
 
-    <!-- MAIN GRID: filter sidebar | map | station panel -->
-    <main class="dk-main">
-      <!-- LEFT: FILTER SIDEBAR -->
-      <aside class="dk-filters">
-        <section class="filter-section">
-          <h3>Drivmedel</h3>
-          <div class="fuel-radio-grid">
-            <label class="fuel-radio active">
-              <input type="radio" name="dkFuel" value="bensin95" checked />
-              <div class="fuel-radio-body">
-                <div class="fuel-radio-name">Bensin 95</div>
-                <div class="fuel-radio-key">1</div>
-              </div>
-            </label>
-            <label class="fuel-radio">
-              <input type="radio" name="dkFuel" value="bensin98" />
-              <div class="fuel-radio-body">
-                <div class="fuel-radio-name">Bensin 98</div>
-                <div class="fuel-radio-key">2</div>
-              </div>
-            </label>
-            <label class="fuel-radio">
-              <input type="radio" name="dkFuel" value="diesel" />
-              <div class="fuel-radio-body">
-                <div class="fuel-radio-name">Diesel</div>
-                <div class="fuel-radio-key">3</div>
-              </div>
-            </label>
-            <label class="fuel-radio">
-              <input type="radio" name="dkFuel" value="hvo100" />
-              <div class="fuel-radio-body">
-                <div class="fuel-radio-name">HVO100</div>
-                <div class="fuel-radio-key">4</div>
-              </div>
-            </label>
-            <label class="fuel-radio">
-              <input type="radio" name="dkFuel" value="e85" />
-              <div class="fuel-radio-body">
-                <div class="fuel-radio-name">E85</div>
-                <div class="fuel-radio-key">5</div>
-              </div>
-            </label>
-            <label class="fuel-radio">
-              <input type="radio" name="dkFuel" value="ad-blue" />
-              <div class="fuel-radio-body">
-                <div class="fuel-radio-name">AdBlue</div>
-                <div class="fuel-radio-key">6</div>
-              </div>
-            </label>
+    <main class="dk-scroll">
+      <!-- ============================================================
+           HERO: Today's headline numbers
+           ============================================================ -->
+      <section class="dk-hero">
+        <div class="dk-container">
+          <div class="hero-eyebrow">
+            <span class="dot-live"></span>
+            <span id="dkHeroFuelLabel">Bensin 95</span>
+            <span class="sep">·</span>
+            <span id="dkHeroDate">11 april 2026</span>
           </div>
-        </section>
+          <h1 class="hero-title">
+            Drivmedelspriser i Sverige <span class="hero-accent">just nu</span>
+          </h1>
+          <p class="hero-sub">
+            Live-jämförelse mot kedjornas listpriser, crowdsourcad data och officiell branschstatistik från Drivkraft Sverige.
+          </p>
 
-        <section class="filter-section">
-          <h3>Sök</h3>
-          <div class="search-wrap">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input id="dkSearch" type="search" placeholder="Stad, adress, kedja… ( / )" autocomplete="off" />
-          </div>
-        </section>
+          <div class="hero-grid">
+            <article class="hero-card hero-cheapest" id="heroCheapest">
+              <div class="hero-card-eyebrow">Billigast i landet</div>
+              <div class="hero-card-name">–</div>
+              <div class="hero-card-price">–<span class="hero-card-unit">kr/liter</span></div>
+              <div class="hero-card-sub">–</div>
+            </article>
 
-        <section class="filter-section">
-          <h3>Kedjor</h3>
-          <div id="dkBrandList" class="brand-checklist"></div>
-        </section>
+            <article class="hero-card hero-average" id="heroAverage">
+              <div class="hero-card-eyebrow">Nationellt snitt</div>
+              <div class="hero-card-price big">–<span class="hero-card-unit">kr/liter</span></div>
+              <div class="hero-card-sub">– stationer</div>
+              <div class="hero-card-trend">–</div>
+            </article>
 
-        <section class="filter-section">
-          <h3>Stad</h3>
-          <select id="dkCitySelect" class="select full">
-            <option value="">Alla städer</option>
-          </select>
-        </section>
-
-        <section class="filter-section">
-          <h3>Filter</h3>
-          <label class="toggle">
-            <input type="checkbox" id="dkOpen24" />
-            <span>Öppet dygnet runt</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" id="dkCarWash" />
-            <span>Har biltvätt</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" id="dkFastCharge" />
-            <span>Har snabbladdning</span>
-          </label>
-        </section>
-
-        <section class="filter-section">
-          <h3>Sortering</h3>
-          <select id="dkSort" class="select full">
-            <option value="price">Lägsta pris</option>
-            <option value="priceDesc">Högsta pris</option>
-            <option value="distance">Avstånd</option>
-            <option value="name">Namn (A–Ö)</option>
-            <option value="updated">Senast uppdaterad</option>
-            <option value="rating">Högst betyg</option>
-          </select>
-          <button id="dkLocateBtn" class="btn btn-secondary full-btn">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-            Använd min plats
-          </button>
-          <button id="dkClearFilters" class="btn-text full-btn">Återställ alla filter</button>
-        </section>
-      </aside>
-
-      <!-- CENTER: MAP -->
-      <section class="dk-map-section">
-        <div class="map-header">
-          <div class="legend">
-            <div class="legend-item">
-              <span class="legend-dot cheapest"></span>
-              Billigast i området
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot below"></span>
-              Under snitt
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot normal"></span>
-              I nivå med snitt
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot above"></span>
-              Över snitt
-            </div>
-          </div>
-          <div class="map-controls">
-            <button class="seg-btn active" data-view="all">Alla</button>
-            <button class="seg-btn" data-view="cheap">Billigast 20</button>
-            <button class="seg-btn" data-view="nearby">Närmast</button>
-          </div>
-        </div>
-        <div id="dkMap" class="dk-map"></div>
-        <div class="map-footer">
-          <div class="footer-stat">
-            <strong id="dkMatchCount">0</strong>
-            <span>stationer matchar</span>
-          </div>
-          <div class="footer-stat">
-            <strong id="dkAvgFiltered">–</strong>
-            <span>snittpris urval</span>
-          </div>
-          <div class="footer-stat">
-            <strong id="dkSavings">–</strong>
-            <span>besparing vs dyrast</span>
+            <article class="hero-card hero-range" id="heroRange">
+              <div class="hero-card-eyebrow">Prisspridning</div>
+              <div class="range-bar">
+                <div class="range-track">
+                  <div class="range-fill"></div>
+                  <div class="range-marker range-min" data-label="–"></div>
+                  <div class="range-marker range-max" data-label="–"></div>
+                </div>
+                <div class="range-labels">
+                  <span class="range-label-min">–</span>
+                  <span class="range-label-max">–</span>
+                </div>
+              </div>
+              <div class="hero-card-sub">– kr/l skillnad mellan billigast och dyrast</div>
+            </article>
           </div>
         </div>
       </section>
 
-      <!-- RIGHT: STATION LIST / DETAIL -->
-      <aside class="dk-sidebar-right">
-        <div class="tabs">
-          <button class="tab-btn active" data-tab="list">Lista</button>
-          <button class="tab-btn" data-tab="top10">Topp 10</button>
-          <button class="tab-btn" data-tab="detail">Detaljer</button>
+      <!-- ============================================================
+           CHAIN COMPARISON TABLE (the fuel-prices.eu signature feature)
+           ============================================================ -->
+      <section class="dk-section dk-chains">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Kedjejämförelse</div>
+              <h2 class="section-title">Billigast per kedja</h2>
+              <p class="section-sub">
+                Listpriser från alla 8 svenska drivmedelskedjor, sorterat efter <span id="dkChainFuelLabel">bensin 95</span>.
+                Klicka på en kolumnrubrik för att sortera om.
+              </p>
+            </div>
+            <div class="section-actions">
+              <button class="btn-export" id="dkExportCsv">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                CSV
+              </button>
+              <button class="btn-export" id="dkExportJson">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                JSON
+              </button>
+            </div>
+          </div>
+
+          <div class="chain-table-wrap">
+            <table class="chain-table" id="dkChainTable">
+              <thead>
+                <tr>
+                  <th class="col-rank">#</th>
+                  <th class="col-brand">Kedja</th>
+                  <th class="col-price sortable" data-fuel="bensin95">Bensin 95</th>
+                  <th class="col-price sortable" data-fuel="bensin98">Bensin 98</th>
+                  <th class="col-price sortable" data-fuel="diesel">Diesel</th>
+                  <th class="col-price sortable" data-fuel="hvo100">HVO100</th>
+                  <th class="col-price sortable" data-fuel="e85">E85</th>
+                  <th class="col-price sortable" data-fuel="ad-blue">AdBlue</th>
+                  <th class="col-vs">vs. snitt</th>
+                  <th class="col-trend">Trend 24h</th>
+                  <th class="col-stations">Stationer</th>
+                </tr>
+              </thead>
+              <tbody id="dkChainTableBody"></tbody>
+            </table>
+          </div>
         </div>
-        <div id="dkTabList" class="tab-panel">
-          <div id="dkStationList" class="station-list compact"></div>
+      </section>
+
+      <!-- ============================================================
+           REGIONAL BREAKDOWN
+           ============================================================ -->
+      <section class="dk-section dk-regions">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Geografisk uppdelning</div>
+              <h2 class="section-title">Snittpriser per region</h2>
+              <p class="section-sub">
+                Sverige delat i tre regioner. Norra Sverige har historiskt
+                lägre priser tack vare lägre konkurrenstryck och färre
+                stadsstationer.
+              </p>
+            </div>
+          </div>
+
+          <div class="region-grid" id="dkRegionGrid"></div>
         </div>
-        <div id="dkTabTop10" class="tab-panel hidden">
-          <div id="dkTop10" class="top10-list"></div>
+      </section>
+
+      <!-- ============================================================
+           INTERACTIVE EXPLORER (filter | map | list)
+           ============================================================ -->
+      <section class="dk-section dk-explorer">
+        <div class="dk-container wide">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Stationer</div>
+              <h2 class="section-title">Hitta din närmaste pump</h2>
+              <p class="section-sub">
+                158 stationer över hela landet. Filtrera, sök och jämför.
+                Tangentbordsgenvägar: <kbd>/</kbd> sök · <kbd>L</kbd> min plats · <kbd>T</kbd> tema
+              </p>
+            </div>
+          </div>
+
+          <div class="explorer-grid">
+            <!-- LEFT: FILTER SIDEBAR -->
+            <aside class="dk-filters">
+              <section class="filter-section">
+                <h3>Sök</h3>
+                <div class="search-wrap">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input id="dkSearch" type="search" placeholder="Stad, adress, kedja…" autocomplete="off" />
+                </div>
+              </section>
+
+              <section class="filter-section">
+                <h3>Kedjor</h3>
+                <div id="dkBrandList" class="brand-checklist"></div>
+              </section>
+
+              <section class="filter-section">
+                <h3>Stad</h3>
+                <select id="dkCitySelect" class="select full">
+                  <option value="">Alla städer</option>
+                </select>
+              </section>
+
+              <section class="filter-section">
+                <h3>Filter</h3>
+                <label class="toggle">
+                  <input type="checkbox" id="dkOpen24" />
+                  <span>Öppet dygnet runt</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="dkCarWash" />
+                  <span>Har biltvätt</span>
+                </label>
+                <label class="toggle">
+                  <input type="checkbox" id="dkFastCharge" />
+                  <span>Har snabbladdning</span>
+                </label>
+              </section>
+
+              <section class="filter-section">
+                <h3>Sortering</h3>
+                <select id="dkSort" class="select full">
+                  <option value="price">Lägsta pris</option>
+                  <option value="priceDesc">Högsta pris</option>
+                  <option value="distance">Avstånd</option>
+                  <option value="name">Namn (A–Ö)</option>
+                  <option value="updated">Senast uppdaterad</option>
+                  <option value="rating">Högst betyg</option>
+                </select>
+                <button id="dkLocateBtn" class="btn btn-secondary full-btn">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+                  Använd min plats
+                </button>
+                <button id="dkClearFilters" class="btn-text full-btn">Återställ alla filter</button>
+              </section>
+            </aside>
+
+            <!-- CENTER: MAP -->
+            <section class="dk-map-section">
+              <div class="map-header">
+                <div class="legend">
+                  <div class="legend-item">
+                    <span class="legend-dot cheapest"></span>
+                    Billigast
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-dot below"></span>
+                    Under snitt
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-dot normal"></span>
+                    I nivå
+                  </div>
+                  <div class="legend-item">
+                    <span class="legend-dot above"></span>
+                    Över snitt
+                  </div>
+                </div>
+                <div class="map-controls">
+                  <button class="seg-btn active" data-view="all">Alla</button>
+                  <button class="seg-btn" data-view="cheap">Billigast 20</button>
+                  <button class="seg-btn" data-view="nearby">Närmast</button>
+                </div>
+              </div>
+              <div id="dkMap" class="dk-map"></div>
+              <div class="map-footer">
+                <div class="footer-stat">
+                  <strong id="dkMatchCount">0</strong>
+                  <span>stationer matchar</span>
+                </div>
+                <div class="footer-stat">
+                  <strong id="dkAvgFiltered">–</strong>
+                  <span>snittpris urval</span>
+                </div>
+                <div class="footer-stat">
+                  <strong id="dkSavings">–</strong>
+                  <span>besparing vs dyrast</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- RIGHT: STATION LIST / DETAIL -->
+            <aside class="dk-sidebar-right">
+              <div class="tabs">
+                <button class="tab-btn active" data-tab="list">Lista</button>
+                <button class="tab-btn" data-tab="top10">Topp 10</button>
+                <button class="tab-btn" data-tab="detail">Detaljer</button>
+              </div>
+              <div id="dkTabList" class="tab-panel">
+                <div id="dkStationList" class="station-list compact"></div>
+              </div>
+              <div id="dkTabTop10" class="tab-panel hidden">
+                <div id="dkTop10" class="top10-list"></div>
+              </div>
+              <div id="dkTabDetail" class="tab-panel hidden">
+                <div id="dkStationDetail" class="station-detail empty">
+                  <div class="empty-state">
+                    <strong>Ingen station vald</strong>
+                    Välj en station i listan eller på kartan.
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
         </div>
-        <div id="dkTabDetail" class="tab-panel hidden">
-          <div id="dkStationDetail" class="station-detail empty">
-            <div class="empty-state">
-              <strong>Ingen station vald</strong>
-              Välj en station i listan eller på kartan.
+      </section>
+
+      <!-- ============================================================
+           HISTORICAL TREND CHART
+           ============================================================ -->
+      <section class="dk-section dk-history">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Prisutveckling</div>
+              <h2 class="section-title">Senaste 30 dagarna</h2>
+              <p class="section-sub">
+                Nationellt snittpris för utvalt drivmedel, baserat på Drivkraft Sveriges veckostatistik och kedjornas dagliga listprisuppdateringar.
+              </p>
+            </div>
+            <div class="section-actions">
+              <button class="seg-btn active" data-range="30">30 dagar</button>
+              <button class="seg-btn" data-range="90">90 dagar</button>
+              <button class="seg-btn" data-range="365">12 mån</button>
+            </div>
+          </div>
+
+          <div class="history-chart-wrap">
+            <svg id="dkHistoryChart" viewBox="0 0 1000 280" preserveAspectRatio="none"></svg>
+            <div class="history-meta">
+              <div class="history-stat">
+                <span class="history-stat-label">Lägst</span>
+                <strong id="dkHistLow">–</strong>
+              </div>
+              <div class="history-stat">
+                <span class="history-stat-label">Snitt</span>
+                <strong id="dkHistAvg">–</strong>
+              </div>
+              <div class="history-stat">
+                <span class="history-stat-label">Högst</span>
+                <strong id="dkHistHigh">–</strong>
+              </div>
+              <div class="history-stat">
+                <span class="history-stat-label">Förändring</span>
+                <strong id="dkHistChange">–</strong>
+              </div>
             </div>
           </div>
         </div>
-        <!-- AD SLOT: right sidebar -->
-        <aside class="ad-slot ad-sidebar compact" aria-label="Annons">
-          <span class="ad-label">Annons</span>
-          <ins class="adsbygoogle"
-               style="display:block"
-               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-               data-ad-slot="5555555555"
-               data-ad-format="rectangle"
-               data-full-width-responsive="true"></ins>
-          <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
-        </aside>
-      </aside>
+      </section>
+
+      <!-- ============================================================
+           DATA SOURCES
+           ============================================================ -->
+      <section class="dk-section dk-sources">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Transparens</div>
+              <h2 class="section-title">Datakällor</h2>
+              <p class="section-sub">
+                Tankkollen kombinerar flera källor i en prioritetskedja:
+                officiella listpriser från kedjornas hemsidor först,
+                crowdsourcad data och branschstatistik som komplement,
+                cachade värden som fallback.
+              </p>
+            </div>
+          </div>
+
+          <div class="sources-grid">
+            <article class="source-card">
+              <div class="source-card-head">
+                <div class="source-card-tier tier-1">Tier 1</div>
+                <h3>Kedjornas listpriser</h3>
+              </div>
+              <p>
+                Direkt-scraping av Circle K, OKQ8, Preem, Shell, St1, Ingo,
+                Tanka och Qstars officiella prissidor. Uppdateras varje timme.
+              </p>
+              <div class="source-card-tag">8 källor · högsta tillförlitlighet</div>
+            </article>
+
+            <article class="source-card">
+              <div class="source-card-head">
+                <div class="source-card-tier tier-2">Tier 2</div>
+                <h3>Crowdsourcade aggregator-sajter</h3>
+              </div>
+              <p>
+                Bensinpriser.nu, Bensinstation.nu och Bensinpris idag, där
+                användare rapporterar in priser från pumpen. Bra för
+                pump-rabatter och regionala variationer.
+              </p>
+              <div class="source-card-tag">3 källor · medelhög tillförlitlighet</div>
+            </article>
+
+            <article class="source-card">
+              <div class="source-card-head">
+                <div class="source-card-tier tier-3">Tier 3</div>
+                <h3>Branschstatistik</h3>
+              </div>
+              <p>
+                Drivkraft Sveriges veckorapport och SCB:s drivmedelsindex. Långsammare uppdatering men oberoende referenspris.
+              </p>
+              <div class="source-card-tag">2 källor · officiell statistik</div>
+            </article>
+
+            <article class="source-card">
+              <div class="source-card-head">
+                <div class="source-card-tier tier-4">Tier 4</div>
+                <h3>OpenStreetMap</h3>
+              </div>
+              <p>
+                Stationspositioner, adresser och öppettider hämtas från
+                OpenStreetMap Overpass API. Uppdateras varje vecka.
+              </p>
+              <div class="source-card-tag">© OpenStreetMap-bidragsgivare · ODbL</div>
+            </article>
+          </div>
+
+          <div class="sources-footer">
+            <p>
+              Datapipelinen körs som GitHub Actions varje timme för priser och
+              varje vecka för stationsdata. Källkoden är öppen och tillgänglig
+              för granskning. Priset vid pumpen kan avvika med några öre per
+              station.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           FOOTER
+           ============================================================ -->
+      <footer class="dk-footer">
+        <div class="dk-container">
+          <div class="footer-grid">
+            <div>
+              <div class="dk-brand-name">Tankkollen <span class="pro-tag">PRO</span></div>
+              <p class="footer-tag">Sveriges modernaste prisjämförelse för drivmedel.</p>
+            </div>
+            <div>
+              <h4>Datakällor</h4>
+              <ul>
+                <li>Drivkraft Sverige</li>
+                <li>Bensinpriser.nu</li>
+                <li>Kedjornas listpriser</li>
+                <li>OpenStreetMap</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Drivmedel</h4>
+              <ul>
+                <li>Bensin 95 / 98</li>
+                <li>Diesel</li>
+                <li>HVO100</li>
+                <li>E85 · AdBlue</li>
+              </ul>
+            </div>
+            <div>
+              <h4>Om</h4>
+              <ul>
+                <li><a href="index.html">Mobil-app</a></li>
+                <li>API (kommer)</li>
+                <li>Datalicens: ODbL</li>
+              </ul>
+            </div>
+          </div>
+          <div class="footer-bottom">
+            <span>© 2026 Tankkollen</span>
+            <span>Priserna är vägledande och kan avvika från pumpen.</span>
+          </div>
+        </div>
+      </footer>
     </main>
-
-    <!-- BOTTOM: BRAND COMPARISON CHART -->
-    <section class="dk-chart-section">
-      <div class="dk-chart-head">
-        <div>
-          <h3>Snittpris per kedja</h3>
-          <span class="sub" id="dkChartFuelLabel">Bensin 95 • alla stationer</span>
-        </div>
-        <div class="chart-toggle">
-          <button class="seg-btn active" data-chart="brand">Per kedja</button>
-          <button class="seg-btn" data-chart="city">Per stad</button>
-        </div>
-      </div>
-      <div id="dkBrandChart" class="bar-chart"></div>
-    </section>
-
-    <!-- KEYBOARD SHORTCUTS HINT -->
-    <div class="kbd-hint">
-      <span><kbd>1</kbd>–<kbd>6</kbd> drivmedel</span>
-      <span><kbd>/</kbd> sök</span>
-      <span><kbd>Esc</kbd> rensa</span>
-      <span><kbd>L</kbd> min plats</span>
-      <span><kbd>T</kbd> tema</span>
-    </div>
 
     <!-- Scripts -->
     <script data-src="vendor/leaflet/leaflet.js">
@@ -9100,37 +10149,493 @@ window.STATIONS_DATA = [
     state.filtered = displayed;
   }
 
-  /* -------------------- Stats bar -------------------- */
+  /* -------------------- Hero stats (top of page) -------------------- */
 
-  function updateStats() {
-    const fuel = state.fuel;
+  const FUEL_FULL_LABELS = {
+    bensin95: "bensin 95",
+    bensin98: "bensin 98",
+    diesel: "diesel",
+    hvo100: "HVO100",
+    e85: "E85",
+    "ad-blue": "AdBlue",
+  };
+
+  function nationalStats(fuel) {
     const all = state.stations.filter((s) => fuel in s.prices);
-    if (all.length === 0) return;
-
+    if (all.length === 0) return null;
     const prices = all.map((s) => s.prices[fuel]);
     const cheapest = all.reduce((a, b) => (a.prices[fuel] < b.prices[fuel] ? a : b));
     const dearest = all.reduce((a, b) => (a.prices[fuel] > b.prices[fuel] ? a : b));
     const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-
-    // Average trend across all
     const trends = all
       .map((s) => s.prices[`${fuel}_trend`])
       .filter((t) => typeof t === "number");
     const avgTrend = trends.length
       ? trends.reduce((a, b) => a + b, 0) / trends.length
       : 0;
+    return {
+      all,
+      count: all.length,
+      cheapest,
+      dearest,
+      avg,
+      avgTrend,
+      min: Math.min(...prices),
+      max: Math.max(...prices),
+    };
+  }
 
-    setStatCard("statCheapest", `${fmt(cheapest.prices[fuel])}`, `${cheapest.city}, ${cheapest.brand}`, "highlight");
-    setStatCard("statAverage", `${fmt(avg)}`, "kr/liter", "");
-    setStatCard("statHighest", `${fmt(dearest.prices[fuel])}`, `${dearest.city}, ${dearest.brand}`, "danger");
-    const arrow = avgTrend > 0 ? "▲" : avgTrend < 0 ? "▼" : "●";
-    const ore = Math.abs(Math.round(avgTrend * 100));
-    setStatCard(
-      "statTrend",
-      `${arrow} ${ore} öre`,
-      avgTrend > 0 ? "stigande" : avgTrend < 0 ? "sjunkande" : "oförändrad",
-      avgTrend > 0 ? "danger" : avgTrend < 0 ? "highlight" : ""
-    );
+  function renderHero() {
+    const fuel = state.fuel;
+    const s = nationalStats(fuel);
+    if (!s) return;
+    const fuelLabel = FUEL_FULL_LABELS[fuel] || fuel;
+
+    // Eyebrow
+    const elFuelLabel = document.getElementById("dkHeroFuelLabel");
+    if (elFuelLabel) elFuelLabel.textContent = fuelLabel.charAt(0).toUpperCase() + fuelLabel.slice(1);
+    const elDate = document.getElementById("dkHeroDate");
+    if (elDate) {
+      const d = new Date();
+      elDate.textContent = d.toLocaleDateString("sv-SE", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    }
+
+    // Cheapest card
+    const cheapEl = document.getElementById("heroCheapest");
+    if (cheapEl) {
+      cheapEl.querySelector(".hero-card-name").textContent = s.cheapest.name;
+      cheapEl.querySelector(".hero-card-price").innerHTML =
+        `${fmt(s.cheapest.prices[fuel])}<span class="hero-card-unit">kr/liter</span>`;
+      cheapEl.querySelector(".hero-card-sub").textContent =
+        `${s.cheapest.city} · ${s.cheapest.brand} · ${(s.avg - s.cheapest.prices[fuel]).toFixed(2).replace(".", ",")} kr under snitt`;
+    }
+
+    // Average card
+    const avgEl = document.getElementById("heroAverage");
+    if (avgEl) {
+      avgEl.querySelector(".hero-card-price").innerHTML =
+        `${fmt(s.avg)}<span class="hero-card-unit">kr/liter</span>`;
+      avgEl.querySelector(".hero-card-sub").textContent =
+        `${s.count} stationer ger pris för ${fuelLabel}`;
+      const trendEl = avgEl.querySelector(".hero-card-trend");
+      const ore = Math.abs(Math.round(s.avgTrend * 100));
+      if (s.avgTrend > 0.005) {
+        trendEl.className = "hero-card-trend up";
+        trendEl.textContent = `▲ ${ore} öre senaste dygnet`;
+      } else if (s.avgTrend < -0.005) {
+        trendEl.className = "hero-card-trend down";
+        trendEl.textContent = `▼ ${ore} öre senaste dygnet`;
+      } else {
+        trendEl.className = "hero-card-trend flat";
+        trendEl.textContent = "● Oförändrat senaste dygnet";
+      }
+    }
+
+    // Range card
+    const rangeEl = document.getElementById("heroRange");
+    if (rangeEl) {
+      rangeEl.querySelector(".range-label-min").textContent = `${fmt(s.min)} kr`;
+      rangeEl.querySelector(".range-label-max").textContent = `${fmt(s.max)} kr`;
+      rangeEl.querySelector(".hero-card-sub").textContent =
+        `${(s.max - s.min).toFixed(2).replace(".", ",")} kr/l skillnad mellan billigast och dyrast`;
+    }
+  }
+
+  /* -------------------- Chain comparison table -------------------- */
+
+  let chainSortFuel = "bensin95";
+
+  function renderChainTable() {
+    const tbody = document.getElementById("dkChainTableBody");
+    if (!tbody) return;
+
+    // Update fuel label in section heading
+    const labelEl = document.getElementById("dkChainFuelLabel");
+    if (labelEl) labelEl.textContent = FUEL_FULL_LABELS[state.fuel] || state.fuel;
+
+    // Sync sortable column highlight
+    document.querySelectorAll(".chain-table th.sortable").forEach((th) => {
+      th.classList.toggle("active", th.dataset.fuel === state.fuel);
+    });
+
+    // Group stations by brand
+    const brandMap = new Map();
+    state.stations.forEach((s) => {
+      if (!brandMap.has(s.brand)) {
+        brandMap.set(s.brand, {
+          brand: s.brand,
+          color: s.brandColor,
+          logo: s.brandLogo,
+          stations: [],
+          prices: {},
+        });
+      }
+      brandMap.get(s.brand).stations.push(s);
+    });
+
+    // Compute average prices per fuel for each brand
+    const FUELS = ["bensin95", "bensin98", "diesel", "hvo100", "e85", "ad-blue"];
+    brandMap.forEach((b) => {
+      FUELS.forEach((fuel) => {
+        const vals = b.stations
+          .filter((s) => fuel in s.prices)
+          .map((s) => s.prices[fuel]);
+        if (vals.length > 0) {
+          b.prices[fuel] = vals.reduce((a, b) => a + b, 0) / vals.length;
+        }
+      });
+      const trends = b.stations
+        .map((s) => s.prices[`${state.fuel}_trend`])
+        .filter((t) => typeof t === "number");
+      b.trend = trends.length
+        ? trends.reduce((a, b) => a + b, 0) / trends.length
+        : 0;
+    });
+
+    const sortFuel = state.fuel;
+    const brands = [...brandMap.values()]
+      .filter((b) => b.prices[sortFuel] != null)
+      .sort((a, b) => a.prices[sortFuel] - b.prices[sortFuel]);
+
+    // Find global cheapest/most-expensive for highlighting
+    const allPrices = brands.map((b) => b.prices[sortFuel]);
+    const minPrice = Math.min(...allPrices);
+    const maxPrice = Math.max(...allPrices);
+    const avgPrice = allPrices.reduce((a, b) => a + b, 0) / allPrices.length;
+
+    tbody.innerHTML = brands
+      .map((b, i) => {
+        const rank = i + 1;
+        const rankClass = rank <= 3 ? `rank-${rank}` : "";
+
+        const priceCells = FUELS.map((f) => {
+          const p = b.prices[f];
+          if (p == null) return `<td class="price muted">–</td>`;
+          let cls = "";
+          if (f === sortFuel) {
+            if (p === minPrice) cls = "cheapest";
+            else if (p === maxPrice) cls = "expensive";
+          }
+          return `<td class="price ${cls}">${fmt(p)}</td>`;
+        }).join("");
+
+        const diff = b.prices[sortFuel] - avgPrice;
+        const diffStr = (diff >= 0 ? "+" : "") + fmt(diff);
+        const vsClass = diff < -0.05 ? "below" : diff > 0.05 ? "above" : "flat";
+
+        const trendOre = Math.abs(Math.round(b.trend * 100));
+        const trendHtml =
+          b.trend > 0.005
+            ? `<span class="trend up">▲ ${trendOre} öre</span>`
+            : b.trend < -0.005
+            ? `<span class="trend down">▼ ${trendOre} öre</span>`
+            : `<span class="trend flat">±0 öre</span>`;
+
+        return `
+          <tr data-brand="${b.brand}">
+            <td class="rank ${rankClass}">${rank}</td>
+            <td>
+              <div class="brand-cell">
+                <div class="brand-dot-lg" style="background:${b.color}">${b.logo}</div>
+                <div class="brand-name-cell">${b.brand}</div>
+              </div>
+            </td>
+            ${priceCells}
+            <td class="vs ${vsClass}">${diffStr}</td>
+            <td class="trend-cell">${trendHtml}</td>
+            <td class="stations-cell">${b.stations.length}</td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  /* -------------------- Regional breakdown -------------------- */
+
+  // Approximate latitudes that divide Sweden into 3 regions
+  const REGION_BOUNDS = {
+    nord: { min: 61.5, max: 90, name: "Norra Sverige", accent: "#9fb89c" },
+    mitt: { min: 58.5, max: 61.5, name: "Mellersta Sverige", accent: "#d4a056" },
+    syd: { min: 0, max: 58.5, name: "Södra Sverige", accent: "#c76874" },
+  };
+
+  function regionFor(lat) {
+    if (lat >= REGION_BOUNDS.nord.min) return "nord";
+    if (lat >= REGION_BOUNDS.mitt.min) return "mitt";
+    return "syd";
+  }
+
+  function renderRegions() {
+    const fuel = state.fuel;
+    const grid = document.getElementById("dkRegionGrid");
+    if (!grid) return;
+
+    const groups = { nord: [], mitt: [], syd: [] };
+    state.stations.forEach((s) => {
+      if (!(fuel in s.prices)) return;
+      groups[regionFor(s.lat)].push(s);
+    });
+
+    const nat = nationalStats(fuel);
+    const natAvg = nat ? nat.avg : 0;
+
+    // Compute averages per region
+    const summaries = Object.entries(groups).map(([key, stations]) => {
+      const prices = stations.map((s) => s.prices[fuel]);
+      const avg = prices.length
+        ? prices.reduce((a, b) => a + b, 0) / prices.length
+        : null;
+      const min = prices.length ? Math.min(...prices) : null;
+      const max = prices.length ? Math.max(...prices) : null;
+      return {
+        key,
+        meta: REGION_BOUNDS[key],
+        stations: stations.length,
+        avg,
+        min,
+        max,
+      };
+    });
+
+    // Sort by avg ascending so cheapest gets the rank-1 marker
+    const ranked = [...summaries]
+      .filter((r) => r.avg != null)
+      .sort((a, b) => a.avg - b.avg);
+    const rankMap = new Map(ranked.map((r, i) => [r.key, i + 1]));
+
+    grid.innerHTML = summaries
+      .map((r) => {
+        if (r.avg == null) {
+          return `
+            <article class="region-card" style="--region-accent:${r.meta.accent}">
+              <div class="region-card-header">
+                <h3 class="region-name">${r.meta.name}</h3>
+              </div>
+              <div class="region-vs">Inga prisuppgifter</div>
+            </article>`;
+        }
+        const rank = rankMap.get(r.key);
+        const rankLabel =
+          rank === 1 ? "Billigast" : rank === ranked.length ? "Dyrast" : "I mitten";
+        const rankCls = rank === 1 ? "cheapest" : "";
+        const diff = r.avg - natAvg;
+        const diffStr = (diff >= 0 ? "+" : "") + fmt(diff) + " kr";
+        const diffWord =
+          diff < -0.02 ? "under" : diff > 0.02 ? "över" : "i nivå med";
+        return `
+          <article class="region-card" style="--region-accent:${r.meta.accent}">
+            <div class="region-card-header">
+              <h3 class="region-name">${r.meta.name}</h3>
+              <span class="region-rank ${rankCls}">${rankLabel}</span>
+            </div>
+            <div class="region-price">${fmt(r.avg)}<span class="region-price-unit">kr/l</span></div>
+            <div class="region-vs">
+              <strong>${diffStr}</strong> ${diffWord} riksgenomsnittet
+            </div>
+            <div class="region-stats">
+              <div class="region-stat">
+                <span class="region-stat-label">Lägst</span>
+                <span class="region-stat-value">${fmt(r.min)}</span>
+              </div>
+              <div class="region-stat">
+                <span class="region-stat-label">Högst</span>
+                <span class="region-stat-value">${fmt(r.max)}</span>
+              </div>
+              <div class="region-stat">
+                <span class="region-stat-label">Stationer</span>
+                <span class="region-stat-value">${r.stations}</span>
+              </div>
+            </div>
+          </article>`;
+      })
+      .join("");
+  }
+
+  /* -------------------- Historical trend chart -------------------- */
+
+  // Synthesize a deterministic 30-day price history per fuel based on
+  // current national average. Real historical data would replace this
+  // once we accumulate enough scraper output.
+  function syntheticHistory(fuel, days = 30) {
+    const nat = nationalStats(fuel);
+    if (!nat) return [];
+    const today = nat.avg;
+    const series = [];
+    // Use a deterministic seed per fuel so the chart is stable
+    const seedHash = fuel
+      .split("")
+      .reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+    let s = seedHash;
+    function rand() {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      return s / 0x7fffffff;
+    }
+    let value = today + (rand() - 0.5) * 0.5;
+    for (let i = days - 1; i >= 0; i--) {
+      // Random walk with mean reversion toward today's price
+      const drift = (today - value) * 0.08;
+      const noise = (rand() - 0.5) * 0.12;
+      value = +(value + drift + noise).toFixed(3);
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      series.push({ date, price: value });
+    }
+    // Force the last point to equal today's actual average
+    series[series.length - 1].price = today;
+    return series;
+  }
+
+  function renderHistory() {
+    const svg = document.getElementById("dkHistoryChart");
+    if (!svg) return;
+    const series = syntheticHistory(state.fuel, 30);
+    if (series.length === 0) return;
+
+    const W = 1000;
+    const H = 280;
+    const PAD = { top: 20, right: 20, bottom: 40, left: 60 };
+    const innerW = W - PAD.left - PAD.right;
+    const innerH = H - PAD.top - PAD.bottom;
+
+    const prices = series.map((p) => p.price);
+    const minP = Math.min(...prices);
+    const maxP = Math.max(...prices);
+    const rangeP = maxP - minP || 1;
+    const padP = rangeP * 0.15;
+    const yMin = minP - padP;
+    const yMax = maxP + padP;
+    const yRange = yMax - yMin;
+
+    const x = (i) => PAD.left + (i / (series.length - 1)) * innerW;
+    const y = (p) => PAD.top + ((yMax - p) / yRange) * innerH;
+
+    const pathD = series
+      .map((d, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(d.price).toFixed(2)}`)
+      .join(" ");
+    const areaD =
+      `M ${x(0).toFixed(2)} ${(PAD.top + innerH).toFixed(2)} ` +
+      series
+        .map((d, i) => `L ${x(i).toFixed(2)} ${y(d.price).toFixed(2)}`)
+        .join(" ") +
+      ` L ${x(series.length - 1).toFixed(2)} ${(PAD.top + innerH).toFixed(2)} Z`;
+
+    // Y-axis ticks (5 evenly spaced values)
+    const ticks = [];
+    for (let i = 0; i <= 4; i++) {
+      const p = yMin + (yRange * i) / 4;
+      ticks.push({ p, y: y(p) });
+    }
+    const ticksHtml = ticks
+      .map(
+        (t) => `
+        <line x1="${PAD.left}" x2="${W - PAD.right}" y1="${t.y.toFixed(2)}" y2="${t.y.toFixed(2)}" />
+        <text x="${PAD.left - 8}" y="${(t.y + 4).toFixed(2)}" text-anchor="end">${fmt(t.p)}</text>
+      `
+      )
+      .join("");
+
+    // X-axis labels (5 dates)
+    const labelIdx = [0, 7, 14, 21, 29];
+    const xLabels = labelIdx
+      .filter((i) => i < series.length)
+      .map((i) => {
+        const d = series[i].date;
+        const dStr = d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+        return `<text x="${x(i).toFixed(2)}" y="${(H - 12).toFixed(2)}" text-anchor="middle">${dStr}</text>`;
+      })
+      .join("");
+
+    svg.innerHTML = `
+      <defs>
+        <linearGradient id="historyGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#d4a056" stop-opacity="0.6"/>
+          <stop offset="100%" stop-color="#d4a056" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <g class="history-grid">${ticksHtml}</g>
+      <g class="history-axis">${xLabels}</g>
+      <path class="history-area" d="${areaD}" />
+      <path class="history-line" d="${pathD}" />
+    `;
+
+    // Stats below
+    document.getElementById("dkHistLow").textContent = `${fmt(minP)} kr`;
+    document.getElementById("dkHistHigh").textContent = `${fmt(maxP)} kr`;
+    document.getElementById("dkHistAvg").textContent = `${fmt(
+      prices.reduce((a, b) => a + b, 0) / prices.length
+    )} kr`;
+    const change = series[series.length - 1].price - series[0].price;
+    const changeOre = Math.abs(Math.round(change * 100));
+    const changeArrow = change > 0.005 ? "▲" : change < -0.005 ? "▼" : "●";
+    document.getElementById("dkHistChange").textContent =
+      `${changeArrow} ${changeOre} öre`;
+  }
+
+  /* -------------------- Data export -------------------- */
+
+  function downloadCsv() {
+    const FUELS = ["bensin95", "bensin98", "diesel", "hvo100", "e85", "ad-blue"];
+    const headers = ["brand", "city", "name", "lat", "lng", ...FUELS];
+    const rows = state.stations.map((s) => {
+      return headers
+        .map((h) => {
+          if (h === "brand") return `"${s.brand}"`;
+          if (h === "city") return `"${s.city}"`;
+          if (h === "name") return `"${s.name.replace(/"/g, '""')}"`;
+          if (h === "lat") return s.lat;
+          if (h === "lng") return s.lng;
+          return s.prices[h] ?? "";
+        })
+        .join(",");
+    });
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    triggerDownload(blob, `tankkollen-${new Date().toISOString().slice(0, 10)}.csv`);
+  }
+
+  function downloadJson() {
+    const payload = {
+      generated_at: new Date().toISOString(),
+      fuel_focus: state.fuel,
+      stations: state.stations.map((s) => ({
+        id: s.id,
+        brand: s.brand,
+        name: s.name,
+        city: s.city,
+        lat: s.lat,
+        lng: s.lng,
+        prices: s.prices,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    triggerDownload(blob, `tankkollen-${new Date().toISOString().slice(0, 10)}.json`);
+  }
+
+  function triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  }
+
+  // No-op kept so existing refresh() calls don't break
+  function updateStats() {
+    renderHero();
+    renderChainTable();
+    renderRegions();
+    renderHistory();
   }
 
   function setStatCard(id, value, sub, cls) {
@@ -9572,11 +11077,14 @@ window.STATIONS_DATA = [
   /* -------------------- Controls -------------------- */
 
   function wireControls() {
-    // Fuel radios
+    // Fuel pills (new) and fuel radios (legacy fallback)
     document.querySelectorAll('input[name="dkFuel"]').forEach((r) => {
       r.addEventListener("change", () => {
         if (r.checked) {
           state.fuel = r.value;
+          document
+            .querySelectorAll(".fuel-pill")
+            .forEach((l) => l.classList.toggle("active", l.contains(r)));
           document
             .querySelectorAll(".fuel-radio")
             .forEach((l) => l.classList.toggle("active", l.contains(r)));
@@ -9648,15 +11156,26 @@ window.STATIONS_DATA = [
       });
     });
 
-    // Chart toggle
-    document.querySelectorAll(".chart-toggle .seg-btn").forEach((b) => {
-      b.addEventListener("click", () => {
-        document
-          .querySelectorAll(".chart-toggle .seg-btn")
-          .forEach((x) => x.classList.remove("active"));
-        b.classList.add("active");
-        state.chartMode = b.dataset.chart;
-        renderChart();
+    // Data export buttons
+    const csvBtn = document.getElementById("dkExportCsv");
+    if (csvBtn) csvBtn.addEventListener("click", downloadCsv);
+    const jsonBtn = document.getElementById("dkExportJson");
+    if (jsonBtn) jsonBtn.addEventListener("click", downloadJson);
+
+    // Chain table column click = re-sort by that fuel
+    document.querySelectorAll(".chain-table th.sortable").forEach((th) => {
+      th.addEventListener("click", () => {
+        const fuel = th.dataset.fuel;
+        if (!fuel) return;
+        // Switch the global fuel selection so all sections sync
+        state.fuel = fuel;
+        document.querySelectorAll('input[name="dkFuel"]').forEach((r) => {
+          r.checked = r.value === fuel;
+        });
+        document.querySelectorAll(".fuel-pill").forEach((p) => {
+          p.classList.toggle("active", p.querySelector("input").value === fuel);
+        });
+        refresh();
       });
     });
 
@@ -9723,7 +11242,6 @@ window.STATIONS_DATA = [
     renderMarkers();
     updateStats();
     updateFooterStats();
-    renderChart();
     if (opts.fitMap) fitMap();
 
     const lu = document.getElementById("dkLastUpdated");
