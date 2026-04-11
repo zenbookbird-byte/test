@@ -1,93 +1,129 @@
 {
-  "updated_at": "2026-04-11T18:13:39.091949+00:00",
-  "updated_at_unix": 1775931219,
-  "source": "Seed data (fallback prices)",
+  "updated_at": "2026-04-11T18:14:10.072273+00:00",
+  "updated_at_unix": 1775931250,
+  "source": "Multi-source pipeline: kedjornas listpriser + crowdsourcing + branschstatistik",
   "disclaimer": "Priserna hämtas från kedjornas egna sidor, aggregator­sajter (Bensinpriser.nu m.fl.) och branschorganet Drivkraft Sverige. Priset vid pumpen kan avvika med några öre per station.",
   "fetch_status": {
-    "Circle K": "estimated",
-    "OKQ8": "estimated",
-    "Preem": "estimated",
-    "Shell": "estimated",
-    "St1": "estimated",
-    "Ingo": "estimated",
-    "Tanka": "estimated",
-    "Qstar": "estimated"
+    "Circle K": "crowdsourced",
+    "OKQ8": "ok",
+    "Preem": "crowdsourced",
+    "Shell": "crowdsourced",
+    "St1": "crowdsourced",
+    "Ingo": "crowdsourced",
+    "Tanka": "crowdsourced",
+    "Qstar": "crowdsourced"
   },
   "per_fuel_sources": {
     "Circle K": {
-      "bensin95": "fallback",
-      "bensin98": "fallback",
-      "diesel": "fallback",
-      "hvo100": "fallback",
+      "bensin95": "cached",
+      "bensin98": "cached",
+      "diesel": "crowdsourced_avg",
+      "hvo100": "cached",
       "e85": "missing",
-      "ad-blue": "fallback"
+      "ad-blue": "cached"
     },
     "OKQ8": {
-      "bensin95": "fallback",
-      "bensin98": "fallback",
-      "diesel": "fallback",
-      "hvo100": "fallback",
-      "e85": "fallback",
-      "ad-blue": "fallback"
+      "bensin95": "cached",
+      "bensin98": "cached",
+      "diesel": "chain_official",
+      "hvo100": "cached",
+      "e85": "cached",
+      "ad-blue": "cached"
     },
     "Preem": {
-      "bensin95": "fallback",
-      "bensin98": "fallback",
-      "diesel": "fallback",
-      "hvo100": "fallback",
-      "e85": "fallback",
-      "ad-blue": "fallback"
+      "bensin95": "cached",
+      "bensin98": "cached",
+      "diesel": "crowdsourced_avg",
+      "hvo100": "cached",
+      "e85": "cached",
+      "ad-blue": "cached"
     },
     "Shell": {
-      "bensin95": "fallback",
-      "bensin98": "fallback",
-      "diesel": "fallback",
-      "hvo100": "fallback",
+      "bensin95": "cached",
+      "bensin98": "cached",
+      "diesel": "crowdsourced_avg",
+      "hvo100": "cached",
       "e85": "missing",
-      "ad-blue": "fallback"
+      "ad-blue": "cached"
     },
     "St1": {
-      "bensin95": "fallback",
-      "bensin98": "fallback",
-      "diesel": "fallback",
-      "hvo100": "fallback",
-      "e85": "fallback",
-      "ad-blue": "fallback"
+      "bensin95": "cached",
+      "bensin98": "cached",
+      "diesel": "crowdsourced_avg",
+      "hvo100": "cached",
+      "e85": "cached",
+      "ad-blue": "cached"
     },
     "Ingo": {
-      "bensin95": "fallback",
+      "bensin95": "cached",
       "bensin98": "missing",
-      "diesel": "fallback",
+      "diesel": "crowdsourced_avg",
       "hvo100": "missing",
       "e85": "missing",
       "ad-blue": "missing"
     },
     "Tanka": {
-      "bensin95": "fallback",
-      "bensin98": "fallback",
-      "diesel": "fallback",
+      "bensin95": "cached",
+      "bensin98": "cached",
+      "diesel": "crowdsourced_avg",
       "hvo100": "missing",
-      "e85": "fallback",
+      "e85": "cached",
       "ad-blue": "missing"
     },
     "Qstar": {
-      "bensin95": "fallback",
+      "bensin95": "cached",
       "bensin98": "missing",
-      "diesel": "fallback",
+      "diesel": "crowdsourced_avg",
       "hvo100": "missing",
-      "e85": "fallback",
+      "e85": "cached",
       "ad-blue": "missing"
     }
   },
-  "national_average": {},
-  "data_sources": [],
+  "national_average": {
+    "bensin95": null,
+    "bensin98": null,
+    "diesel": 23.54,
+    "hvo100": null,
+    "e85": null,
+    "ad-blue": null
+  },
+  "data_sources": [
+    {
+      "id": "bensinpriser_nu",
+      "available": false,
+      "meta": null
+    },
+    {
+      "id": "bensinstation_nu",
+      "available": true,
+      "meta": {
+        "source": "Bensinstation.nu",
+        "url": "https://www.bensinstation.nu/"
+      }
+    },
+    {
+      "id": "bensinpris_idag",
+      "available": false,
+      "meta": null
+    },
+    {
+      "id": "drivkraft",
+      "available": false,
+      "meta": null
+    },
+    {
+      "id": "scb",
+      "available": false,
+      "meta": null
+    }
+  ],
   "brands": {
     "Circle K": {
       "bensin95": 17.94,
       "bensin95_yesterday": 17.94,
       "bensin98": 18.84,
       "bensin98_yesterday": 18.84,
-      "diesel": 17.54,
+      "diesel": 23.59,
       "diesel_yesterday": 17.54,
       "hvo100": 23.0,
       "hvo100_yesterday": 23.0,
@@ -100,7 +136,7 @@
       "bensin95_yesterday": 17.91,
       "bensin98": 18.81,
       "bensin98_yesterday": 18.81,
-      "diesel": 17.51,
+      "diesel": 0.3,
       "diesel_yesterday": 17.51,
       "hvo100": 22.97,
       "hvo100_yesterday": 22.97,
@@ -114,7 +150,7 @@
       "bensin95_yesterday": 17.89,
       "bensin98": 18.79,
       "bensin98_yesterday": 18.79,
-      "diesel": 17.49,
+      "diesel": 23.54,
       "diesel_yesterday": 17.49,
       "hvo100": 22.95,
       "hvo100_yesterday": 22.95,
@@ -128,7 +164,7 @@
       "bensin95_yesterday": 17.97,
       "bensin98": 18.87,
       "bensin98_yesterday": 18.87,
-      "diesel": 17.57,
+      "diesel": 23.62,
       "diesel_yesterday": 17.57,
       "hvo100": 23.03,
       "hvo100_yesterday": 23.03,
@@ -141,7 +177,7 @@
       "bensin95_yesterday": 17.9,
       "bensin98": 18.8,
       "bensin98_yesterday": 18.8,
-      "diesel": 17.5,
+      "diesel": 23.55,
       "diesel_yesterday": 17.5,
       "hvo100": 22.96,
       "hvo100_yesterday": 22.96,
@@ -154,7 +190,7 @@
       "bensin95": 17.77,
       "bensin95_yesterday": 17.77,
       "bensin98": null,
-      "diesel": 17.37,
+      "diesel": 23.42,
       "diesel_yesterday": 17.37,
       "hvo100": null,
       "e85": null,
@@ -165,7 +201,7 @@
       "bensin95_yesterday": 17.81,
       "bensin98": 18.71,
       "bensin98_yesterday": 18.71,
-      "diesel": 17.41,
+      "diesel": 23.46,
       "diesel_yesterday": 17.41,
       "hvo100": null,
       "e85": 13.59,
@@ -176,7 +212,7 @@
       "bensin95": 17.84,
       "bensin95_yesterday": 17.84,
       "bensin98": null,
-      "diesel": 17.44,
+      "diesel": 23.49,
       "diesel_yesterday": 17.44,
       "hvo100": null,
       "e85": 13.61,
