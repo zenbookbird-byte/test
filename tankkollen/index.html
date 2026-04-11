@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Tankkollen" />
 
-    <title>Tankkollen — Hitta billigaste drivmedlet i Sverige</title>
+    <title>Tankkollen, Hitta billigaste drivmedlet i Sverige</title>
 
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
@@ -17,6 +17,25 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
     <link rel="stylesheet" href="css/styles.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!--
+      Google AdSense
+      Replace ca-pub-XXXXXXXXXXXXXXXX with your AdSense publisher ID
+      after your site is approved at https://adsense.google.com.
+      The script is lazy-loaded so it never blocks the first paint.
+    -->
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+      crossorigin="anonymous"
+    ></script>
   </head>
   <body>
     <!-- LANDING HERO -->
@@ -63,7 +82,7 @@
           </h1>
           <p class="subtitle">
             Jämför priser på bensin, diesel, HVO100, el och etanol från över 150 stationer
-            över hela landet. Helt gratis — och alltid uppdaterat.
+            över hela landet. Helt gratis, och alltid uppdaterat.
           </p>
           <div class="cta-row">
             <a href="dator.html" class="btn btn-primary">
@@ -114,8 +133,27 @@
       </div>
     </section>
 
+    <!-- AD SLOT: below hero -->
+    <aside class="ad-slot ad-banner" aria-label="Annons">
+      <span class="ad-label">Annons</span>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="1111111111"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+    </aside>
+
     <!-- MAP APP -->
     <section id="karta" class="app-section">
+      <div class="source-ribbon" id="sourceRibbon">
+        <span class="source-ribbon-title">Datakällor</span>
+        <span class="source-chip ok"><span class="state-dot"></span>Kedjornas listpriser</span>
+        <span class="source-chip ok"><span class="state-dot"></span>Bensinpriser.nu</span>
+        <span class="source-chip ok"><span class="state-dot"></span>Drivkraft Sverige</span>
+        <span class="source-chip ok"><span class="state-dot"></span>Användarrapporter</span>
+      </div>
       <div class="app-header">
         <div class="app-header-top">
           <h2>Live-karta</h2>
@@ -169,10 +207,33 @@
           </div>
           <div id="stationList" class="station-list"></div>
           <div id="stationDetail" class="station-detail hidden"></div>
+          <!-- AD SLOT: sidebar in-feed -->
+          <aside class="ad-slot ad-sidebar" aria-label="Annons">
+            <span class="ad-label">Annons</span>
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                 data-ad-slot="4444444444"
+                 data-ad-format="rectangle"
+                 data-full-width-responsive="true"></ins>
+            <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+          </aside>
         </aside>
         <div id="map" class="map"></div>
       </div>
     </section>
+
+    <!-- AD SLOT: between map and features -->
+    <aside class="ad-slot ad-banner" aria-label="Annons">
+      <span class="ad-label">Annons</span>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="2222222222"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+    </aside>
 
     <!-- FEATURES -->
     <section id="funktioner" class="features">
@@ -199,7 +260,7 @@
         <div class="feature">
           <div class="feat-icon">📊</div>
           <h3>Prisutveckling</h3>
-          <p>Pilar visar om priset är på väg upp eller ner jämfört med igår — perfekt timing för tanken.</p>
+          <p>Pilar visar om priset är på väg upp eller ner jämfört med igår, perfekt timing för tanken.</p>
         </div>
         <div class="feature">
           <div class="feat-icon">⭐</div>
@@ -214,6 +275,18 @@
       </div>
     </section>
 
+    <!-- AD SLOT: before download section -->
+    <aside class="ad-slot ad-banner" aria-label="Annons">
+      <span class="ad-label">Annons</span>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+           data-ad-slot="3333333333"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+    </aside>
+
     <!-- DOWNLOAD -->
     <section id="ladda-ner" class="download">
       <div class="download-inner">
@@ -221,7 +294,7 @@
           <div class="eyebrow">Mobilapp</div>
           <h2>Installera Tankkollen på din mobil</h2>
           <p>
-            Tankkollen är en Progressive Web App — du kan installera den direkt från webbläsaren
+            Tankkollen är en Progressive Web App, du kan installera den direkt från webbläsaren
             utan att gå via App Store eller Google Play. Den fungerar som en riktig app, startar
             snabbt och syns på hemskärmen.
           </p>

@@ -1,5 +1,5 @@
 /* =======================================================================
- * Tankkollen — Live Price Loader
+ * Tankkollen, Live Price Loader
  * -----------------------------------------------------------------------
  * Fetches data/live_prices.json (produced hourly by GitHub Actions), merges
  * the brand-level list prices into window.STATIONS_DATA, and exposes the
@@ -21,6 +21,8 @@
   const LIVE_URL = "data/live_prices.json";
   const REFRESH_MS = 5 * 60 * 1000; // 5 minutes – re-fetch live JSON
   const USER_REPORTS_KEY = "tankkollen-price-reports";
+  const REPORT_TALLY_KEY = "tankkollen-report-tally";
+  const REPORT_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
   // ------------------------------------------------------------------
   // Stable station offset so variance is consistent across reloads and
@@ -57,16 +59,46 @@
     } catch {}
   }
 
+  // Tally = per-station aggregate report counts (for "X rapporter senaste 24h")
+  function loadTally() {
+    try {
+      return JSON.parse(localStorage.getItem(REPORT_TALLY_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  }
+
+  function saveTally(t) {
+    try {
+      localStorage.setItem(REPORT_TALLY_KEY, JSON.stringify(t));
+    } catch {}
+  }
+
+  function incrementTally(stationId) {
+    const tally = loadTally();
+    const entry = tally[stationId] || { count: 0, lastAt: 0, recent: [] };
+    entry.count += 1;
+    entry.lastAt = Date.now();
+    entry.recent = [...(entry.recent || []), Date.now()].filter(
+      (t) => Date.now() - t < 24 * 60 * 60 * 1000
+    );
+    tally[stationId] = entry;
+    saveTally(tally);
+  }
+
   // ------------------------------------------------------------------
   // Merge brand list prices into each station
   // ------------------------------------------------------------------
   function applyLivePrices(live, reports) {
     if (!window.STATIONS_DATA) return;
     const brands = live?.brands || {};
-    const prevBrands = {}; // cached "yesterday" for trend
+    const perFuelSources = live?.per_fuel_sources || {};
+    const tally = loadTally();
+
     window.STATIONS_DATA.forEach((s) => {
       const brandPrices = brands[s.brand];
       if (!brandPrices) return;
+      const brandFuelSources = perFuelSources[s.brand] || {};
 
       FUEL_KEYS.forEach((fuel) => {
         const basePrice = brandPrices[fuel];
@@ -84,14 +116,22 @@
         const reportKey = `${s.id}:${fuel}`;
         const report = reports[reportKey];
         const ageMs = report ? Date.now() - report.t : Infinity;
-        const REPORT_TTL = 6 * 60 * 60 * 1000; // 6 hours
-        if (report && ageMs < REPORT_TTL) {
+        if (report && ageMs < REPORT_TTL_MS) {
           s.prices[fuel] = report.price;
           s.prices[`${fuel}_source`] = "user";
           s.prices[`${fuel}_reportedAt`] = report.t;
         } else {
           s.prices[fuel] = computed;
-          s.prices[`${fuel}_source`] = "listpris";
+          // Preserve the upstream data source label from the JSON
+          // (chain_official / crowdsourced_avg / cached / fallback)
+          s.prices[`${fuel}_source`] =
+            brandFuelSources[fuel] === "chain_official"
+              ? "listpris"
+              : brandFuelSources[fuel] === "crowdsourced_avg"
+              ? "crowdsourced"
+              : brandFuelSources[fuel] === "cached"
+              ? "cached"
+              : "estimated";
         }
 
         // Trend: today - yesterday (relative to brand list price change)
@@ -101,6 +141,16 @@
           s.prices[`${fuel}_trend`] = 0;
         }
       });
+
+      // Attach per-station report tally (community reports)
+      const t = tally[s.id];
+      s.reportTally = t
+        ? {
+            count24h: (t.recent || []).length,
+            lastAt: t.lastAt || null,
+            totalCount: t.count || 0,
+          }
+        : { count24h: 0, lastAt: null, totalCount: 0 };
 
       // Set updatedMinutesAgo based on live file timestamp
       if (live?.updated_at_unix) {
@@ -154,6 +204,7 @@
       t: Date.now(),
     };
     saveUserReports(reports);
+    incrementTally(stationId);
     // Re-apply immediately
     if (window.LIVE_PRICES) applyLivePrices(window.LIVE_PRICES, reports);
     document.dispatchEvent(
@@ -161,6 +212,10 @@
         detail: { stationId, fuel, price },
       })
     );
+  };
+
+  window.tankkollenGetAllDataSources = function () {
+    return window.LIVE_PRICES?.data_sources || [];
   };
 
   window.tankkollenGetLiveMeta = function () {

@@ -1,5 +1,5 @@
 /* =======================================================================
- * Tankkollen — main app logic
+ * Tankkollen, main app logic
  * -----------------------------------------------------------------------
  * Swedish fuel station price comparison app.
  * - Map (Leaflet + OpenStreetMap)
@@ -41,7 +41,7 @@
   /* -------------------- Utils -------------------- */
 
   function formatPrice(n) {
-    if (typeof n !== "number") return "—";
+    if (typeof n !== "number") return "–";
     return n.toFixed(2).replace(".", ",");
   }
 
@@ -74,6 +74,25 @@
 
   function ratingStars(rating) {
     return `★ ${rating.toFixed(1)}`;
+  }
+
+  function sourceBadge(source) {
+    const t = (key, fb) =>
+      (window.tankkollenI18n && window.tankkollenI18n.t(key)) || fb;
+    switch (source) {
+      case "user":
+        return `<span class="src-badge src-user">★ ${t("badge.reported", "Rapporterat")}</span>`;
+      case "listpris":
+        return `<span class="src-badge src-list">${t("badge.list", "Listpris")}</span>`;
+      case "crowdsourced":
+        return `<span class="src-badge src-crowd">${t("badge.crowd", "Crowdsourced")}</span>`;
+      case "cached":
+        return `<span class="src-badge src-cached">${t("badge.cached", "Cached")}</span>`;
+      case "estimated":
+        return `<span class="src-badge src-est">${t("badge.est", "Estimat")}</span>`;
+      default:
+        return "";
+    }
   }
 
   /* -------------------- Theme -------------------- */
@@ -231,12 +250,7 @@
       .filter((k) => k in s.prices)
       .map((k) => {
         const source = s.prices[`${k}_source`];
-        const badge =
-          source === "user"
-            ? '<span class="src-badge src-user">★ Rapporterat</span>'
-            : source === "listpris"
-            ? '<span class="src-badge src-list">Listpris</span>'
-            : "";
+        const badge = sourceBadge(source);
         return `
         <div class="price-tile" data-fuel="${k}">
           <div class="price-tile-label">${FUEL_LABELS[k]} ${badge}</div>
@@ -250,6 +264,12 @@
         </div>`;
       })
       .join("");
+
+    const tally = s.reportTally;
+    const tallyLine =
+      tally && tally.count24h > 0
+        ? `<div class="report-tally"><span class="dot-live"></span>${tally.count24h} användarrapport${tally.count24h === 1 ? "" : "er"} senaste 24h</div>`
+        : "";
 
     const services = s.services
       .map((v) => `<span class="tag">${v}</span>`)
@@ -266,6 +286,7 @@
           <div class="sub">${s.brand} • ${s.city}${dist}</div>
         </div>
       </div>
+      ${tallyLine}
       <div class="detail-section">
         <h4>Adress</h4>
         <p>${s.address}, ${s.city}</p>
@@ -306,7 +327,7 @@
         const label = FUEL_LABELS[fuel] || fuel;
         const current = s.prices[fuel];
         const input = prompt(
-          `Vilket pris såg du för ${label} vid ${s.name}?\n(Skriv t.ex. 17,89 — nuvarande: ${formatPrice(current)})`,
+          `Vilket pris såg du för ${label} vid ${s.name}?\n(Skriv t.ex. 17,89, nuvarande: ${formatPrice(current)})`,
           formatPrice(current)
         );
         if (input == null) return;
@@ -352,7 +373,7 @@
 
   function initMap() {
     if (typeof L === "undefined") {
-      console.warn("Leaflet not available — map disabled");
+      console.warn("Leaflet not available, map disabled");
       const el = document.getElementById("map");
       if (el)
         el.innerHTML =
@@ -418,8 +439,9 @@
 
   function fitMapToFiltered() {
     if (!state.map || state.filtered.length === 0) return;
-    const bounds = L.latLngBounds(state.filtered.map((s) => [s.lat, s.lng]));
-    state.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+    // Keep Sweden in view so the map doesn't collapse into a cluster
+    const SE_BOUNDS = L.latLngBounds([55.0, 10.5], [69.1, 24.3]);
+    state.map.fitBounds(SE_BOUNDS, { padding: [30, 30] });
   }
 
   /* -------------------- Controls -------------------- */
@@ -531,7 +553,7 @@
     renderList();
     renderMarkers();
     if (opts.fitBounds) fitMapToFiltered();
-    // Last updated text — prefer real live-prices timestamp
+    // Last updated text, prefer real live-prices timestamp
     const lu = document.getElementById("lastUpdated");
     if (lu) {
       const meta = window.tankkollenGetLiveMeta && window.tankkollenGetLiveMeta();

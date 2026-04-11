@@ -1,5 +1,5 @@
 /* =======================================================================
- * Tankkollen Pro — Desktop dashboard
+ * Tankkollen Pro, Desktop dashboard
  * -----------------------------------------------------------------------
  * Rich desktop view with:
  * - Stats bar (cheapest / avg / highest / trend)
@@ -43,7 +43,7 @@
 
   /* -------------------- Utils -------------------- */
 
-  const fmt = (n) => (typeof n === "number" ? n.toFixed(2).replace(".", ",") : "—");
+  const fmt = (n) => (typeof n === "number" ? n.toFixed(2).replace(".", ",") : "–");
 
   function distanceKm(lat1, lng1, lat2, lng2) {
     const R = 6371;
@@ -298,6 +298,25 @@
     );
   }
 
+  function sourceBadge(source) {
+    const t = (key, fb) =>
+      (window.tankkollenI18n && window.tankkollenI18n.t(key)) || fb;
+    switch (source) {
+      case "user":
+        return `<span class="src-badge src-user">★ ${t("badge.reported", "Rapporterat")}</span>`;
+      case "listpris":
+        return `<span class="src-badge src-list">${t("badge.list", "Listpris")}</span>`;
+      case "crowdsourced":
+        return `<span class="src-badge src-crowd">${t("badge.crowd", "Crowdsourced")}</span>`;
+      case "cached":
+        return `<span class="src-badge src-cached">${t("badge.cached", "Cached")}</span>`;
+      case "estimated":
+        return `<span class="src-badge src-est">${t("badge.est", "Estimat")}</span>`;
+      default:
+        return "";
+    }
+  }
+
   function renderDetail(s) {
     const el = document.getElementById("dkStationDetail");
     el.classList.remove("empty");
@@ -305,12 +324,7 @@
       .filter((k) => k in s.prices)
       .map((k) => {
         const source = s.prices[`${k}_source`];
-        const badge =
-          source === "user"
-            ? '<span class="src-badge src-user">★ Rapporterat</span>'
-            : source === "listpris"
-            ? '<span class="src-badge src-list">Listpris</span>'
-            : "";
+        const badge = sourceBadge(source);
         return `
         <div class="price-tile" data-fuel="${k}">
           <div class="price-tile-label">${FUEL_LABELS[k]} ${badge}</div>
@@ -322,6 +336,12 @@
         </div>`;
       })
       .join("");
+
+    const tally = s.reportTally;
+    const tallyLine =
+      tally && tally.count24h > 0
+        ? `<div class="report-tally"><span class="dot-live"></span>${tally.count24h} rapport${tally.count24h === 1 ? "" : "er"} senaste 24h</div>`
+        : "";
 
     const services = s.services.map((v) => `<span class="tag">${v}</span>`).join("");
 
@@ -367,7 +387,7 @@
         const label = FUEL_LABELS[fuel] || fuel;
         const current = s.prices[fuel];
         const input = prompt(
-          `Vilket pris såg du för ${label} vid ${s.name}?\n(Skriv t.ex. 17,89 — nuvarande: ${fmt(current)})`,
+          `Vilket pris såg du för ${label} vid ${s.name}?\n(Skriv t.ex. 17,89, nuvarande: ${fmt(current)})`,
           fmt(current)
         );
         if (input == null) return;
@@ -389,7 +409,7 @@
 
   function initMap() {
     if (typeof L === "undefined") {
-      console.warn("Leaflet not available — map disabled");
+      console.warn("Leaflet not available, map disabled");
       const el = document.getElementById("dkMap");
       if (el)
         el.innerHTML =
@@ -458,8 +478,9 @@
 
   function fitMap() {
     if (!state.map || state.filtered.length === 0) return;
-    const bounds = L.latLngBounds(state.filtered.map((s) => [s.lat, s.lng]));
-    state.map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+    // Always keep Sweden in view by default instead of zooming to a tight cluster
+    const SE_BOUNDS = L.latLngBounds([55.0, 10.5], [69.1, 24.3]);
+    state.map.fitBounds(SE_BOUNDS, { padding: [30, 30] });
   }
 
   /* -------------------- Footer stats (filtered) -------------------- */
@@ -467,8 +488,8 @@
   function updateFooterStats() {
     const fuel = state.fuel;
     if (state.filtered.length === 0) {
-      document.getElementById("dkAvgFiltered").textContent = "—";
-      document.getElementById("dkSavings").textContent = "—";
+      document.getElementById("dkAvgFiltered").textContent = "–";
+      document.getElementById("dkSavings").textContent = "–";
       return;
     }
     const prices = state.filtered.map((s) => s.prices[fuel]);
@@ -486,7 +507,7 @@
     const el = document.getElementById("dkBrandChart");
     const fuel = state.fuel;
     const fuelLabel = document.getElementById("dkChartFuelLabel");
-    fuelLabel.textContent = `${FUEL_LABELS[fuel]} — ${
+    fuelLabel.textContent = `${FUEL_LABELS[fuel]}, ${
       state.chartMode === "brand" ? "alla kedjor" : "topp 10 städer"
     }`;
 

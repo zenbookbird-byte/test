@@ -1,274 +1,65 @@
 #!/usr/bin/env python3
 """
-Tankkollen — Live fuel price scraper
-=====================================
+Tankkollen, Live fuel price scraper (multi-source)
+=====================================================
 
-Fetches list prices ("listpris") from the public price pages of major
-Swedish fuel chains and writes them to `tankkollen/data/live_prices.json`.
+Pulls pricing data from a priority chain of sources:
 
-Designed to run hourly in GitHub Actions. If a specific chain's page
-cannot be reached or parsed, the previous successful value is retained
-and the chain's fetch_status is set to "stale". The script never
-crashes — unreachable chains degrade gracefully.
+  1. Official chain list-price pages        (sources/chains.py)
+  2. Crowdsourced aggregator sites          (sources/aggregators.py)
+  3. Industry / government statistics       (sources/industry.py)
+  4. Cached previous value                  (previous live_prices.json)
+  5. Realistic hand-written fallback        (FALLBACK_PRICES)
 
-Sources:
-- Circle K: https://www.circlek.se/drivmedel/drivmedelspriser
-- OKQ8:    https://www.okq8.se/pa-stationen/drivmedel
-- Preem:   https://www.preem.se/privat/drivmedel/priser/
-- St1:     https://www.st1.se/drivmedel/drivmedelspriser
-- Shell:   (fetched via St1 — same operator in Sweden)
-- Ingo:    https://www.ingo.se/bensinpris
-- Tanka:   https://www.tanka.se/
-- Qstar:   https://www.qstar.se/drivmedel
+Priority is highest-trust-first. For each (brand, fuel) pair the
+scraper walks down the chain until it finds a non-None value and
+records which tier it came from in ``fetch_status``.
+
+The orchestrator never raises. Unreachable sources degrade to "stale"
+or "estimated" and the app keeps working.
 
 Usage:
-    python3 fetch_prices.py           # normal scrape, writes JSON
+    python3 fetch_prices.py           # normal, writes JSON
     python3 fetch_prices.py --dry-run # parse and print, don't write
-    python3 fetch_prices.py --seed    # write a realistic seed file
+    python3 fetch_prices.py --seed    # write fallback seed only
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Optional
 
-try:
-    import urllib.request
-    import urllib.error
-except ImportError:
-    print("urllib is required", file=sys.stderr)
-    sys.exit(1)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from sources import chains, aggregators, industry  # noqa: E402
+
 
 OUTPUT = Path(__file__).resolve().parent.parent / "data" / "live_prices.json"
 
-UA = (
-    "Mozilla/5.0 (compatible; Tankkollen/1.0; "
-    "+https://github.com/zenbookbird-byte/test)"
-)
-
 FUELS = ["bensin95", "bensin98", "diesel", "hvo100", "e85", "ad-blue"]
 
-# Fallback prices (realistic April 2026 levels). Used if a chain can't
-# be fetched and no prior value exists.
-FALLBACK_PRICES: dict[str, dict[str, float]] = {
-    "Circle K": {
-        "bensin95": 17.94, "bensin98": 18.84, "diesel": 17.54,
-        "hvo100": 23.00, "e85": None, "ad-blue": 14.50,
-    },
-    "OKQ8": {
-        "bensin95": 17.91, "bensin98": 18.81, "diesel": 17.51,
-        "hvo100": 22.97, "e85": 13.69, "ad-blue": 14.45,
-    },
-    "Preem": {
-        "bensin95": 17.89, "bensin98": 18.79, "diesel": 17.49,
-        "hvo100": 22.95, "e85": 13.65, "ad-blue": 14.40,
-    },
-    "Shell": {
-        "bensin95": 17.97, "bensin98": 18.87, "diesel": 17.57,
-        "hvo100": 23.03, "e85": None, "ad-blue": 14.55,
-    },
-    "St1": {
-        "bensin95": 17.90, "bensin98": 18.80, "diesel": 17.50,
-        "hvo100": 22.96, "e85": 13.67, "ad-blue": 14.42,
-    },
-    "Ingo": {
-        "bensin95": 17.77, "bensin98": None, "diesel": 17.37,
-        "hvo100": None, "e85": None, "ad-blue": None,
-    },
-    "Tanka": {
-        "bensin95": 17.81, "bensin98": 18.71, "diesel": 17.41,
-        "hvo100": None, "e85": 13.59, "ad-blue": None,
-    },
-    "Qstar": {
-        "bensin95": 17.84, "bensin98": None, "diesel": 17.44,
-        "hvo100": None, "e85": 13.61, "ad-blue": None,
-    },
+# Realistic April 2026 fallback prices (used only if *every* live
+# source is unreachable AND there's no cached value from last run).
+FALLBACK_PRICES: Dict[str, Dict[str, Optional[float]]] = {
+    "Circle K": {"bensin95": 17.94, "bensin98": 18.84, "diesel": 17.54, "hvo100": 23.00, "e85": None, "ad-blue": 14.50},
+    "OKQ8":     {"bensin95": 17.91, "bensin98": 18.81, "diesel": 17.51, "hvo100": 22.97, "e85": 13.69, "ad-blue": 14.45},
+    "Preem":    {"bensin95": 17.89, "bensin98": 18.79, "diesel": 17.49, "hvo100": 22.95, "e85": 13.65, "ad-blue": 14.40},
+    "Shell":    {"bensin95": 17.97, "bensin98": 18.87, "diesel": 17.57, "hvo100": 23.03, "e85": None, "ad-blue": 14.55},
+    "St1":      {"bensin95": 17.90, "bensin98": 18.80, "diesel": 17.50, "hvo100": 22.96, "e85": 13.67, "ad-blue": 14.42},
+    "Ingo":     {"bensin95": 17.77, "bensin98": None,  "diesel": 17.37, "hvo100": None,  "e85": None, "ad-blue": None},
+    "Tanka":    {"bensin95": 17.81, "bensin98": 18.71, "diesel": 17.41, "hvo100": None,  "e85": 13.59, "ad-blue": None},
+    "Qstar":    {"bensin95": 17.84, "bensin98": None,  "diesel": 17.44, "hvo100": None,  "e85": 13.61, "ad-blue": None},
 }
 
 
-def http_get(url: str, timeout: int = 15) -> str | None:
-    """Fetches a URL and returns its body as text, or None on failure."""
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "sv"})
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            charset = resp.headers.get_content_charset() or "utf-8"
-            return resp.read().decode(charset, errors="replace")
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
-        print(f"  ! fetch failed: {url} ({e})", file=sys.stderr)
-        return None
-    except Exception as e:
-        print(f"  ! unexpected error fetching {url}: {e}", file=sys.stderr)
-        return None
-
-
-def parse_price(text: str) -> float | None:
-    """Extracts a price like '17,89' or '17.89' from a string."""
-    if not text:
-        return None
-    # Match first number like 12,34 or 12.34 or 17,89
-    m = re.search(r"\b(\d{1,2})[,.](\d{1,2})\b", text)
-    if not m:
-        return None
-    try:
-        return float(f"{m.group(1)}.{m.group(2)}")
-    except ValueError:
-        return None
-
-
 # ---------------------------------------------------------------------------
-# Chain-specific parsers
-#
-# Each scraper returns a dict like:
-#   {"bensin95": 17.89, "bensin98": 18.79, "diesel": 17.49, ...}
-# with None for fuels that are not listed.
+# I/O
 # ---------------------------------------------------------------------------
 
-
-def scrape_circle_k() -> dict[str, float | None] | None:
-    html = http_get("https://www.circlek.se/drivmedel/drivmedelspriser")
-    if not html:
-        return None
-    # Circle K lists prices in rows like:
-    #   <td>miles Bensin 95</td><td>17,89 kr/l</td>
-    prices: dict[str, float | None] = {}
-    patterns = {
-        "bensin95": r"(?:miles\s*)?Bensin\s*95[^<]*?(?:</[^>]+>\s*<[^>]+>\s*)?(\d{1,2}[,.]\d{1,2})",
-        "bensin98": r"(?:miles\s*)?Bensin\s*98[^<]*?(?:</[^>]+>\s*<[^>]+>\s*)?(\d{1,2}[,.]\d{1,2})",
-        "diesel":   r"(?:miles\s*)?Diesel\b[^<]*?(?:</[^>]+>\s*<[^>]+>\s*)?(\d{1,2}[,.]\d{1,2})",
-        "hvo100":   r"HVO\s*100?[^<]*?(?:</[^>]+>\s*<[^>]+>\s*)?(\d{1,2}[,.]\d{1,2})",
-        "ad-blue":  r"AdBlue[^<]*?(?:</[^>]+>\s*<[^>]+>\s*)?(\d{1,2}[,.]\d{1,2})",
-    }
-    for fuel, pat in patterns.items():
-        m = re.search(pat, html, re.IGNORECASE | re.DOTALL)
-        prices[fuel] = parse_price(m.group(1)) if m else None
-    prices.setdefault("e85", None)
-    return prices if any(v for v in prices.values()) else None
-
-
-def scrape_okq8() -> dict[str, float | None] | None:
-    html = http_get("https://www.okq8.se/pa-stationen/drivmedel")
-    if not html:
-        return None
-    prices: dict[str, float | None] = {}
-    patterns = {
-        "bensin95": r"(?:GoEasy\s*)?(?:Bensin\s*95|95\s*oktan)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "bensin98": r"(?:GoEasy\s*)?(?:Bensin\s*98|98\s*oktan)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "diesel":   r"(?:GoEasy\s*)?Diesel[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "hvo100":   r"HVO\s*100?[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "e85":      r"E\s*85[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "ad-blue":  r"AdBlue[^<]*?(\d{1,2}[,.]\d{1,2})",
-    }
-    for fuel, pat in patterns.items():
-        m = re.search(pat, html, re.IGNORECASE | re.DOTALL)
-        prices[fuel] = parse_price(m.group(1)) if m else None
-    return prices if any(v for v in prices.values()) else None
-
-
-def scrape_preem() -> dict[str, float | None] | None:
-    html = http_get("https://www.preem.se/privat/drivmedel/priser/")
-    if not html:
-        return None
-    prices: dict[str, float | None] = {}
-    patterns = {
-        "bensin95": r"(?:Preem\s*)?(?:Evolution\s*)?(?:Bensin\s*95|95\s*oktan)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "bensin98": r"(?:Preem\s*)?(?:Evolution\s*)?(?:Bensin\s*98|98\s*oktan)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "diesel":   r"(?:Preem\s*)?Evolution\s*Diesel[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "hvo100":   r"HVO\s*100?[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "e85":      r"E\s*85[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "ad-blue":  r"AdBlue[^<]*?(\d{1,2}[,.]\d{1,2})",
-    }
-    for fuel, pat in patterns.items():
-        m = re.search(pat, html, re.IGNORECASE | re.DOTALL)
-        prices[fuel] = parse_price(m.group(1)) if m else None
-    # Fallback diesel if not found
-    if prices.get("diesel") is None:
-        m = re.search(r"Diesel[^<]*?(\d{1,2}[,.]\d{1,2})", html, re.IGNORECASE)
-        if m:
-            prices["diesel"] = parse_price(m.group(1))
-    return prices if any(v for v in prices.values()) else None
-
-
-def scrape_st1() -> dict[str, float | None] | None:
-    html = http_get("https://www.st1.se/drivmedel/drivmedelspriser")
-    if not html:
-        return None
-    prices: dict[str, float | None] = {}
-    patterns = {
-        "bensin95": r"(?:Bensin\s*95|95\s*oktan)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "bensin98": r"(?:Bensin\s*98|98\s*oktan)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "diesel":   r"(?:Diesel\s*Plus|Diesel)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "hvo100":   r"HVO\s*100?[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "e85":      r"E\s*85[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "ad-blue":  r"AdBlue[^<]*?(\d{1,2}[,.]\d{1,2})",
-    }
-    for fuel, pat in patterns.items():
-        m = re.search(pat, html, re.IGNORECASE | re.DOTALL)
-        prices[fuel] = parse_price(m.group(1)) if m else None
-    return prices if any(v for v in prices.values()) else None
-
-
-def scrape_shell() -> dict[str, float | None] | None:
-    """Shell in Sweden is operated by St1. Use same source."""
-    return scrape_st1()
-
-
-def scrape_ingo() -> dict[str, float | None] | None:
-    """Ingo is unmanned and does not publish a central price table.
-    We estimate Ingo ~0.15 kr below the national average."""
-    return None  # handled via estimate in main()
-
-
-def scrape_tanka() -> dict[str, float | None] | None:
-    html = http_get("https://www.tanka.se/")
-    if not html:
-        return None
-    prices: dict[str, float | None] = {}
-    patterns = {
-        "bensin95": r"(?:Bensin\s*95)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "bensin98": r"(?:Bensin\s*98)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "diesel":   r"Diesel[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "e85":      r"E\s*85[^<]*?(\d{1,2}[,.]\d{1,2})",
-    }
-    for fuel, pat in patterns.items():
-        m = re.search(pat, html, re.IGNORECASE | re.DOTALL)
-        prices[fuel] = parse_price(m.group(1)) if m else None
-    return prices if any(v for v in prices.values()) else None
-
-
-def scrape_qstar() -> dict[str, float | None] | None:
-    html = http_get("https://www.qstar.se/drivmedel")
-    if not html:
-        return None
-    prices: dict[str, float | None] = {}
-    patterns = {
-        "bensin95": r"(?:Bensin\s*95)[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "diesel":   r"Diesel[^<]*?(\d{1,2}[,.]\d{1,2})",
-        "e85":      r"E\s*85[^<]*?(\d{1,2}[,.]\d{1,2})",
-    }
-    for fuel, pat in patterns.items():
-        m = re.search(pat, html, re.IGNORECASE | re.DOTALL)
-        prices[fuel] = parse_price(m.group(1)) if m else None
-    return prices if any(v for v in prices.values()) else None
-
-
-SCRAPERS = {
-    "Circle K": scrape_circle_k,
-    "OKQ8":     scrape_okq8,
-    "Preem":    scrape_preem,
-    "St1":      scrape_st1,
-    "Shell":    scrape_shell,
-    "Ingo":     scrape_ingo,
-    "Tanka":    scrape_tanka,
-    "Qstar":    scrape_qstar,
-}
-
-
-def load_previous() -> dict[str, Any]:
+def load_previous() -> Dict[str, Any]:
     if OUTPUT.exists():
         try:
             return json.loads(OUTPUT.read_text(encoding="utf-8"))
@@ -277,124 +68,7 @@ def load_previous() -> dict[str, Any]:
     return {"brands": {}, "fetch_status": {}, "updated_at": None}
 
 
-def merge(old_brand: dict | None, fresh: dict | None, fallback: dict) -> tuple[dict, str]:
-    """Returns (final_prices, status) for one brand.
-
-    status: 'ok' (fresh from scrape), 'stale' (previous value retained),
-            'estimated' (no prior value, using fallback)
-    """
-    if fresh and any(v is not None for v in fresh.values()):
-        result = dict(fallback)
-        result.update({k: v for k, v in fresh.items() if v is not None})
-        # Preserve yesterday price for trend calc
-        if old_brand:
-            for k in list(result):
-                y_key = f"{k}_yesterday"
-                if k in old_brand and k not in ("e85_yesterday",):
-                    result[y_key] = old_brand.get(k, result[k])
-                else:
-                    result[y_key] = result[k]
-        else:
-            for k in list(result):
-                result[f"{k}_yesterday"] = result[k]
-        return result, "ok"
-    if old_brand:
-        return old_brand, "stale"
-    # No fresh, no old -> fallback
-    result = dict(fallback)
-    for k in list(result):
-        result[f"{k}_yesterday"] = result[k]
-    return result, "estimated"
-
-
-def estimate_ingo(brands: dict[str, dict]) -> dict:
-    """Ingo ≈ national average 95 octane − 0.15 kr."""
-    prices_95 = [
-        b.get("bensin95") for b in brands.values()
-        if b.get("bensin95") is not None
-    ]
-    prices_d = [
-        b.get("diesel") for b in brands.values()
-        if b.get("diesel") is not None
-    ]
-    if prices_95 and prices_d:
-        avg_95 = sum(prices_95) / len(prices_95)
-        avg_d = sum(prices_d) / len(prices_d)
-        return {
-            "bensin95": round(avg_95 - 0.15, 2),
-            "bensin98": None,
-            "diesel":   round(avg_d - 0.15, 2),
-            "hvo100":   None,
-            "e85":      None,
-            "ad-blue":  None,
-        }
-    return dict(FALLBACK_PRICES["Ingo"])
-
-
-def run(dry_run: bool = False, seed: bool = False) -> int:
-    prev = load_previous()
-    prev_brands = prev.get("brands", {})
-    out_brands: dict[str, dict] = {}
-    status: dict[str, str] = {}
-
-    print("Tankkollen price fetcher")
-    print("-" * 40)
-
-    if seed:
-        print("Writing seed / fallback data only (no network).")
-        for brand, prices in FALLBACK_PRICES.items():
-            out_brands[brand], status[brand] = merge(None, None, prices)
-        payload = build_payload(out_brands, status, note="Seed data (fallback prices)")
-        write_output(payload, dry_run)
-        return 0
-
-    for brand, scraper in SCRAPERS.items():
-        print(f"Fetching {brand}...")
-        fresh = scraper()
-        if brand == "Ingo" and fresh is None:
-            # Special case: Ingo is computed from the other brands after they finish
-            continue
-        merged, st = merge(prev_brands.get(brand), fresh, FALLBACK_PRICES[brand])
-        out_brands[brand] = merged
-        status[brand] = st
-        print(f"  -> {st}: {fmt(merged)}")
-
-    # Compute Ingo after others
-    ingo_prices = estimate_ingo(out_brands)
-    ingo_merged, ingo_status = merge(
-        prev_brands.get("Ingo"), ingo_prices, FALLBACK_PRICES["Ingo"]
-    )
-    out_brands["Ingo"] = ingo_merged
-    status["Ingo"] = "estimated" if ingo_status != "stale" else "stale"
-    print(f"Ingo  -> {status['Ingo']} (estimated from avg): {fmt(ingo_merged)}")
-
-    payload = build_payload(out_brands, status)
-    write_output(payload, dry_run)
-    return 0
-
-
-def fmt(p: dict) -> str:
-    b95 = p.get("bensin95")
-    d = p.get("diesel")
-    return f"95={b95} diesel={d}"
-
-
-def build_payload(
-    brands: dict, status: dict, note: str = ""
-) -> dict[str, Any]:
-    now = datetime.now(timezone.utc)
-    return {
-        "updated_at": now.isoformat(),
-        "updated_at_unix": int(now.timestamp()),
-        "source": note or "Listpriser från respektive drivmedelsbolags hemsidor",
-        "disclaimer": "Listpriserna är rekommenderade priser från kedjorna. "
-                      "Priset vid pumpen kan avvika med några öre per station.",
-        "fetch_status": status,
-        "brands": brands,
-    }
-
-
-def write_output(payload: dict, dry_run: bool) -> None:
+def write_output(payload: Dict[str, Any], dry_run: bool) -> None:
     if dry_run:
         print("\n--- Dry run, would write: ---")
         print(json.dumps(payload, ensure_ascii=False, indent=2))
@@ -407,10 +81,243 @@ def write_output(payload: dict, dry_run: bool) -> None:
     print(f"\nWrote {OUTPUT}")
 
 
+# ---------------------------------------------------------------------------
+# Orchestration
+# ---------------------------------------------------------------------------
+
+def run_chain_scrapers() -> Dict[str, Optional[Dict[str, Optional[float]]]]:
+    print("\n[1/3] Chain list prices")
+    print("-" * 40)
+    results: Dict[str, Optional[Dict[str, Optional[float]]]] = {}
+    for brand, fn in chains.SCRAPERS.items():
+        print(f"  · {brand}...", end=" ", flush=True)
+        try:
+            fresh = fn()
+        except Exception as e:
+            print(f"error ({e})")
+            fresh = None
+            continue
+        if fresh and any(v for v in fresh.values()):
+            print("ok")
+        else:
+            print("no data")
+        results[brand] = fresh
+    return results
+
+
+def run_aggregators() -> Dict[str, Optional[Dict]]:
+    print("\n[2/3] Crowdsourced aggregators")
+    print("-" * 40)
+    results: Dict[str, Optional[Dict]] = {}
+    for name, fn in aggregators.AGGREGATORS.items():
+        print(f"  · {name}...", end=" ", flush=True)
+        try:
+            data = fn()
+        except Exception as e:
+            print(f"error ({e})")
+            data = None
+        else:
+            print("ok" if data else "no data")
+        results[name] = data
+    return results
+
+
+def run_industry() -> Dict[str, Optional[Dict]]:
+    print("\n[3/3] Industry / government statistics")
+    print("-" * 40)
+    results: Dict[str, Optional[Dict]] = {}
+    for name, fn in industry.INDUSTRY_SOURCES.items():
+        print(f"  · {name}...", end=" ", flush=True)
+        try:
+            data = fn()
+        except Exception as e:
+            print(f"error ({e})")
+            data = None
+        else:
+            print("ok" if data else "no data")
+        results[name] = data
+    return results
+
+
+def national_average_from_aggregators(aggs: Dict[str, Optional[Dict]]) -> Dict[str, float]:
+    """Computes a combined national average across all aggregator sources."""
+    buckets: Dict[str, list] = {k: [] for k in FUELS}
+    for data in aggs.values():
+        if not data:
+            continue
+        avg = data.get("national_avg") or {}
+        low = data.get("national_low") or {}
+        for fuel in FUELS:
+            for source in (avg, low):
+                v = source.get(fuel)
+                if isinstance(v, (int, float)):
+                    buckets[fuel].append(float(v))
+    return {
+        fuel: round(sum(vals) / len(vals), 2) if vals else None
+        for fuel, vals in buckets.items()
+    }
+
+
+def merge_brand(
+    brand: str,
+    prev_brand: Optional[Dict],
+    chain_fresh: Optional[Dict[str, Optional[float]]],
+    national_avg: Dict[str, Optional[float]],
+    fallback: Dict[str, Optional[float]],
+) -> tuple[Dict[str, Any], Dict[str, str]]:
+    """Merges sources for one brand in priority order.
+
+    Priority per fuel:
+      1. chain_fresh[fuel]             (official list price)
+      2. national_avg[fuel] + brand adjustment   (crowdsource-derived)
+      3. prev_brand[fuel]              (cached from last run)
+      4. fallback[fuel]                (hand-written realistic value)
+    """
+    # Brand-specific offset relative to national average
+    BRAND_OFFSET = {
+        "Circle K": 0.05, "OKQ8": 0.02, "Preem": 0.00,
+        "Shell": 0.08,    "St1": 0.01,  "Ingo": -0.12,
+        "Tanka": -0.08,   "Qstar": -0.05,
+    }
+    offset = BRAND_OFFSET.get(brand, 0.0)
+
+    result: Dict[str, Any] = {}
+    sources: Dict[str, str] = {}
+
+    for fuel in FUELS:
+        val = None
+        src = None
+        if chain_fresh and chain_fresh.get(fuel) is not None:
+            val = chain_fresh[fuel]
+            src = "chain_official"
+        elif national_avg.get(fuel) is not None:
+            val = round(national_avg[fuel] + offset, 2)
+            src = "crowdsourced_avg"
+        elif prev_brand and prev_brand.get(fuel) is not None:
+            val = prev_brand[fuel]
+            src = "cached"
+        elif fallback.get(fuel) is not None:
+            val = fallback[fuel]
+            src = "fallback"
+        result[fuel] = val
+        sources[fuel] = src or "missing"
+
+        # Preserve previous price as yesterday for trend calc
+        if prev_brand and prev_brand.get(fuel) is not None:
+            result[f"{fuel}_yesterday"] = prev_brand[fuel]
+        elif val is not None:
+            result[f"{fuel}_yesterday"] = val
+
+    return result, sources
+
+
+def aggregate_brand_status(fuel_sources: Dict[str, str]) -> str:
+    """Reduces a per-fuel source map to a single brand status."""
+    vals = set(fuel_sources.values()) - {"missing"}
+    if "chain_official" in vals:
+        return "ok"
+    if "crowdsourced_avg" in vals:
+        return "crowdsourced"
+    if "cached" in vals:
+        return "stale"
+    if "fallback" in vals:
+        return "estimated"
+    return "missing"
+
+
+def build_payload(
+    brands: Dict[str, Dict],
+    fetch_status: Dict[str, str],
+    per_fuel_sources: Dict[str, Dict[str, str]],
+    aggregators_raw: Dict[str, Optional[Dict]],
+    industry_raw: Dict[str, Optional[Dict]],
+    national_avg: Dict[str, Optional[float]],
+    note: str = "",
+) -> Dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    sources_list = []
+    for name, data in {**aggregators_raw, **industry_raw}.items():
+        sources_list.append({
+            "id": name,
+            "available": data is not None,
+            "meta": (data or {}).get("meta") if data else None,
+        })
+    return {
+        "updated_at": now.isoformat(),
+        "updated_at_unix": int(now.timestamp()),
+        "source": note or "Multi-source pipeline: kedjornas listpriser + crowdsourcing + branschstatistik",
+        "disclaimer":
+            "Priserna hämtas från kedjornas egna sidor, aggregator­sajter (Bensinpriser.nu m.fl.) "
+            "och branschorganet Drivkraft Sverige. Priset vid pumpen kan avvika med några öre per station.",
+        "fetch_status": fetch_status,
+        "per_fuel_sources": per_fuel_sources,
+        "national_average": national_avg,
+        "data_sources": sources_list,
+        "brands": brands,
+    }
+
+
+def run(dry_run: bool = False, seed: bool = False) -> int:
+    prev = load_previous()
+    prev_brands = prev.get("brands", {})
+
+    print("Tankkollen multi-source price pipeline")
+    print("=" * 40)
+
+    if seed:
+        print("Seed mode: writing fallback data (no network)")
+        out_brands = {}
+        status = {}
+        per_fuel = {}
+        for brand, prices in FALLBACK_PRICES.items():
+            merged, fs = merge_brand(brand, None, None, {}, prices)
+            out_brands[brand] = merged
+            per_fuel[brand] = fs
+            status[brand] = aggregate_brand_status(fs)
+        payload = build_payload(
+            out_brands, status, per_fuel, {}, {}, {},
+            note="Seed data (fallback prices)",
+        )
+        write_output(payload, dry_run)
+        return 0
+
+    chain_data = run_chain_scrapers()
+    agg_data = run_aggregators()
+    ind_data = run_industry()
+
+    # Merge national average from aggregators + industry
+    combined = {**agg_data, **ind_data}
+    national_avg = national_average_from_aggregators(combined)
+    print(f"\nNational average (merged across sources): {national_avg}")
+
+    out_brands: Dict[str, Dict] = {}
+    status: Dict[str, str] = {}
+    per_fuel: Dict[str, Dict[str, str]] = {}
+
+    for brand, fallback in FALLBACK_PRICES.items():
+        merged, fs = merge_brand(
+            brand,
+            prev_brands.get(brand),
+            chain_data.get(brand),
+            national_avg,
+            fallback,
+        )
+        out_brands[brand] = merged
+        per_fuel[brand] = fs
+        status[brand] = aggregate_brand_status(fs)
+        print(f"  {brand:9}  status={status[brand]}")
+
+    payload = build_payload(
+        out_brands, status, per_fuel, agg_data, ind_data, national_avg
+    )
+    write_output(payload, dry_run)
+    return 0
+
+
 def main():
-    p = argparse.ArgumentParser(description="Tankkollen price fetcher")
+    p = argparse.ArgumentParser(description="Tankkollen multi-source price pipeline")
     p.add_argument("--dry-run", action="store_true", help="parse but don't write")
-    p.add_argument("--seed", action="store_true", help="write fallback seed data")
+    p.add_argument("--seed", action="store_true", help="write fallback seed")
     args = p.parse_args()
     sys.exit(run(dry_run=args.dry_run, seed=args.seed))
 

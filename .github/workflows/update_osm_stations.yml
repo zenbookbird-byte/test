@@ -1,0 +1,40 @@
+name: Refresh OSM Station Locations
+
+on:
+  schedule:
+    - cron: '23 3 * * 1'  # 03:23 UTC every Monday
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: claude/fuel-station-app-hZcRu
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch OSM stations
+        working-directory: tankkollen
+        run: python3 scraper/fetch_stations.py
+
+      - name: Commit and push (only if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tankkollen/data/stations_osm.json
+          if git diff --staged --quiet; then
+            echo "No station changes — skipping commit"
+          else
+            git commit -m "chore(tankkollen): refresh OSM stations $(date -u '+%Y-%m-%d')"
+            git push origin claude/fuel-station-app-hZcRu
+          fi
