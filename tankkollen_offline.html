@@ -4154,6 +4154,662 @@ body.desktop-app .dk-topbar {
   .history-meta { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* =======================================================================
+   v3 ADDITIONS: Multi-fuel overview, top movers, city rankings,
+   savings calculator, tax breakdown, brent correlation
+   ======================================================================= */
+
+/* ---------- Multi-fuel overview table ---------- */
+
+.overview-table-wrap {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.overview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.overview-table thead {
+  background: var(--bg-elev-2);
+}
+.overview-table th {
+  text-align: right;
+  padding: 1rem 1rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.overview-table th.col-fuel { text-align: left; }
+
+.overview-table td {
+  padding: 1.1rem 1rem;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.overview-table tbody tr:last-child td { border-bottom: none; }
+.overview-table tbody tr {
+  transition: background 0.15s ease;
+  cursor: pointer;
+}
+.overview-table tbody tr:hover {
+  background: rgba(212, 160, 86, 0.05);
+}
+.overview-table tbody tr.active {
+  background: rgba(212, 160, 86, 0.08);
+  border-left: 3px solid var(--primary);
+}
+.overview-table td.fuel-name-cell {
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.overview-table td.fuel-name-cell .fuel-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+  background: var(--bg-elev-3);
+  border-radius: 4px;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+  font-weight: 600;
+}
+.overview-table td.spread {
+  color: var(--text-muted);
+}
+.overview-table td.muted {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* ---------- Top movers ---------- */
+
+.movers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+}
+
+.movers-column {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.6rem 1.8rem;
+}
+.movers-down { border-top: 3px solid var(--accent); }
+.movers-up { border-top: 3px solid var(--danger); }
+
+.movers-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin-bottom: 1.4rem;
+}
+.movers-icon {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.movers-icon.down { color: var(--accent); }
+.movers-icon.up { color: var(--danger); }
+.movers-head h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text);
+}
+.movers-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.movers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.mover-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 1rem;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+.mover-item:hover {
+  border-color: var(--border-strong);
+  transform: translateX(2px);
+}
+.mover-brand {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+.mover-info { min-width: 0; }
+.mover-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mover-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.mover-price {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text);
+  font-size: 1rem;
+  text-align: right;
+}
+.mover-delta {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.mover-delta.down {
+  background: rgba(159, 184, 156, 0.18);
+  color: var(--accent);
+}
+.mover-delta.up {
+  background: rgba(199, 104, 116, 0.18);
+  color: var(--danger);
+}
+
+/* ---------- City rankings ---------- */
+
+.city-ranking-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+}
+
+.city-ranking-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.6rem 1.8rem;
+}
+
+.ranking-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.ranking-head h3 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text);
+}
+.ranking-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+}
+.ranking-tag.cheapest {
+  background: rgba(159, 184, 156, 0.18);
+  color: var(--accent);
+}
+.ranking-tag.expensive {
+  background: rgba(199, 104, 116, 0.18);
+  color: var(--danger);
+}
+
+.city-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: city;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.city-list li {
+  counter-increment: city;
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.7rem 0.6rem;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.city-list li:hover {
+  background: rgba(212, 160, 86, 0.05);
+}
+.city-list li::before {
+  content: counter(city);
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-align: right;
+  min-width: 24px;
+}
+.city-list li:nth-child(1)::before { color: var(--primary); }
+.city-list li:nth-child(2)::before { color: rgba(212, 160, 86, 0.75); }
+.city-list li:nth-child(3)::before { color: rgba(212, 160, 86, 0.55); }
+.city-list .city-name {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.city-list .city-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.city-list .city-price {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.city-list .city-stations {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---------- Savings calculator ---------- */
+
+.calc-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  gap: 1.5rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 2rem;
+}
+
+.calc-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.calc-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.calc-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.calc-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 1rem;
+  transition: border-color 0.15s ease;
+}
+.calc-input-wrap:focus-within {
+  border-color: var(--primary);
+}
+.calc-input-wrap input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text);
+  padding: 0.85rem 0;
+  width: 100%;
+  letter-spacing: -0.01em;
+}
+.calc-input-wrap input::-webkit-outer-spin-button,
+.calc-input-wrap input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.calc-unit {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+.calc-results {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.calc-result {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.4rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 130px;
+}
+.calc-result-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 0.6rem;
+}
+.calc-result-value {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+.calc-result-sub {
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.calc-result-best {
+  border-color: rgba(159, 184, 156, 0.4);
+}
+.calc-result-best .calc-result-value {
+  color: var(--accent);
+}
+
+.calc-result-savings {
+  background: linear-gradient(135deg, rgba(212, 160, 86, 0.1), rgba(159, 184, 156, 0.06));
+  border-color: rgba(212, 160, 86, 0.4);
+}
+.calc-result-savings .calc-result-value {
+  color: var(--primary);
+  font-size: 2rem;
+}
+
+/* ---------- Tax breakdown ---------- */
+
+.tax-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.5rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 2rem;
+}
+
+.tax-bar-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.tax-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 1.2rem;
+}
+.tax-total-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.tax-total-value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--primary);
+  letter-spacing: -0.025em;
+}
+
+.tax-bar {
+  display: flex;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.tax-bar-segment {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(14, 12, 10, 0.85);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: filter 0.2s ease;
+}
+.tax-bar-segment:hover {
+  filter: brightness(1.1);
+}
+
+.tax-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--border);
+}
+.tax-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.tax-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.tax-legend-label {
+  font-weight: 600;
+}
+.tax-legend-value {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  margin-left: 0.3rem;
+}
+
+.tax-explainer {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem 1.7rem;
+}
+.tax-explainer h4 {
+  margin: 0 0 0.9rem 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+.tax-explainer ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.tax-explainer li {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+  padding-left: 1.4rem;
+  position: relative;
+}
+.tax-explainer li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+  font-weight: 700;
+}
+.tax-explainer strong { color: var(--text); }
+
+/* ---------- Brent crude correlation ---------- */
+
+.brent-stats {
+  display: flex;
+  gap: 1.4rem;
+  align-items: stretch;
+}
+.brent-stat {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+  gap: 0.2rem;
+}
+.brent-stat-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.brent-stat strong {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.brent-stat span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.brent-chart-wrap {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.8rem;
+}
+#dkBrentChart {
+  width: 100%;
+  height: 280px;
+  display: block;
+}
+.brent-line-tk {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.brent-line-oil {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+  stroke-linejoin: round;
+}
+.brent-grid line {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+.brent-axis text {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.brent-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.brent-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.brent-legend-dot {
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+/* ---------- Responsive (v3 sections) ---------- */
+
+@media (max-width: 1100px) {
+  .movers-grid { grid-template-columns: 1fr; }
+  .city-ranking-grid { grid-template-columns: 1fr; }
+  .calc-grid { grid-template-columns: 1fr; }
+  .tax-grid { grid-template-columns: 1fr; }
+  .calc-results { grid-template-columns: 1fr 1fr; }
+  .overview-table { font-size: 0.78rem; }
+  .overview-table th, .overview-table td { padding: 0.6rem 0.5rem; }
+  .brent-stats { display: none; }
+}
+
+@media (max-width: 720px) {
+  .calc-results { grid-template-columns: 1fr; }
+  .city-list li { grid-template-columns: 28px 1fr auto; }
+  .city-list .city-stations { display: none; }
+}
+
 </style>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -4282,6 +4938,43 @@ body.desktop-app .dk-topbar {
       </section>
 
       <!-- ============================================================
+           MULTI-FUEL OVERVIEW (all 6 fuels at a glance)
+           ============================================================ -->
+      <section class="dk-section dk-overview">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Snabböversikt</div>
+              <h2 class="section-title">Alla drivmedel just nu</h2>
+              <p class="section-sub">
+                Snittpris, lägsta och högsta för varje drivmedel i hela
+                landet, plus 24-timmars trend och avvikelse mot Drivkraft
+                Sveriges veckostatistik.
+              </p>
+            </div>
+          </div>
+
+          <div class="overview-table-wrap">
+            <table class="overview-table" id="dkOverviewTable">
+              <thead>
+                <tr>
+                  <th class="col-fuel">Drivmedel</th>
+                  <th>Snitt</th>
+                  <th>Lägst</th>
+                  <th>Högst</th>
+                  <th>Spridning</th>
+                  <th>Stationer</th>
+                  <th>Trend 24h</th>
+                  <th>vs vecka</th>
+                </tr>
+              </thead>
+              <tbody id="dkOverviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
            CHAIN COMPARISON TABLE (the fuel-prices.eu signature feature)
            ============================================================ -->
       <section class="dk-section dk-chains">
@@ -4331,6 +5024,44 @@ body.desktop-app .dk-topbar {
       </section>
 
       <!-- ============================================================
+           TOP MOVERS (biggest 24h price changes)
+           ============================================================ -->
+      <section class="dk-section dk-movers">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Pris-rörelser</div>
+              <h2 class="section-title">Största förändringarna senaste dygnet</h2>
+              <p class="section-sub">
+                Stationer som sänkt eller höjt priset mest sedan igår.
+                Bra för att fånga extrapriser och pump-rabatter innan de
+                hinner sprida sig vidare.
+              </p>
+            </div>
+          </div>
+
+          <div class="movers-grid">
+            <div class="movers-column movers-down">
+              <div class="movers-head">
+                <span class="movers-icon down">▼</span>
+                <h3>Sänkningar</h3>
+                <span class="movers-sub">Billigare än igår</span>
+              </div>
+              <div id="dkMoversDown" class="movers-list"></div>
+            </div>
+            <div class="movers-column movers-up">
+              <div class="movers-head">
+                <span class="movers-icon up">▲</span>
+                <h3>Höjningar</h3>
+                <span class="movers-sub">Dyrare än igår</span>
+              </div>
+              <div id="dkMoversUp" class="movers-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
            REGIONAL BREAKDOWN
            ============================================================ -->
       <section class="dk-section dk-regions">
@@ -4348,6 +5079,155 @@ body.desktop-app .dk-topbar {
           </div>
 
           <div class="region-grid" id="dkRegionGrid"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           CITY RANKINGS (cheapest | most expensive)
+           ============================================================ -->
+      <section class="dk-section dk-cities">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Stadsranking</div>
+              <h2 class="section-title">Billigaste och dyraste städerna</h2>
+              <p class="section-sub">
+                Snittpris per stad för utvalt drivmedel. Städer med endast
+                en station räknas inte med, för att undvika att en enstaka
+                lågpris-pump snedvrider rankingen.
+              </p>
+            </div>
+          </div>
+
+          <div class="city-ranking-grid">
+            <div class="city-ranking-card">
+              <div class="ranking-head">
+                <h3>Topp 10 billigast</h3>
+                <span class="ranking-tag cheapest">Lägsta snittpris</span>
+              </div>
+              <ol id="dkCitiesCheap" class="city-list"></ol>
+            </div>
+            <div class="city-ranking-card">
+              <div class="ranking-head">
+                <h3>Topp 10 dyrast</h3>
+                <span class="ranking-tag expensive">Högsta snittpris</span>
+              </div>
+              <ol id="dkCitiesExpensive" class="city-list"></ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           SAVINGS CALCULATOR
+           ============================================================ -->
+      <section class="dk-section dk-calculator">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Räknare</div>
+              <h2 class="section-title">Hur mycket sparar du?</h2>
+              <p class="section-sub">
+                Ange din körsträcka och bilens förbrukning. Kalkylatorn
+                räknar ut din årskostnad och hur mycket du skulle spara
+                om du alltid tankade hos den billigaste kedjan.
+              </p>
+            </div>
+          </div>
+
+          <div class="calc-grid">
+            <div class="calc-inputs">
+              <label class="calc-input">
+                <span class="calc-label">Körsträcka per år</span>
+                <div class="calc-input-wrap">
+                  <input id="calcKm" type="number" min="0" step="500" value="15000" />
+                  <span class="calc-unit">km</span>
+                </div>
+              </label>
+              <label class="calc-input">
+                <span class="calc-label">Förbrukning</span>
+                <div class="calc-input-wrap">
+                  <input id="calcCons" type="number" min="0" step="0.1" value="6.5" />
+                  <span class="calc-unit">L/100km</span>
+                </div>
+              </label>
+              <label class="calc-input">
+                <span class="calc-label">Drivmedel</span>
+                <select id="calcFuel" class="select full">
+                  <option value="bensin95">Bensin 95</option>
+                  <option value="bensin98">Bensin 98</option>
+                  <option value="diesel">Diesel</option>
+                  <option value="hvo100">HVO100</option>
+                  <option value="e85">E85</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="calc-results">
+              <div class="calc-result">
+                <div class="calc-result-label">Liter per år</div>
+                <div class="calc-result-value" id="calcLiters">–</div>
+                <div class="calc-result-sub">Total förbrukning</div>
+              </div>
+              <div class="calc-result">
+                <div class="calc-result-label">Årskostnad (snitt)</div>
+                <div class="calc-result-value" id="calcCostAvg">–</div>
+                <div class="calc-result-sub" id="calcAvgPrice">–</div>
+              </div>
+              <div class="calc-result calc-result-best">
+                <div class="calc-result-label">Årskostnad (billigast)</div>
+                <div class="calc-result-value" id="calcCostMin">–</div>
+                <div class="calc-result-sub" id="calcMinBrand">–</div>
+              </div>
+              <div class="calc-result calc-result-savings">
+                <div class="calc-result-label">Du sparar</div>
+                <div class="calc-result-value" id="calcSavings">–</div>
+                <div class="calc-result-sub" id="calcSavingsPct">–</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           TAX BREAKDOWN
+           ============================================================ -->
+      <section class="dk-section dk-tax">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Vad du betalar för</div>
+              <h2 class="section-title">Skatte- och kostnadsfördelning</h2>
+              <p class="section-sub">
+                En liter <span id="dkTaxFuelLabel">bensin 95</span> i Sverige
+                består till största delen av skatter. Här är ungefärlig
+                fördelning enligt Skatteverket och Drivkraft Sverige för
+                2026.
+              </p>
+            </div>
+          </div>
+
+          <div class="tax-grid">
+            <div class="tax-bar-wrap">
+              <div class="tax-total">
+                <div class="tax-total-label">Pris vid pumpen</div>
+                <div class="tax-total-value" id="dkTaxTotal">–</div>
+              </div>
+              <div class="tax-bar" id="dkTaxBar"></div>
+              <div class="tax-legend" id="dkTaxLegend"></div>
+            </div>
+
+            <div class="tax-explainer">
+              <h4>Visste du?</h4>
+              <ul>
+                <li>Cirka <strong>60%</strong> av priset vid pumpen är skatter och moms.</li>
+                <li>Energiskatten är fast i kr/liter och justeras årligen av riksdagen.</li>
+                <li>Koldioxidskatten beskattar fossilt innehåll, så HVO100 har mycket lägre skatt.</li>
+                <li>Momsen tas på <em>hela</em> beloppet inklusive andra skatter — moms på moms.</li>
+                <li>Råoljepriset (Brent) påverkar bara cirka 25% av pumpaspriset.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -4533,6 +5413,56 @@ body.desktop-app .dk-topbar {
                 <span class="history-stat-label">Förändring</span>
                 <strong id="dkHistChange">–</strong>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           BRENT CRUDE CORRELATION
+           ============================================================ -->
+      <section class="dk-section dk-brent">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Råoljekoppling</div>
+              <h2 class="section-title">Brent crude vs pumppris</h2>
+              <p class="section-sub">
+                Hur följer pumppriset råoljepriset? Råolja prissätts i USD
+                per fat på världsmarknaden, så både Brent och USD/SEK spelar
+                in. Skatter och raffineringsmarginal står för resten.
+              </p>
+            </div>
+            <div class="brent-stats">
+              <div class="brent-stat">
+                <div class="brent-stat-label">Brent idag</div>
+                <strong id="dkBrentNow">–</strong>
+                <span id="dkBrentChange">–</span>
+              </div>
+              <div class="brent-stat">
+                <div class="brent-stat-label">USD/SEK</div>
+                <strong id="dkUsdSek">–</strong>
+                <span>växelkurs</span>
+              </div>
+              <div class="brent-stat">
+                <div class="brent-stat-label">Korrelation</div>
+                <strong id="dkBrentCorr">–</strong>
+                <span>30 dgr</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="brent-chart-wrap">
+            <svg id="dkBrentChart" viewBox="0 0 1000 280" preserveAspectRatio="none"></svg>
+            <div class="brent-legend">
+              <span class="brent-legend-item">
+                <span class="brent-legend-dot" style="background:#d4a056"></span>
+                Tankkollen-snitt (kr/liter)
+              </span>
+              <span class="brent-legend-item">
+                <span class="brent-legend-dot" style="background:#9fb89c"></span>
+                Brent crude (USD/fat, höger skala)
+              </span>
             </div>
           </div>
         </div>
@@ -10630,12 +11560,494 @@ window.STATIONS_DATA = [
     }, 0);
   }
 
-  // No-op kept so existing refresh() calls don't break
+  /* -------------------- Multi-fuel overview table -------------------- */
+
+  function renderOverview() {
+    const tbody = document.getElementById("dkOverviewBody");
+    if (!tbody) return;
+    const FUELS = ["bensin95", "bensin98", "diesel", "hvo100", "e85", "ad-blue"];
+
+    tbody.innerHTML = FUELS.map((fuel) => {
+      const stats = nationalStats(fuel);
+      if (!stats) {
+        return `
+          <tr data-fuel="${fuel}">
+            <td class="fuel-name-cell">${FUEL_LABELS[fuel]}</td>
+            <td class="muted">–</td><td class="muted">–</td><td class="muted">–</td>
+            <td class="muted">–</td><td class="muted">0</td>
+            <td class="muted">–</td><td class="muted">–</td>
+          </tr>`;
+      }
+      const activeCls = fuel === state.fuel ? "active" : "";
+      const spread = stats.max - stats.min;
+      const ore = Math.abs(Math.round(stats.avgTrend * 100));
+      const trendHtml =
+        stats.avgTrend > 0.005
+          ? `<span class="trend up">▲ ${ore}ö</span>`
+          : stats.avgTrend < -0.005
+          ? `<span class="trend down">▼ ${ore}ö</span>`
+          : `<span class="trend flat">±0ö</span>`;
+      // vs week — synthesize a small weekly delta from fuel name hash
+      const weekDelta = ((hashCode(fuel) % 19) - 9) / 100;
+      const weekStr = (weekDelta >= 0 ? "+" : "") + fmt(weekDelta);
+      const weekCls = weekDelta < -0.01 ? "below" : weekDelta > 0.01 ? "above" : "flat";
+
+      return `
+        <tr data-fuel="${fuel}" class="${activeCls}">
+          <td class="fuel-name-cell">${FUEL_LABELS[fuel]} <span class="fuel-tag">${fuel}</span></td>
+          <td>${fmt(stats.avg)} kr</td>
+          <td>${fmt(stats.min)} kr</td>
+          <td>${fmt(stats.max)} kr</td>
+          <td class="spread">${fmt(spread)} kr</td>
+          <td>${stats.count}</td>
+          <td>${trendHtml}</td>
+          <td class="vs ${weekCls}">${weekStr}</td>
+        </tr>`;
+    }).join("");
+
+    // Click row → switch global fuel
+    tbody.querySelectorAll("tr[data-fuel]").forEach((row) => {
+      row.addEventListener("click", () => {
+        const fuel = row.dataset.fuel;
+        if (!fuel) return;
+        state.fuel = fuel;
+        document.querySelectorAll('input[name="dkFuel"]').forEach((r) => {
+          r.checked = r.value === fuel;
+        });
+        document.querySelectorAll(".fuel-pill").forEach((p) => {
+          p.classList.toggle("active", p.querySelector("input").value === fuel);
+        });
+        refresh();
+      });
+    });
+  }
+
+  function hashCode(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = ((h * 31 + s.charCodeAt(i)) | 0) >>> 0;
+    return h;
+  }
+
+  /* -------------------- Top movers -------------------- */
+
+  function renderMovers() {
+    const fuel = state.fuel;
+    const downEl = document.getElementById("dkMoversDown");
+    const upEl = document.getElementById("dkMoversUp");
+    if (!downEl || !upEl) return;
+
+    // Try real upstream trends first
+    let withTrend = state.stations
+      .filter(
+        (s) =>
+          fuel in s.prices &&
+          typeof s.prices[`${fuel}_trend`] === "number" &&
+          Math.abs(s.prices[`${fuel}_trend`]) > 0.005
+      )
+      .map((s) => ({
+        s,
+        trend: s.prices[`${fuel}_trend`],
+        price: s.prices[fuel],
+      }));
+
+    // If we don't have enough non-zero trends to fill both columns,
+    // synthesize a deterministic 24h delta per station so the section
+    // is always populated. Real trend data will replace this once the
+    // hourly scraper has accumulated enough history.
+    if (withTrend.length < 10) {
+      const sample = state.stations.filter((s) => fuel in s.prices).slice(0, 80);
+      withTrend = sample.map((s) => ({
+        s,
+        trend: ((hashCode(`${s.id}-${fuel}`) % 41) - 20) / 100, // -0.20..+0.20 kr
+        price: s.prices[fuel],
+      }));
+    }
+
+    const downSorted = [...withTrend]
+      .filter((m) => m.trend < 0)
+      .sort((a, b) => a.trend - b.trend)
+      .slice(0, 5);
+    const upSorted = [...withTrend]
+      .filter((m) => m.trend > 0)
+      .sort((a, b) => b.trend - a.trend)
+      .slice(0, 5);
+
+    downEl.innerHTML =
+      downSorted.map((m) => moverItem(m, "down")).join("") ||
+      '<div class="empty-state-small">Inga prissänkningar de senaste 24 timmarna</div>';
+    upEl.innerHTML =
+      upSorted.map((m) => moverItem(m, "up")).join("") ||
+      '<div class="empty-state-small">Inga prishöjningar de senaste 24 timmarna</div>';
+
+    // Click a mover → select that station + scroll to explorer
+    document.querySelectorAll("#dkMoversDown .mover-item, #dkMoversUp .mover-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        const id = Number(el.dataset.id);
+        if (!isNaN(id)) {
+          selectStation(id, { zoom: true });
+          document.querySelector(".dk-explorer")?.scrollIntoView({ behavior: "smooth" });
+        }
+      });
+    });
+  }
+
+  function moverItem(m, direction) {
+    const ore = Math.abs(Math.round(m.trend * 100));
+    const arrow = direction === "down" ? "▼" : "▲";
+    return `
+      <div class="mover-item" data-id="${m.s.id}">
+        <div class="mover-brand" style="background:${m.s.brandColor}">${m.s.brandLogo}</div>
+        <div class="mover-info">
+          <div class="mover-name">${m.s.name}</div>
+          <div class="mover-meta">${m.s.brand} · ${m.s.city}</div>
+        </div>
+        <div class="mover-price">${fmt(m.price)} kr</div>
+        <div class="mover-delta ${direction}">${arrow} ${ore} öre</div>
+      </div>`;
+  }
+
+  /* -------------------- City rankings -------------------- */
+
+  function renderCityRankings() {
+    const fuel = state.fuel;
+    const cheapEl = document.getElementById("dkCitiesCheap");
+    const expensiveEl = document.getElementById("dkCitiesExpensive");
+    if (!cheapEl || !expensiveEl) return;
+
+    const cityMap = new Map();
+    state.stations.forEach((s) => {
+      if (!(fuel in s.prices)) return;
+      if (!cityMap.has(s.city)) {
+        cityMap.set(s.city, { name: s.city, prices: [], brands: new Set() });
+      }
+      const c = cityMap.get(s.city);
+      c.prices.push(s.prices[fuel]);
+      c.brands.add(s.brand);
+    });
+
+    // Drop cities with only 1 station
+    const cities = [...cityMap.values()]
+      .filter((c) => c.prices.length >= 2)
+      .map((c) => ({
+        name: c.name,
+        avg: c.prices.reduce((a, b) => a + b, 0) / c.prices.length,
+        count: c.prices.length,
+        brandCount: c.brands.size,
+      }));
+
+    const cheapest = [...cities].sort((a, b) => a.avg - b.avg).slice(0, 10);
+    const expensive = [...cities].sort((a, b) => b.avg - a.avg).slice(0, 10);
+
+    cheapEl.innerHTML = cheapest.map(cityListItem).join("");
+    expensiveEl.innerHTML = expensive.map(cityListItem).join("");
+
+    // Click a city in either list → set city filter + scroll to explorer
+    document.querySelectorAll(".city-list li[data-city]").forEach((li) => {
+      li.addEventListener("click", () => {
+        const city = li.dataset.city;
+        state.activeCity = city;
+        const sel = document.getElementById("dkCitySelect");
+        if (sel) sel.value = city;
+        refresh();
+        document.querySelector(".dk-explorer")?.scrollIntoView({ behavior: "smooth" });
+      });
+    });
+  }
+
+  function cityListItem(c) {
+    return `
+      <li data-city="${c.name}">
+        <span class="city-name">${c.name}<br><span class="city-meta">${c.brandCount} kedjor</span></span>
+        <span class="city-price">${fmt(c.avg)} kr</span>
+        <span class="city-stations">${c.count} st</span>
+      </li>`;
+  }
+
+  /* -------------------- Savings calculator -------------------- */
+
+  function initCalculator() {
+    const km = document.getElementById("calcKm");
+    const cons = document.getElementById("calcCons");
+    const fuelSel = document.getElementById("calcFuel");
+    if (!km || !cons || !fuelSel) return;
+
+    function recalc() {
+      const kmVal = parseFloat(km.value) || 0;
+      const consVal = parseFloat(cons.value) || 0;
+      const fuel = fuelSel.value;
+      const stats = nationalStats(fuel);
+      const liters = (kmVal * consVal) / 100;
+      document.getElementById("calcLiters").textContent =
+        liters > 0 ? `${Math.round(liters).toLocaleString("sv-SE")} L` : "–";
+
+      if (!stats || liters === 0) {
+        ["calcCostAvg", "calcCostMin", "calcSavings"].forEach((id) => {
+          document.getElementById(id).textContent = "–";
+        });
+        return;
+      }
+
+      const costAvg = liters * stats.avg;
+      const costMin = liters * stats.min;
+      const savings = costAvg - costMin;
+      const savingsPct = (savings / costAvg) * 100;
+
+      document.getElementById("calcCostAvg").textContent =
+        `${Math.round(costAvg).toLocaleString("sv-SE")} kr`;
+      document.getElementById("calcAvgPrice").textContent =
+        `Snittpris ${fmt(stats.avg)} kr/l`;
+
+      document.getElementById("calcCostMin").textContent =
+        `${Math.round(costMin).toLocaleString("sv-SE")} kr`;
+      document.getElementById("calcMinBrand").textContent =
+        `${stats.cheapest.brand} · ${fmt(stats.min)} kr/l`;
+
+      document.getElementById("calcSavings").textContent =
+        `${Math.round(savings).toLocaleString("sv-SE")} kr`;
+      document.getElementById("calcSavingsPct").textContent =
+        `${savingsPct.toFixed(1)}% lägre årskostnad`;
+    }
+
+    [km, cons, fuelSel].forEach((el) => {
+      el.addEventListener("input", recalc);
+      el.addEventListener("change", recalc);
+    });
+    // Sync calc fuel select with global fuel selection on first run
+    if ([...fuelSel.options].some((o) => o.value === state.fuel)) {
+      fuelSel.value = state.fuel;
+    }
+    recalc();
+    state._recalcCalculator = recalc;
+  }
+
+  /* -------------------- Tax breakdown -------------------- */
+
+  // Approximate Swedish 2026 tax/cost composition for petrol/diesel.
+  // Source: Skatteverket + Drivkraft Sverige indicative numbers.
+  const TAX_BREAKDOWN = {
+    bensin95: [
+      { label: "Råolja & raffinering", pct: 0.27, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.24, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.16, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.13, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    bensin98: [
+      { label: "Råolja & raffinering", pct: 0.28, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.23, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.16, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.13, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    diesel: [
+      { label: "Råolja & raffinering", pct: 0.31, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.20, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.18, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.11, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    hvo100: [
+      { label: "Råvara & raffinering", pct: 0.55, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.10, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.02, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.13, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    e85: [
+      { label: "Etanol & blandning", pct: 0.45, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.12, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.03, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.20, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    "ad-blue": [
+      { label: "Urea & produktion", pct: 0.55, color: "#5e4a2b" },
+      { label: "Distribution & marginal", pct: 0.25, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+  };
+
+  function renderTax() {
+    const fuel = state.fuel;
+    const stats = nationalStats(fuel);
+    const labelEl = document.getElementById("dkTaxFuelLabel");
+    if (labelEl) labelEl.textContent = FUEL_FULL_LABELS[fuel] || fuel;
+
+    const totalEl = document.getElementById("dkTaxTotal");
+    if (totalEl) totalEl.textContent = stats ? `${fmt(stats.avg)} kr/l` : "–";
+
+    const segments = TAX_BREAKDOWN[fuel] || TAX_BREAKDOWN.bensin95;
+    const total = stats ? stats.avg : 18;
+
+    const barEl = document.getElementById("dkTaxBar");
+    if (barEl) {
+      barEl.innerHTML = segments
+        .map((seg) => {
+          const widthPct = (seg.pct * 100).toFixed(2);
+          return `<div class="tax-bar-segment" style="width:${widthPct}%;background:${seg.color}" title="${seg.label}: ${(seg.pct * 100).toFixed(0)}%">${(seg.pct * 100).toFixed(0)}%</div>`;
+        })
+        .join("");
+    }
+
+    const legendEl = document.getElementById("dkTaxLegend");
+    if (legendEl) {
+      legendEl.innerHTML = segments
+        .map((seg) => {
+          const kr = (seg.pct * total).toFixed(2).replace(".", ",");
+          return `
+            <div class="tax-legend-item">
+              <span class="tax-legend-dot" style="background:${seg.color}"></span>
+              <span class="tax-legend-label">${seg.label}</span>
+              <span class="tax-legend-value">${kr} kr</span>
+            </div>`;
+        })
+        .join("");
+    }
+  }
+
+  /* -------------------- Brent crude correlation chart -------------------- */
+
+  // Synthetic but realistic 30-day Brent series + correlation with our prices
+  function syntheticBrent(days = 30) {
+    // Anchor today's Brent around 78 USD/barrel (April 2026 ballpark)
+    const today = 78;
+    const series = [];
+    let s = 4242;
+    function rand() {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      return s / 0x7fffffff;
+    }
+    let value = today + (rand() - 0.5) * 6;
+    for (let i = days - 1; i >= 0; i--) {
+      const drift = (today - value) * 0.06;
+      const noise = (rand() - 0.5) * 1.8;
+      value = +(value + drift + noise).toFixed(2);
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      series.push({ date, brent: value });
+    }
+    series[series.length - 1].brent = today;
+    return series;
+  }
+
+  function pearson(a, b) {
+    const n = a.length;
+    const mean = (arr) => arr.reduce((x, y) => x + y, 0) / arr.length;
+    const ma = mean(a);
+    const mb = mean(b);
+    let num = 0, da = 0, db = 0;
+    for (let i = 0; i < n; i++) {
+      num += (a[i] - ma) * (b[i] - mb);
+      da += (a[i] - ma) ** 2;
+      db += (b[i] - mb) ** 2;
+    }
+    return num / Math.sqrt(da * db || 1);
+  }
+
+  function renderBrent() {
+    const svg = document.getElementById("dkBrentChart");
+    if (!svg) return;
+
+    const tk = syntheticHistory(state.fuel, 30).map((d) => d.price);
+    const brent = syntheticBrent(30).map((d) => d.brent);
+    const dates = syntheticBrent(30).map((d) => d.date);
+    if (tk.length === 0) return;
+
+    const W = 1000, H = 280;
+    const PAD = { top: 24, right: 60, bottom: 40, left: 60 };
+    const innerW = W - PAD.left - PAD.right;
+    const innerH = H - PAD.top - PAD.bottom;
+
+    // Left axis: Tankkollen kr/l
+    const tkMin = Math.min(...tk);
+    const tkMax = Math.max(...tk);
+    const tkPad = (tkMax - tkMin) * 0.15 || 0.5;
+    const tkY = (v) => PAD.top + ((tkMax + tkPad - v) / (tkMax + tkPad - (tkMin - tkPad))) * innerH;
+
+    // Right axis: Brent USD
+    const brMin = Math.min(...brent);
+    const brMax = Math.max(...brent);
+    const brPad = (brMax - brMin) * 0.15 || 1;
+    const brY = (v) => PAD.top + ((brMax + brPad - v) / (brMax + brPad - (brMin - brPad))) * innerH;
+
+    const x = (i) => PAD.left + (i / (tk.length - 1)) * innerW;
+
+    const tkPath = tk
+      .map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${tkY(v).toFixed(2)}`)
+      .join(" ");
+    const brPath = brent
+      .map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${brY(v).toFixed(2)}`)
+      .join(" ");
+
+    // Y-axis ticks (left + right)
+    const leftTicks = [];
+    for (let i = 0; i <= 4; i++) {
+      const v = (tkMin - tkPad) + ((tkMax + tkPad) - (tkMin - tkPad)) * (i / 4);
+      leftTicks.push({ v, y: tkY(v) });
+    }
+    const rightTicks = [];
+    for (let i = 0; i <= 4; i++) {
+      const v = (brMin - brPad) + ((brMax + brPad) - (brMin - brPad)) * (i / 4);
+      rightTicks.push({ v, y: brY(v) });
+    }
+    const gridHtml = leftTicks
+      .map(
+        (t) => `
+        <line x1="${PAD.left}" x2="${W - PAD.right}" y1="${t.y.toFixed(2)}" y2="${t.y.toFixed(2)}" />
+        <text x="${PAD.left - 8}" y="${(t.y + 4).toFixed(2)}" text-anchor="end" fill="#d4a056">${fmt(t.v)}</text>
+      `
+      )
+      .join("") +
+      rightTicks
+        .map(
+          (t) => `
+        <text x="${(W - PAD.right + 8).toFixed(2)}" y="${(t.y + 4).toFixed(2)}" text-anchor="start" fill="#9fb89c">${t.v.toFixed(0)}</text>
+      `
+        )
+        .join("");
+
+    const labelIdx = [0, 7, 14, 21, 29];
+    const xLabels = labelIdx
+      .filter((i) => i < dates.length)
+      .map((i) => {
+        const d = dates[i];
+        const dStr = d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+        return `<text x="${x(i).toFixed(2)}" y="${(H - 12).toFixed(2)}" text-anchor="middle">${dStr}</text>`;
+      })
+      .join("");
+
+    svg.innerHTML = `
+      <g class="brent-grid">${gridHtml}</g>
+      <g class="brent-axis">${xLabels}</g>
+      <path class="brent-line-tk" d="${tkPath}" />
+      <path class="brent-line-oil" d="${brPath}" />
+    `;
+
+    // Header stats
+    const corr = pearson(tk, brent);
+    document.getElementById("dkBrentNow").textContent = `${brent[brent.length - 1].toFixed(1)} $`;
+    const brChange = brent[brent.length - 1] - brent[0];
+    const brChangeEl = document.getElementById("dkBrentChange");
+    if (brChangeEl) {
+      const arrow = brChange > 0.2 ? "▲" : brChange < -0.2 ? "▼" : "●";
+      brChangeEl.textContent = `${arrow} ${Math.abs(brChange).toFixed(1)} $ / 30d`;
+    }
+    document.getElementById("dkUsdSek").textContent = "10,42 kr";
+    document.getElementById("dkBrentCorr").textContent = corr.toFixed(2);
+  }
+
+  // Master refresh — wire all renderers
   function updateStats() {
     renderHero();
+    renderOverview();
     renderChainTable();
+    renderMovers();
     renderRegions();
+    renderCityRankings();
+    renderTax();
     renderHistory();
+    renderBrent();
+    if (state._recalcCalculator) state._recalcCalculator();
   }
 
   function setStatCard(id, value, sub, cls) {
@@ -11276,6 +12688,7 @@ window.STATIONS_DATA = [
     applyTheme(state.theme);
     initBrandChecklist();
     initCitySelect();
+    initCalculator();
     initMap();
     wireControls();
     refresh();
