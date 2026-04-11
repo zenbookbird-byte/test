@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BilNytt.se – Senaste bilnyheterna, tester och guider</title>
+<meta name="description" content="BilNytt.se – Sveriges snabbaste bilnyhetssajt. Läs de senaste bilnyheterna, biltester, elbilar, motorsport och köpguider. Uppdateras dygnet runt.">
+<meta name="keywords" content="bilnyheter, biltest, elbil, bilar, motor, bilrecensioner, nya bilar 2026, köpguide bil, Sverige">
+<meta name="author" content="BilNytt.se">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://bilnytt.example/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BilNytt.se">
+<meta property="og:title" content="BilNytt.se – Senaste bilnyheterna">
+<meta property="og:description" content="Sveriges snabbaste bilnyhetssajt. Uppdateras dygnet runt.">
+<meta property="og:locale" content="sv_SE">
+<meta property="og:url" content="https://bilnytt.example/">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="BilNytt.se – Senaste bilnyheterna">
+<meta name="twitter:description" content="Sveriges snabbaste bilnyhetssajt. Uppdateras dygnet runt.">
+
+<!-- Schema.org strukturerad data för SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "NewsMediaOrganization",
+  "name": "BilNytt.se",
+  "url": "https://bilnytt.example/",
+  "logo": "https://bilnytt.example/assets/logo.png",
+  "sameAs": [
+    "https://www.facebook.com/bilnytt",
+    "https://twitter.com/bilnytt",
+    "https://www.instagram.com/bilnytt"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "BilNytt.se",
+  "url": "https://bilnytt.example/",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://bilnytt.example/sok?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+
+<link rel="preconnect" href="https://images.unsplash.com">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body>
+
+<!-- Top ad banner (leaderboard 728x90) -->
+<div class="ad-slot ad-leaderboard" aria-label="Annons">
+  <span class="ad-label">ANNONS</span>
+  <div class="ad-placeholder">728 × 90 – Leaderboard</div>
+</div>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="/" class="logo" aria-label="BilNytt.se startsida">
+      <span class="logo-mark">B</span>
+      <span class="logo-text">BilNytt<span class="dot">.</span>se</span>
+    </a>
+    <nav class="main-nav" aria-label="Huvudmeny">
+      <a href="#nyheter">Nyheter</a>
+      <a href="#elbilar">Elbilar</a>
+      <a href="#tester">Tester</a>
+      <a href="#motorsport">Motorsport</a>
+      <a href="#guider">Köpguide</a>
+      <a href="#klassiker">Klassiker</a>
+    </nav>
+    <div class="header-meta">
+      <span id="live-dot" class="live-dot" title="Live"></span>
+      <span id="live-time">—</span>
+    </div>
+  </div>
+</header>
+
+<!-- Breaking news ticker -->
+<div class="ticker-wrap" aria-label="Senaste nytt">
+  <div class="ticker-label">SENAST</div>
+  <div class="ticker">
+    <div class="ticker-track" id="ticker-track">
+      <!-- Fylls av script.js -->
+    </div>
+  </div>
+</div>
+
+<main class="container main-grid">
+  <section class="content">
+
+    <!-- Hero article -->
+    <article class="hero-card" id="hero">
+      <a href="articles/elbilstest-2026.html" class="hero-link">
+        <div class="hero-img" style="background-image:url('https://images.unsplash.com/photo-1617788138017-80ad40651399?w=1200&q=70')"></div>
+        <div class="hero-text">
+          <span class="tag tag-red">STORT TEST</span>
+          <h1>Årets elbilstest 2026: Vi korade vinnaren bland 12 modeller</h1>
+          <p>Vi har kört samtliga nya elbilar i kyla, värme och på motorvägen. Här är resultatet – och förloraren som överraskade mest.</p>
+          <span class="meta"><span id="hero-time">Just nu</span> · av Redaktionen</span>
+        </div>
+      </a>
+    </article>
+
+    <!-- Section: senaste nyheterna -->
+    <section class="section" id="nyheter">
+      <div class="section-head">
+        <h2>Senaste nyheterna</h2>
+        <span class="updated">Uppdaterad <span id="updated-time">—</span></span>
+      </div>
+      <div class="news-grid" id="news-grid">
+        <!-- Fylls av script.js -->
+      </div>
+    </section>
+
+    <!-- In-content ad (native / billboard) -->
+    <div class="ad-slot ad-billboard" aria-label="Annons">
+      <span class="ad-label">ANNONS</span>
+      <div class="ad-placeholder">970 × 250 – Billboard</div>
+    </div>
+
+    <!-- Section: Elbilar -->
+    <section class="section" id="elbilar">
+      <div class="section-head">
+        <h2>⚡ Elbilar</h2>
+        <a href="#" class="see-all">Se alla →</a>
+      </div>
+      <div class="news-grid" id="ev-grid"></div>
+    </section>
+
+    <!-- Section: Tester -->
+    <section class="section" id="tester">
+      <div class="section-head">
+        <h2>Biltester</h2>
+        <a href="#" class="see-all">Se alla →</a>
+      </div>
+      <div class="test-list" id="test-list"></div>
+    </section>
+
+    <!-- In-content ad -->
+    <div class="ad-slot ad-rectangle-wide" aria-label="Annons">
+      <span class="ad-label">ANNONS</span>
+      <div class="ad-placeholder">728 × 90 – In-content</div>
+    </div>
+
+    <!-- Section: Motorsport -->
+    <section class="section" id="motorsport">
+      <div class="section-head">
+        <h2>Motorsport</h2>
+        <a href="#" class="see-all">Se alla →</a>
+      </div>
+      <div class="news-grid" id="sport-grid"></div>
+    </section>
+
+    <!-- Section: Köpguide -->
+    <section class="section" id="guider">
+      <div class="section-head">
+        <h2>Köpguide</h2>
+        <a href="#" class="see-all">Se alla →</a>
+      </div>
+      <div class="news-grid" id="guide-grid"></div>
+    </section>
+
+  </section>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Sticky ad (MPU 300x600) -->
+    <div class="ad-slot ad-halfpage sticky" aria-label="Annons">
+      <span class="ad-label">ANNONS</span>
+      <div class="ad-placeholder">300 × 600<br>Halfpage</div>
+    </div>
+
+    <div class="widget">
+      <h3>🔥 Mest läst nu</h3>
+      <ol class="mostread" id="mostread"></ol>
+    </div>
+
+    <!-- Rectangle ad (MPU 300x250) -->
+    <div class="ad-slot ad-rectangle" aria-label="Annons">
+      <span class="ad-label">ANNONS</span>
+      <div class="ad-placeholder">300 × 250 – MPU</div>
+    </div>
+
+    <div class="widget newsletter">
+      <h3>📬 Få nyheterna direkt</h3>
+      <p>Prenumerera på vårt gratis nyhetsbrev. En daglig sammanfattning kl 07:00.</p>
+      <form onsubmit="event.preventDefault(); this.querySelector('button').textContent='Tack! ✓';">
+        <input type="email" required placeholder="din@epost.se" aria-label="E-postadress">
+        <button type="submit">Prenumerera</button>
+      </form>
+    </div>
+
+    <div class="widget">
+      <h3>🏷️ Populära taggar</h3>
+      <div class="tags">
+        <a href="#" class="tag">Tesla</a>
+        <a href="#" class="tag">Volvo</a>
+        <a href="#" class="tag">BMW</a>
+        <a href="#" class="tag">Elbil</a>
+        <a href="#" class="tag">Laddhybrid</a>
+        <a href="#" class="tag">Porsche</a>
+        <a href="#" class="tag">Polestar</a>
+        <a href="#" class="tag">Audi</a>
+        <a href="#" class="tag">Formel 1</a>
+        <a href="#" class="tag">Begagnat</a>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div>
+      <div class="logo">
+        <span class="logo-mark">B</span>
+        <span class="logo-text">BilNytt<span class="dot">.</span>se</span>
+      </div>
+      <p>Sveriges snabbaste bilnyhetssajt. Oberoende sedan 2026.</p>
+    </div>
+    <div>
+      <h4>Om</h4>
+      <ul>
+        <li><a href="#">Om oss</a></li>
+        <li><a href="#">Kontakt</a></li>
+        <li><a href="#">Annonsera</a></li>
+        <li><a href="#">Jobba hos oss</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Innehåll</h4>
+      <ul>
+        <li><a href="#nyheter">Nyheter</a></li>
+        <li><a href="#tester">Biltester</a></li>
+        <li><a href="#elbilar">Elbilar</a></li>
+        <li><a href="#motorsport">Motorsport</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Juridiskt</h4>
+      <ul>
+        <li><a href="#">Integritet</a></li>
+        <li><a href="#">Cookies</a></li>
+        <li><a href="#">Ansvarig utgivare</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="copyright container">© <span id="year"></span> BilNytt.se – Alla rättigheter förbehållna.</div>
+</footer>
+
+<!-- Cookie banner (GDPR-style för annonssamtycke) -->
+<div class="cookie-banner" id="cookie-banner">
+  <p>Vi använder cookies för att ge dig den bästa upplevelsen och visa relevanta annonser. Genom att klicka "Godkänn" samtycker du till vår cookie-användning.</p>
+  <button onclick="document.getElementById('cookie-banner').style.display='none'">Godkänn</button>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
