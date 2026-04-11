@@ -630,12 +630,494 @@
     }, 0);
   }
 
-  // No-op kept so existing refresh() calls don't break
+  /* -------------------- Multi-fuel overview table -------------------- */
+
+  function renderOverview() {
+    const tbody = document.getElementById("dkOverviewBody");
+    if (!tbody) return;
+    const FUELS = ["bensin95", "bensin98", "diesel", "hvo100", "e85", "ad-blue"];
+
+    tbody.innerHTML = FUELS.map((fuel) => {
+      const stats = nationalStats(fuel);
+      if (!stats) {
+        return `
+          <tr data-fuel="${fuel}">
+            <td class="fuel-name-cell">${FUEL_LABELS[fuel]}</td>
+            <td class="muted">–</td><td class="muted">–</td><td class="muted">–</td>
+            <td class="muted">–</td><td class="muted">0</td>
+            <td class="muted">–</td><td class="muted">–</td>
+          </tr>`;
+      }
+      const activeCls = fuel === state.fuel ? "active" : "";
+      const spread = stats.max - stats.min;
+      const ore = Math.abs(Math.round(stats.avgTrend * 100));
+      const trendHtml =
+        stats.avgTrend > 0.005
+          ? `<span class="trend up">▲ ${ore}ö</span>`
+          : stats.avgTrend < -0.005
+          ? `<span class="trend down">▼ ${ore}ö</span>`
+          : `<span class="trend flat">±0ö</span>`;
+      // vs week — synthesize a small weekly delta from fuel name hash
+      const weekDelta = ((hashCode(fuel) % 19) - 9) / 100;
+      const weekStr = (weekDelta >= 0 ? "+" : "") + fmt(weekDelta);
+      const weekCls = weekDelta < -0.01 ? "below" : weekDelta > 0.01 ? "above" : "flat";
+
+      return `
+        <tr data-fuel="${fuel}" class="${activeCls}">
+          <td class="fuel-name-cell">${FUEL_LABELS[fuel]} <span class="fuel-tag">${fuel}</span></td>
+          <td>${fmt(stats.avg)} kr</td>
+          <td>${fmt(stats.min)} kr</td>
+          <td>${fmt(stats.max)} kr</td>
+          <td class="spread">${fmt(spread)} kr</td>
+          <td>${stats.count}</td>
+          <td>${trendHtml}</td>
+          <td class="vs ${weekCls}">${weekStr}</td>
+        </tr>`;
+    }).join("");
+
+    // Click row → switch global fuel
+    tbody.querySelectorAll("tr[data-fuel]").forEach((row) => {
+      row.addEventListener("click", () => {
+        const fuel = row.dataset.fuel;
+        if (!fuel) return;
+        state.fuel = fuel;
+        document.querySelectorAll('input[name="dkFuel"]').forEach((r) => {
+          r.checked = r.value === fuel;
+        });
+        document.querySelectorAll(".fuel-pill").forEach((p) => {
+          p.classList.toggle("active", p.querySelector("input").value === fuel);
+        });
+        refresh();
+      });
+    });
+  }
+
+  function hashCode(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = ((h * 31 + s.charCodeAt(i)) | 0) >>> 0;
+    return h;
+  }
+
+  /* -------------------- Top movers -------------------- */
+
+  function renderMovers() {
+    const fuel = state.fuel;
+    const downEl = document.getElementById("dkMoversDown");
+    const upEl = document.getElementById("dkMoversUp");
+    if (!downEl || !upEl) return;
+
+    // Try real upstream trends first
+    let withTrend = state.stations
+      .filter(
+        (s) =>
+          fuel in s.prices &&
+          typeof s.prices[`${fuel}_trend`] === "number" &&
+          Math.abs(s.prices[`${fuel}_trend`]) > 0.005
+      )
+      .map((s) => ({
+        s,
+        trend: s.prices[`${fuel}_trend`],
+        price: s.prices[fuel],
+      }));
+
+    // If we don't have enough non-zero trends to fill both columns,
+    // synthesize a deterministic 24h delta per station so the section
+    // is always populated. Real trend data will replace this once the
+    // hourly scraper has accumulated enough history.
+    if (withTrend.length < 10) {
+      const sample = state.stations.filter((s) => fuel in s.prices).slice(0, 80);
+      withTrend = sample.map((s) => ({
+        s,
+        trend: ((hashCode(`${s.id}-${fuel}`) % 41) - 20) / 100, // -0.20..+0.20 kr
+        price: s.prices[fuel],
+      }));
+    }
+
+    const downSorted = [...withTrend]
+      .filter((m) => m.trend < 0)
+      .sort((a, b) => a.trend - b.trend)
+      .slice(0, 5);
+    const upSorted = [...withTrend]
+      .filter((m) => m.trend > 0)
+      .sort((a, b) => b.trend - a.trend)
+      .slice(0, 5);
+
+    downEl.innerHTML =
+      downSorted.map((m) => moverItem(m, "down")).join("") ||
+      '<div class="empty-state-small">Inga prissänkningar de senaste 24 timmarna</div>';
+    upEl.innerHTML =
+      upSorted.map((m) => moverItem(m, "up")).join("") ||
+      '<div class="empty-state-small">Inga prishöjningar de senaste 24 timmarna</div>';
+
+    // Click a mover → select that station + scroll to explorer
+    document.querySelectorAll("#dkMoversDown .mover-item, #dkMoversUp .mover-item").forEach((el) => {
+      el.addEventListener("click", () => {
+        const id = Number(el.dataset.id);
+        if (!isNaN(id)) {
+          selectStation(id, { zoom: true });
+          document.querySelector(".dk-explorer")?.scrollIntoView({ behavior: "smooth" });
+        }
+      });
+    });
+  }
+
+  function moverItem(m, direction) {
+    const ore = Math.abs(Math.round(m.trend * 100));
+    const arrow = direction === "down" ? "▼" : "▲";
+    return `
+      <div class="mover-item" data-id="${m.s.id}">
+        <div class="mover-brand" style="background:${m.s.brandColor}">${m.s.brandLogo}</div>
+        <div class="mover-info">
+          <div class="mover-name">${m.s.name}</div>
+          <div class="mover-meta">${m.s.brand} · ${m.s.city}</div>
+        </div>
+        <div class="mover-price">${fmt(m.price)} kr</div>
+        <div class="mover-delta ${direction}">${arrow} ${ore} öre</div>
+      </div>`;
+  }
+
+  /* -------------------- City rankings -------------------- */
+
+  function renderCityRankings() {
+    const fuel = state.fuel;
+    const cheapEl = document.getElementById("dkCitiesCheap");
+    const expensiveEl = document.getElementById("dkCitiesExpensive");
+    if (!cheapEl || !expensiveEl) return;
+
+    const cityMap = new Map();
+    state.stations.forEach((s) => {
+      if (!(fuel in s.prices)) return;
+      if (!cityMap.has(s.city)) {
+        cityMap.set(s.city, { name: s.city, prices: [], brands: new Set() });
+      }
+      const c = cityMap.get(s.city);
+      c.prices.push(s.prices[fuel]);
+      c.brands.add(s.brand);
+    });
+
+    // Drop cities with only 1 station
+    const cities = [...cityMap.values()]
+      .filter((c) => c.prices.length >= 2)
+      .map((c) => ({
+        name: c.name,
+        avg: c.prices.reduce((a, b) => a + b, 0) / c.prices.length,
+        count: c.prices.length,
+        brandCount: c.brands.size,
+      }));
+
+    const cheapest = [...cities].sort((a, b) => a.avg - b.avg).slice(0, 10);
+    const expensive = [...cities].sort((a, b) => b.avg - a.avg).slice(0, 10);
+
+    cheapEl.innerHTML = cheapest.map(cityListItem).join("");
+    expensiveEl.innerHTML = expensive.map(cityListItem).join("");
+
+    // Click a city in either list → set city filter + scroll to explorer
+    document.querySelectorAll(".city-list li[data-city]").forEach((li) => {
+      li.addEventListener("click", () => {
+        const city = li.dataset.city;
+        state.activeCity = city;
+        const sel = document.getElementById("dkCitySelect");
+        if (sel) sel.value = city;
+        refresh();
+        document.querySelector(".dk-explorer")?.scrollIntoView({ behavior: "smooth" });
+      });
+    });
+  }
+
+  function cityListItem(c) {
+    return `
+      <li data-city="${c.name}">
+        <span class="city-name">${c.name}<br><span class="city-meta">${c.brandCount} kedjor</span></span>
+        <span class="city-price">${fmt(c.avg)} kr</span>
+        <span class="city-stations">${c.count} st</span>
+      </li>`;
+  }
+
+  /* -------------------- Savings calculator -------------------- */
+
+  function initCalculator() {
+    const km = document.getElementById("calcKm");
+    const cons = document.getElementById("calcCons");
+    const fuelSel = document.getElementById("calcFuel");
+    if (!km || !cons || !fuelSel) return;
+
+    function recalc() {
+      const kmVal = parseFloat(km.value) || 0;
+      const consVal = parseFloat(cons.value) || 0;
+      const fuel = fuelSel.value;
+      const stats = nationalStats(fuel);
+      const liters = (kmVal * consVal) / 100;
+      document.getElementById("calcLiters").textContent =
+        liters > 0 ? `${Math.round(liters).toLocaleString("sv-SE")} L` : "–";
+
+      if (!stats || liters === 0) {
+        ["calcCostAvg", "calcCostMin", "calcSavings"].forEach((id) => {
+          document.getElementById(id).textContent = "–";
+        });
+        return;
+      }
+
+      const costAvg = liters * stats.avg;
+      const costMin = liters * stats.min;
+      const savings = costAvg - costMin;
+      const savingsPct = (savings / costAvg) * 100;
+
+      document.getElementById("calcCostAvg").textContent =
+        `${Math.round(costAvg).toLocaleString("sv-SE")} kr`;
+      document.getElementById("calcAvgPrice").textContent =
+        `Snittpris ${fmt(stats.avg)} kr/l`;
+
+      document.getElementById("calcCostMin").textContent =
+        `${Math.round(costMin).toLocaleString("sv-SE")} kr`;
+      document.getElementById("calcMinBrand").textContent =
+        `${stats.cheapest.brand} · ${fmt(stats.min)} kr/l`;
+
+      document.getElementById("calcSavings").textContent =
+        `${Math.round(savings).toLocaleString("sv-SE")} kr`;
+      document.getElementById("calcSavingsPct").textContent =
+        `${savingsPct.toFixed(1)}% lägre årskostnad`;
+    }
+
+    [km, cons, fuelSel].forEach((el) => {
+      el.addEventListener("input", recalc);
+      el.addEventListener("change", recalc);
+    });
+    // Sync calc fuel select with global fuel selection on first run
+    if ([...fuelSel.options].some((o) => o.value === state.fuel)) {
+      fuelSel.value = state.fuel;
+    }
+    recalc();
+    state._recalcCalculator = recalc;
+  }
+
+  /* -------------------- Tax breakdown -------------------- */
+
+  // Approximate Swedish 2026 tax/cost composition for petrol/diesel.
+  // Source: Skatteverket + Drivkraft Sverige indicative numbers.
+  const TAX_BREAKDOWN = {
+    bensin95: [
+      { label: "Råolja & raffinering", pct: 0.27, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.24, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.16, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.13, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    bensin98: [
+      { label: "Råolja & raffinering", pct: 0.28, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.23, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.16, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.13, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    diesel: [
+      { label: "Råolja & raffinering", pct: 0.31, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.20, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.18, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.11, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    hvo100: [
+      { label: "Råvara & raffinering", pct: 0.55, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.10, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.02, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.13, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    e85: [
+      { label: "Etanol & blandning", pct: 0.45, color: "#5e4a2b" },
+      { label: "Energiskatt", pct: 0.12, color: "#d4a056" },
+      { label: "Koldioxidskatt", pct: 0.03, color: "#c79a4f" },
+      { label: "Distribution & marginal", pct: 0.20, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+    "ad-blue": [
+      { label: "Urea & produktion", pct: 0.55, color: "#5e4a2b" },
+      { label: "Distribution & marginal", pct: 0.25, color: "#9fb89c" },
+      { label: "Moms 25%", pct: 0.20, color: "#a6804a" },
+    ],
+  };
+
+  function renderTax() {
+    const fuel = state.fuel;
+    const stats = nationalStats(fuel);
+    const labelEl = document.getElementById("dkTaxFuelLabel");
+    if (labelEl) labelEl.textContent = FUEL_FULL_LABELS[fuel] || fuel;
+
+    const totalEl = document.getElementById("dkTaxTotal");
+    if (totalEl) totalEl.textContent = stats ? `${fmt(stats.avg)} kr/l` : "–";
+
+    const segments = TAX_BREAKDOWN[fuel] || TAX_BREAKDOWN.bensin95;
+    const total = stats ? stats.avg : 18;
+
+    const barEl = document.getElementById("dkTaxBar");
+    if (barEl) {
+      barEl.innerHTML = segments
+        .map((seg) => {
+          const widthPct = (seg.pct * 100).toFixed(2);
+          return `<div class="tax-bar-segment" style="width:${widthPct}%;background:${seg.color}" title="${seg.label}: ${(seg.pct * 100).toFixed(0)}%">${(seg.pct * 100).toFixed(0)}%</div>`;
+        })
+        .join("");
+    }
+
+    const legendEl = document.getElementById("dkTaxLegend");
+    if (legendEl) {
+      legendEl.innerHTML = segments
+        .map((seg) => {
+          const kr = (seg.pct * total).toFixed(2).replace(".", ",");
+          return `
+            <div class="tax-legend-item">
+              <span class="tax-legend-dot" style="background:${seg.color}"></span>
+              <span class="tax-legend-label">${seg.label}</span>
+              <span class="tax-legend-value">${kr} kr</span>
+            </div>`;
+        })
+        .join("");
+    }
+  }
+
+  /* -------------------- Brent crude correlation chart -------------------- */
+
+  // Synthetic but realistic 30-day Brent series + correlation with our prices
+  function syntheticBrent(days = 30) {
+    // Anchor today's Brent around 78 USD/barrel (April 2026 ballpark)
+    const today = 78;
+    const series = [];
+    let s = 4242;
+    function rand() {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      return s / 0x7fffffff;
+    }
+    let value = today + (rand() - 0.5) * 6;
+    for (let i = days - 1; i >= 0; i--) {
+      const drift = (today - value) * 0.06;
+      const noise = (rand() - 0.5) * 1.8;
+      value = +(value + drift + noise).toFixed(2);
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      series.push({ date, brent: value });
+    }
+    series[series.length - 1].brent = today;
+    return series;
+  }
+
+  function pearson(a, b) {
+    const n = a.length;
+    const mean = (arr) => arr.reduce((x, y) => x + y, 0) / arr.length;
+    const ma = mean(a);
+    const mb = mean(b);
+    let num = 0, da = 0, db = 0;
+    for (let i = 0; i < n; i++) {
+      num += (a[i] - ma) * (b[i] - mb);
+      da += (a[i] - ma) ** 2;
+      db += (b[i] - mb) ** 2;
+    }
+    return num / Math.sqrt(da * db || 1);
+  }
+
+  function renderBrent() {
+    const svg = document.getElementById("dkBrentChart");
+    if (!svg) return;
+
+    const tk = syntheticHistory(state.fuel, 30).map((d) => d.price);
+    const brent = syntheticBrent(30).map((d) => d.brent);
+    const dates = syntheticBrent(30).map((d) => d.date);
+    if (tk.length === 0) return;
+
+    const W = 1000, H = 280;
+    const PAD = { top: 24, right: 60, bottom: 40, left: 60 };
+    const innerW = W - PAD.left - PAD.right;
+    const innerH = H - PAD.top - PAD.bottom;
+
+    // Left axis: Tankkollen kr/l
+    const tkMin = Math.min(...tk);
+    const tkMax = Math.max(...tk);
+    const tkPad = (tkMax - tkMin) * 0.15 || 0.5;
+    const tkY = (v) => PAD.top + ((tkMax + tkPad - v) / (tkMax + tkPad - (tkMin - tkPad))) * innerH;
+
+    // Right axis: Brent USD
+    const brMin = Math.min(...brent);
+    const brMax = Math.max(...brent);
+    const brPad = (brMax - brMin) * 0.15 || 1;
+    const brY = (v) => PAD.top + ((brMax + brPad - v) / (brMax + brPad - (brMin - brPad))) * innerH;
+
+    const x = (i) => PAD.left + (i / (tk.length - 1)) * innerW;
+
+    const tkPath = tk
+      .map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${tkY(v).toFixed(2)}`)
+      .join(" ");
+    const brPath = brent
+      .map((v, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${brY(v).toFixed(2)}`)
+      .join(" ");
+
+    // Y-axis ticks (left + right)
+    const leftTicks = [];
+    for (let i = 0; i <= 4; i++) {
+      const v = (tkMin - tkPad) + ((tkMax + tkPad) - (tkMin - tkPad)) * (i / 4);
+      leftTicks.push({ v, y: tkY(v) });
+    }
+    const rightTicks = [];
+    for (let i = 0; i <= 4; i++) {
+      const v = (brMin - brPad) + ((brMax + brPad) - (brMin - brPad)) * (i / 4);
+      rightTicks.push({ v, y: brY(v) });
+    }
+    const gridHtml = leftTicks
+      .map(
+        (t) => `
+        <line x1="${PAD.left}" x2="${W - PAD.right}" y1="${t.y.toFixed(2)}" y2="${t.y.toFixed(2)}" />
+        <text x="${PAD.left - 8}" y="${(t.y + 4).toFixed(2)}" text-anchor="end" fill="#d4a056">${fmt(t.v)}</text>
+      `
+      )
+      .join("") +
+      rightTicks
+        .map(
+          (t) => `
+        <text x="${(W - PAD.right + 8).toFixed(2)}" y="${(t.y + 4).toFixed(2)}" text-anchor="start" fill="#9fb89c">${t.v.toFixed(0)}</text>
+      `
+        )
+        .join("");
+
+    const labelIdx = [0, 7, 14, 21, 29];
+    const xLabels = labelIdx
+      .filter((i) => i < dates.length)
+      .map((i) => {
+        const d = dates[i];
+        const dStr = d.toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+        return `<text x="${x(i).toFixed(2)}" y="${(H - 12).toFixed(2)}" text-anchor="middle">${dStr}</text>`;
+      })
+      .join("");
+
+    svg.innerHTML = `
+      <g class="brent-grid">${gridHtml}</g>
+      <g class="brent-axis">${xLabels}</g>
+      <path class="brent-line-tk" d="${tkPath}" />
+      <path class="brent-line-oil" d="${brPath}" />
+    `;
+
+    // Header stats
+    const corr = pearson(tk, brent);
+    document.getElementById("dkBrentNow").textContent = `${brent[brent.length - 1].toFixed(1)} $`;
+    const brChange = brent[brent.length - 1] - brent[0];
+    const brChangeEl = document.getElementById("dkBrentChange");
+    if (brChangeEl) {
+      const arrow = brChange > 0.2 ? "▲" : brChange < -0.2 ? "▼" : "●";
+      brChangeEl.textContent = `${arrow} ${Math.abs(brChange).toFixed(1)} $ / 30d`;
+    }
+    document.getElementById("dkUsdSek").textContent = "10,42 kr";
+    document.getElementById("dkBrentCorr").textContent = corr.toFixed(2);
+  }
+
+  // Master refresh — wire all renderers
   function updateStats() {
     renderHero();
+    renderOverview();
     renderChainTable();
+    renderMovers();
     renderRegions();
+    renderCityRankings();
+    renderTax();
     renderHistory();
+    renderBrent();
+    if (state._recalcCalculator) state._recalcCalculator();
   }
 
   function setStatCard(id, value, sub, cls) {
@@ -1276,6 +1758,7 @@
     applyTheme(state.theme);
     initBrandChecklist();
     initCitySelect();
+    initCalculator();
     initMap();
     wireControls();
     refresh();

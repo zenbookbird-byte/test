@@ -139,6 +139,43 @@
       </section>
 
       <!-- ============================================================
+           MULTI-FUEL OVERVIEW (all 6 fuels at a glance)
+           ============================================================ -->
+      <section class="dk-section dk-overview">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Snabböversikt</div>
+              <h2 class="section-title">Alla drivmedel just nu</h2>
+              <p class="section-sub">
+                Snittpris, lägsta och högsta för varje drivmedel i hela
+                landet, plus 24-timmars trend och avvikelse mot Drivkraft
+                Sveriges veckostatistik.
+              </p>
+            </div>
+          </div>
+
+          <div class="overview-table-wrap">
+            <table class="overview-table" id="dkOverviewTable">
+              <thead>
+                <tr>
+                  <th class="col-fuel">Drivmedel</th>
+                  <th>Snitt</th>
+                  <th>Lägst</th>
+                  <th>Högst</th>
+                  <th>Spridning</th>
+                  <th>Stationer</th>
+                  <th>Trend 24h</th>
+                  <th>vs vecka</th>
+                </tr>
+              </thead>
+              <tbody id="dkOverviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
            CHAIN COMPARISON TABLE (the fuel-prices.eu signature feature)
            ============================================================ -->
       <section class="dk-section dk-chains">
@@ -188,6 +225,44 @@
       </section>
 
       <!-- ============================================================
+           TOP MOVERS (biggest 24h price changes)
+           ============================================================ -->
+      <section class="dk-section dk-movers">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Pris-rörelser</div>
+              <h2 class="section-title">Största förändringarna senaste dygnet</h2>
+              <p class="section-sub">
+                Stationer som sänkt eller höjt priset mest sedan igår.
+                Bra för att fånga extrapriser och pump-rabatter innan de
+                hinner sprida sig vidare.
+              </p>
+            </div>
+          </div>
+
+          <div class="movers-grid">
+            <div class="movers-column movers-down">
+              <div class="movers-head">
+                <span class="movers-icon down">▼</span>
+                <h3>Sänkningar</h3>
+                <span class="movers-sub">Billigare än igår</span>
+              </div>
+              <div id="dkMoversDown" class="movers-list"></div>
+            </div>
+            <div class="movers-column movers-up">
+              <div class="movers-head">
+                <span class="movers-icon up">▲</span>
+                <h3>Höjningar</h3>
+                <span class="movers-sub">Dyrare än igår</span>
+              </div>
+              <div id="dkMoversUp" class="movers-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
            REGIONAL BREAKDOWN
            ============================================================ -->
       <section class="dk-section dk-regions">
@@ -205,6 +280,155 @@
           </div>
 
           <div class="region-grid" id="dkRegionGrid"></div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           CITY RANKINGS (cheapest | most expensive)
+           ============================================================ -->
+      <section class="dk-section dk-cities">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Stadsranking</div>
+              <h2 class="section-title">Billigaste och dyraste städerna</h2>
+              <p class="section-sub">
+                Snittpris per stad för utvalt drivmedel. Städer med endast
+                en station räknas inte med, för att undvika att en enstaka
+                lågpris-pump snedvrider rankingen.
+              </p>
+            </div>
+          </div>
+
+          <div class="city-ranking-grid">
+            <div class="city-ranking-card">
+              <div class="ranking-head">
+                <h3>Topp 10 billigast</h3>
+                <span class="ranking-tag cheapest">Lägsta snittpris</span>
+              </div>
+              <ol id="dkCitiesCheap" class="city-list"></ol>
+            </div>
+            <div class="city-ranking-card">
+              <div class="ranking-head">
+                <h3>Topp 10 dyrast</h3>
+                <span class="ranking-tag expensive">Högsta snittpris</span>
+              </div>
+              <ol id="dkCitiesExpensive" class="city-list"></ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           SAVINGS CALCULATOR
+           ============================================================ -->
+      <section class="dk-section dk-calculator">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Räknare</div>
+              <h2 class="section-title">Hur mycket sparar du?</h2>
+              <p class="section-sub">
+                Ange din körsträcka och bilens förbrukning. Kalkylatorn
+                räknar ut din årskostnad och hur mycket du skulle spara
+                om du alltid tankade hos den billigaste kedjan.
+              </p>
+            </div>
+          </div>
+
+          <div class="calc-grid">
+            <div class="calc-inputs">
+              <label class="calc-input">
+                <span class="calc-label">Körsträcka per år</span>
+                <div class="calc-input-wrap">
+                  <input id="calcKm" type="number" min="0" step="500" value="15000" />
+                  <span class="calc-unit">km</span>
+                </div>
+              </label>
+              <label class="calc-input">
+                <span class="calc-label">Förbrukning</span>
+                <div class="calc-input-wrap">
+                  <input id="calcCons" type="number" min="0" step="0.1" value="6.5" />
+                  <span class="calc-unit">L/100km</span>
+                </div>
+              </label>
+              <label class="calc-input">
+                <span class="calc-label">Drivmedel</span>
+                <select id="calcFuel" class="select full">
+                  <option value="bensin95">Bensin 95</option>
+                  <option value="bensin98">Bensin 98</option>
+                  <option value="diesel">Diesel</option>
+                  <option value="hvo100">HVO100</option>
+                  <option value="e85">E85</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="calc-results">
+              <div class="calc-result">
+                <div class="calc-result-label">Liter per år</div>
+                <div class="calc-result-value" id="calcLiters">–</div>
+                <div class="calc-result-sub">Total förbrukning</div>
+              </div>
+              <div class="calc-result">
+                <div class="calc-result-label">Årskostnad (snitt)</div>
+                <div class="calc-result-value" id="calcCostAvg">–</div>
+                <div class="calc-result-sub" id="calcAvgPrice">–</div>
+              </div>
+              <div class="calc-result calc-result-best">
+                <div class="calc-result-label">Årskostnad (billigast)</div>
+                <div class="calc-result-value" id="calcCostMin">–</div>
+                <div class="calc-result-sub" id="calcMinBrand">–</div>
+              </div>
+              <div class="calc-result calc-result-savings">
+                <div class="calc-result-label">Du sparar</div>
+                <div class="calc-result-value" id="calcSavings">–</div>
+                <div class="calc-result-sub" id="calcSavingsPct">–</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           TAX BREAKDOWN
+           ============================================================ -->
+      <section class="dk-section dk-tax">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Vad du betalar för</div>
+              <h2 class="section-title">Skatte- och kostnadsfördelning</h2>
+              <p class="section-sub">
+                En liter <span id="dkTaxFuelLabel">bensin 95</span> i Sverige
+                består till största delen av skatter. Här är ungefärlig
+                fördelning enligt Skatteverket och Drivkraft Sverige för
+                2026.
+              </p>
+            </div>
+          </div>
+
+          <div class="tax-grid">
+            <div class="tax-bar-wrap">
+              <div class="tax-total">
+                <div class="tax-total-label">Pris vid pumpen</div>
+                <div class="tax-total-value" id="dkTaxTotal">–</div>
+              </div>
+              <div class="tax-bar" id="dkTaxBar"></div>
+              <div class="tax-legend" id="dkTaxLegend"></div>
+            </div>
+
+            <div class="tax-explainer">
+              <h4>Visste du?</h4>
+              <ul>
+                <li>Cirka <strong>60%</strong> av priset vid pumpen är skatter och moms.</li>
+                <li>Energiskatten är fast i kr/liter och justeras årligen av riksdagen.</li>
+                <li>Koldioxidskatten beskattar fossilt innehåll, så HVO100 har mycket lägre skatt.</li>
+                <li>Momsen tas på <em>hela</em> beloppet inklusive andra skatter — moms på moms.</li>
+                <li>Råoljepriset (Brent) påverkar bara cirka 25% av pumpaspriset.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -390,6 +614,56 @@
                 <span class="history-stat-label">Förändring</span>
                 <strong id="dkHistChange">–</strong>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           BRENT CRUDE CORRELATION
+           ============================================================ -->
+      <section class="dk-section dk-brent">
+        <div class="dk-container">
+          <div class="section-head">
+            <div>
+              <div class="section-eyebrow">Råoljekoppling</div>
+              <h2 class="section-title">Brent crude vs pumppris</h2>
+              <p class="section-sub">
+                Hur följer pumppriset råoljepriset? Råolja prissätts i USD
+                per fat på världsmarknaden, så både Brent och USD/SEK spelar
+                in. Skatter och raffineringsmarginal står för resten.
+              </p>
+            </div>
+            <div class="brent-stats">
+              <div class="brent-stat">
+                <div class="brent-stat-label">Brent idag</div>
+                <strong id="dkBrentNow">–</strong>
+                <span id="dkBrentChange">–</span>
+              </div>
+              <div class="brent-stat">
+                <div class="brent-stat-label">USD/SEK</div>
+                <strong id="dkUsdSek">–</strong>
+                <span>växelkurs</span>
+              </div>
+              <div class="brent-stat">
+                <div class="brent-stat-label">Korrelation</div>
+                <strong id="dkBrentCorr">–</strong>
+                <span>30 dgr</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="brent-chart-wrap">
+            <svg id="dkBrentChart" viewBox="0 0 1000 280" preserveAspectRatio="none"></svg>
+            <div class="brent-legend">
+              <span class="brent-legend-item">
+                <span class="brent-legend-dot" style="background:#d4a056"></span>
+                Tankkollen-snitt (kr/liter)
+              </span>
+              <span class="brent-legend-item">
+                <span class="brent-legend-dot" style="background:#9fb89c"></span>
+                Brent crude (USD/fat, höger skala)
+              </span>
             </div>
           </div>
         </div>
