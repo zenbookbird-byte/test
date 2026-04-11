@@ -1,0 +1,70 @@
+name: Deploy Tankkollen to GitHub Pages
+
+on:
+  push:
+    branches:
+      - 'claude/fuel-station-app-hZcRu'
+    paths:
+      - 'tankkollen/**'
+      - '.github/workflows/deploy_tankkollen.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: gh-pages-tankkollen
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+        with:
+          ref: claude/fuel-station-app-hZcRu
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Deploy tankkollen/ to gh-pages
+        run: |
+          set -e
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stash the tankkollen directory so we can restore after branch switch
+          mkdir -p /tmp/tk-build
+          cp -a tankkollen/. /tmp/tk-build/
+
+          # Switch to gh-pages (create orphan if missing)
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages:gh-pages
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf . 2>/dev/null || true
+          fi
+
+          # Replace just the tankkollen subdirectory, preserving any
+          # other content already on gh-pages (e.g. dashboards from
+          # sibling branches).
+          rm -rf tankkollen
+          mkdir -p tankkollen
+          cp -a /tmp/tk-build/. tankkollen/
+
+          # Disable Jekyll processing so files with underscores or
+          # dotfiles (e.g. _http.py in sources/) are served as-is.
+          touch .nojekyll
+
+          git add tankkollen .nojekyll
+          if git diff --staged --quiet; then
+            echo "No changes to deploy — skipping commit"
+          else
+            git commit -m "chore: deploy tankkollen to gh-pages $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push origin gh-pages
+          fi
+
+      - name: Print deployment URL
+        run: |
+          echo "::notice::Tankkollen deployed to https://zenbookbird-byte.github.io/test/tankkollen/dator.html"
