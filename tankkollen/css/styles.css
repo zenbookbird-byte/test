@@ -1065,6 +1065,52 @@ button {
   padding: 0.35rem 0.7rem;
 }
 
+.src-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  vertical-align: middle;
+}
+
+.src-badge.src-list {
+  background: rgba(0, 180, 255, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(0, 180, 255, 0.3);
+}
+
+.src-badge.src-user {
+  background: rgba(0, 217, 163, 0.15);
+  color: var(--primary);
+  border: 1px solid rgba(0, 217, 163, 0.4);
+}
+
+.report-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+  padding: 0.35rem 0.65rem;
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-muted);
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.report-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  border-style: solid;
+}
+
 .directions-btn {
   width: 100%;
   margin-top: 1.2rem;

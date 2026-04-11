@@ -1,0 +1,46 @@
+name: Update Tankkollen Fuel Prices
+
+on:
+  schedule:
+    - cron: '5 * * * *'   # every hour at :05
+  workflow_dispatch:
+  push:
+    branches:
+      - 'claude/fuel-station-app-hZcRu'
+    paths:
+      - 'tankkollen/scraper/fetch_prices.py'
+      - '.github/workflows/update_fuel_prices.yml'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: claude/fuel-station-app-hZcRu
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch live fuel prices
+        working-directory: tankkollen
+        run: python3 scraper/fetch_prices.py
+
+      - name: Commit and push (only if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tankkollen/data/live_prices.json
+          if git diff --staged --quiet; then
+            echo "No price changes — skipping commit"
+          else
+            git commit -m "chore(tankkollen): update fuel prices $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push origin claude/fuel-station-app-hZcRu
+          fi

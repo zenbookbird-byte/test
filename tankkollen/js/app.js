@@ -229,14 +229,26 @@
 
     const priceTiles = Object.keys(FUEL_LABELS)
       .filter((k) => k in s.prices)
-      .map((k) => `
-        <div class="price-tile">
-          <div class="price-tile-label">${FUEL_LABELS[k]}</div>
+      .map((k) => {
+        const source = s.prices[`${k}_source`];
+        const badge =
+          source === "user"
+            ? '<span class="src-badge src-user">★ Rapporterat</span>'
+            : source === "listpris"
+            ? '<span class="src-badge src-list">Listpris</span>'
+            : "";
+        return `
+        <div class="price-tile" data-fuel="${k}">
+          <div class="price-tile-label">${FUEL_LABELS[k]} ${badge}</div>
           <div class="price-tile-value">
             ${formatPrice(s.prices[k])}<span class="unit">kr/l</span>
           </div>
           <div style="margin-top:.3rem">${trendBadge(s.prices[`${k}_trend`])}</div>
-        </div>`)
+          <button class="report-btn" data-station="${s.id}" data-fuel="${k}">
+            Rapportera pris
+          </button>
+        </div>`;
+      })
       .join("");
 
     const services = s.services
@@ -284,6 +296,32 @@
     el.classList.remove("hidden");
     document.getElementById("stationList").classList.add("hidden");
     closeBtn.classList.remove("hidden");
+
+    // Wire report buttons
+    el.querySelectorAll(".report-btn").forEach((btn) => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const stationId = Number(btn.dataset.station);
+        const fuel = btn.dataset.fuel;
+        const label = FUEL_LABELS[fuel] || fuel;
+        const current = s.prices[fuel];
+        const input = prompt(
+          `Vilket pris såg du för ${label} vid ${s.name}?\n(Skriv t.ex. 17,89 — nuvarande: ${formatPrice(current)})`,
+          formatPrice(current)
+        );
+        if (input == null) return;
+        const num = parseFloat(input.replace(",", "."));
+        if (!isFinite(num) || num < 5 || num > 40) {
+          alert("Ogiltigt pris. Ange ett värde mellan 5 och 40 kr/l.");
+          return;
+        }
+        try {
+          window.tankkollenReportPrice(stationId, fuel, num);
+        } catch (e) {
+          alert("Kunde inte spara rapporten.");
+        }
+      });
+    });
   }
 
   function hideDetail() {
@@ -493,36 +531,36 @@
     renderList();
     renderMarkers();
     if (opts.fitBounds) fitMapToFiltered();
-    // Last updated text
+    // Last updated text — prefer real live-prices timestamp
     const lu = document.getElementById("lastUpdated");
     if (lu) {
-      const d = new Date();
-      lu.textContent = `Uppdaterad ${d.getHours().toString().padStart(2, "0")}:${d
-        .getMinutes()
-        .toString()
-        .padStart(2, "0")}`;
+      const meta = window.tankkollenGetLiveMeta && window.tankkollenGetLiveMeta();
+      if (meta) {
+        const age = meta.ageMinutes;
+        const label =
+          age < 2
+            ? "Live-priser just nu"
+            : age < 60
+            ? `Live-priser · ${age} min sedan`
+            : `Live-priser · ${Math.round(age / 60)} tim sedan`;
+        lu.textContent = label;
+      } else {
+        const d = new Date();
+        lu.textContent = `Uppdaterad ${d
+          .getHours()
+          .toString()
+          .padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+      }
     }
   }
 
   /* -------------------- Simulated live updates -------------------- */
 
   function startLiveTicker() {
-    // Every 45 seconds, randomly adjust a few prices slightly to simulate live feed
-    setInterval(() => {
-      const sampleSize = Math.max(2, Math.floor(state.stations.length * 0.05));
-      for (let i = 0; i < sampleSize; i++) {
-        const s = state.stations[Math.floor(Math.random() * state.stations.length)];
-        Object.keys(FUEL_LABELS).forEach((fuel) => {
-          if (fuel in s.prices) {
-            const delta = (Math.random() - 0.5) * 0.06;
-            s.prices[fuel] = Math.max(1, +(s.prices[fuel] + delta).toFixed(2));
-            s.prices[`${fuel}_trend`] = +(s.prices[`${fuel}_trend`] + delta).toFixed(2);
-          }
-        });
-        s.updatedMinutesAgo = 0;
-      }
-      refresh({ fitBounds: false });
-    }, 45000);
+    // Re-render every minute so "uppdaterad X min sedan" and the age label
+    // stay current. Actual price updates come from prices.js (which fetches
+    // data/live_prices.json every 5 minutes).
+    setInterval(() => refresh({ fitBounds: false }), 60 * 1000);
   }
 
   /* -------------------- PWA install -------------------- */
@@ -573,6 +611,19 @@
     renderPreviewList();
     refresh();
     startLiveTicker();
+
+    // Re-render when live prices land
+    document.addEventListener("tankkollen:prices", () => {
+      refresh({ fitBounds: false });
+      renderPreviewList();
+    });
+    document.addEventListener("tankkollen:reported", () => {
+      refresh({ fitBounds: false });
+      if (state.selectedStationId) {
+        const s = state.stations.find((x) => x.id === state.selectedStationId);
+        if (s) showDetail(s);
+      }
+    });
   }
 
   if (document.readyState === "loading") {

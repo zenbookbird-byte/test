@@ -2,7 +2,7 @@
  * Enables offline use and app-shell caching for PWA install.
  */
 
-const CACHE = "tankkollen-v3";
+const CACHE = "tankkollen-v4";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,6 +13,8 @@ const ASSETS = [
   "./js/app.js",
   "./js/desktop.js",
   "./js/stations.js",
+  "./js/prices.js",
+  "./data/live_prices.json",
   "./vendor/leaflet/leaflet.css",
   "./vendor/leaflet/leaflet.js",
   "./icons/icon.svg",
@@ -45,6 +47,20 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
 
   const url = new URL(req.url);
+
+  // Network-first for live prices — always prefer the freshest JSON.
+  if (url.pathname.endsWith("/data/live_prices.json")) {
+    e.respondWith(
+      fetch(req, { cache: "no-store" })
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
 
   // Network-first for map tiles (they can't all be cached)
   if (url.hostname.includes("tile.openstreetmap.org")) {
