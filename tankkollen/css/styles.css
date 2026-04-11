@@ -213,6 +213,22 @@ button {
   color: var(--text);
 }
 
+.nav-links a.nav-pro {
+  color: var(--primary);
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid rgba(0, 217, 163, 0.3);
+  border-radius: 999px;
+  background: rgba(0, 217, 163, 0.08);
+  transition: all 0.2s;
+}
+
+.nav-links a.nav-pro:hover {
+  background: rgba(0, 217, 163, 0.15);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
 .icon-btn {
   width: 40px;
   height: 40px;
@@ -1155,13 +1171,44 @@ button {
   transform: translate(-50%, -100%) scale(1.08);
 }
 
-.station-marker.cheapest {
+.station-marker.cheapest,
+.station-marker.tier-cheapest {
   background: var(--primary);
   color: #071a12;
+  border-color: var(--primary);
 }
 
-.station-marker.cheapest::after {
+.station-marker.cheapest::after,
+.station-marker.tier-cheapest::after {
   background: var(--primary);
+  border-color: var(--primary);
+}
+
+.station-marker.tier-below {
+  border-color: #8aeac8;
+  color: #8aeac8;
+}
+
+.station-marker.tier-below::after {
+  border-color: #8aeac8;
+}
+
+.station-marker.tier-normal {
+  border-color: #6b7594;
+  color: #9aa3c2;
+}
+
+.station-marker.tier-normal::after {
+  border-color: #6b7594;
+}
+
+.station-marker.tier-above {
+  border-color: #ff5a7b;
+  color: #ff8fa4;
+}
+
+.station-marker.tier-above::after {
+  border-color: #ff5a7b;
 }
 
 .popup-card {
