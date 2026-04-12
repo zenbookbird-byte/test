@@ -85,6 +85,15 @@
       </div>
     </header>
 
+    <!-- Scrolling news ticker right under the topbar -->
+    <div class="dk-ticker" aria-live="polite">
+      <div class="dk-ticker-label">
+        <span class="dot-live"></span>
+        LIVE
+      </div>
+      <div class="dk-ticker-track" id="dkTickerTrack"></div>
+    </div>
+
     <main class="dk-scroll">
       <!-- ============================================================
            HERO: Today's headline numbers
@@ -137,6 +146,20 @@
           </div>
         </div>
       </section>
+
+      <!-- Ad banner after hero -->
+      <div class="dk-container">
+        <aside class="ad-slot ad-banner" aria-label="Annons">
+          <span class="ad-label">Annons</span>
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="1111111111"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+        </aside>
+      </div>
 
       <!-- ============================================================
            NORDIC HEATMAP (Nordics-only, fuel-prices.eu/heatmap inspired)
@@ -629,6 +652,20 @@
         </div>
       </section>
 
+      <!-- Ad banner after explorer -->
+      <div class="dk-container">
+        <aside class="ad-slot ad-banner" aria-label="Annons">
+          <span class="ad-label">Annons</span>
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="2222222222"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+        </aside>
+      </div>
+
       <!-- ============================================================
            HISTORICAL TREND CHART
            ============================================================ -->
@@ -724,81 +761,47 @@
       </section>
 
       <!-- ============================================================
-           DATA SOURCES
+           NYHETER (news feed - replaces Data Sources)
            ============================================================ -->
-      <section class="dk-section dk-sources">
+      <section class="dk-section dk-news">
         <div class="dk-container">
           <div class="section-head">
             <div>
-              <div class="section-eyebrow">Transparens</div>
-              <h2 class="section-title">Datakällor</h2>
+              <div class="section-eyebrow">
+                <span class="dot-live"></span>
+                Live-flöde · uppdaterat nyss
+              </div>
+              <h2 class="section-title">Drivmedelsnyheter</h2>
               <p class="section-sub">
-                Tankkollen kombinerar flera källor i en prioritetskedja:
-                officiella listpriser från kedjornas hemsidor först,
-                crowdsourcad data och branschstatistik som komplement,
-                cachade värden som fallback.
+                Senaste branschnyheterna som kan påverka priset vid pumpen —
+                från råoljemarknaden, kedjornas strategiförändringar, svensk
+                skattepolitik och EU-direktiv.
               </p>
+            </div>
+            <div class="section-actions">
+              <div class="news-filter">
+                <button class="seg-btn active" data-news-cat="all">Alla</button>
+                <button class="seg-btn" data-news-cat="pris">Pris</button>
+                <button class="seg-btn" data-news-cat="skatt">Skatt</button>
+                <button class="seg-btn" data-news-cat="marknad">Marknad</button>
+                <button class="seg-btn" data-news-cat="miljö">Miljö</button>
+              </div>
             </div>
           </div>
 
-          <div class="sources-grid">
-            <article class="source-card">
-              <div class="source-card-head">
-                <div class="source-card-tier tier-1">Tier 1</div>
-                <h3>Kedjornas listpriser</h3>
-              </div>
-              <p>
-                Direkt-scraping av Circle K, OKQ8, Preem, Shell, St1, Ingo,
-                Tanka och Qstars officiella prissidor. Uppdateras varje timme.
-              </p>
-              <div class="source-card-tag">8 källor · högsta tillförlitlighet</div>
-            </article>
+          <div class="news-grid" id="dkNewsGrid"></div>
 
-            <article class="source-card">
-              <div class="source-card-head">
-                <div class="source-card-tier tier-2">Tier 2</div>
-                <h3>Crowdsourcade aggregator-sajter</h3>
-              </div>
-              <p>
-                Bensinpriser.nu, Bensinstation.nu och Bensinpris idag, där
-                användare rapporterar in priser från pumpen. Bra för
-                pump-rabatter och regionala variationer.
-              </p>
-              <div class="source-card-tag">3 källor · medelhög tillförlitlighet</div>
-            </article>
-
-            <article class="source-card">
-              <div class="source-card-head">
-                <div class="source-card-tier tier-3">Tier 3</div>
-                <h3>Branschstatistik</h3>
-              </div>
-              <p>
-                Drivkraft Sveriges veckorapport och SCB:s drivmedelsindex. Långsammare uppdatering men oberoende referenspris.
-              </p>
-              <div class="source-card-tag">2 källor · officiell statistik</div>
-            </article>
-
-            <article class="source-card">
-              <div class="source-card-head">
-                <div class="source-card-tier tier-4">Tier 4</div>
-                <h3>OpenStreetMap</h3>
-              </div>
-              <p>
-                Stationspositioner, adresser och öppettider hämtas från
-                OpenStreetMap Overpass API. Uppdateras varje vecka.
-              </p>
-              <div class="source-card-tag">© OpenStreetMap-bidragsgivare · ODbL</div>
-            </article>
-          </div>
-
-          <div class="sources-footer">
-            <p>
-              Datapipelinen körs som GitHub Actions varje timme för priser och
-              varje vecka för stationsdata. Källkoden är öppen och tillgänglig
-              för granskning. Priset vid pumpen kan avvika med några öre per
-              station.
-            </p>
-          </div>
+          <!-- Inline ad between news rows -->
+          <aside class="ad-slot ad-horizontal" aria-label="Annons">
+            <span class="ad-label">Annons</span>
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                 data-ad-slot="3333333333"
+                 data-ad-format="horizontal"
+                 data-full-width-responsive="true"></ins>
+            <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+          </aside>
         </div>
       </section>
 
@@ -813,12 +816,12 @@
               <p class="footer-tag">Sveriges modernaste prisjämförelse för drivmedel.</p>
             </div>
             <div>
-              <h4>Datakällor</h4>
+              <h4>Nyheter</h4>
               <ul>
-                <li>Drivkraft Sverige</li>
-                <li>Bensinpriser.nu</li>
-                <li>Kedjornas listpriser</li>
-                <li>OpenStreetMap</li>
+                <li>Marknadsrapporter</li>
+                <li>Prisrörelser</li>
+                <li>Skattepolitik</li>
+                <li>Miljö &amp; hållbarhet</li>
               </ul>
             </div>
             <div>

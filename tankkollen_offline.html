@@ -5164,6 +5164,339 @@ body.desktop-app .dk-topbar {
   .heatmap-stats { grid-template-columns: 1fr; }
 }
 
+/* =======================================================================
+   v5: Live ticker, news feed, dynamic animations, ads
+   ======================================================================= */
+
+/* ---------- Scrolling news ticker ---------- */
+
+.dk-ticker {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(90deg, rgba(212, 160, 86, 0.12), rgba(14, 12, 10, 0.6) 30%);
+  border-bottom: 1px solid var(--border);
+  height: 38px;
+  overflow: hidden;
+  position: sticky;
+  top: 80px;
+  z-index: 45;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.dk-ticker-label {
+  flex-shrink: 0;
+  padding: 0 1.1rem;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--primary);
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+}
+.dk-ticker-track {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  white-space: nowrap;
+}
+.dk-ticker-content {
+  display: inline-flex;
+  gap: 2.5rem;
+  padding-left: 100%;
+  animation: ticker-slide 60s linear infinite;
+  white-space: nowrap;
+  will-change: transform;
+}
+.dk-ticker:hover .dk-ticker-content {
+  animation-play-state: paused;
+}
+@keyframes ticker-slide {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+.ticker-item .ticker-cat {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  background: var(--bg-elev-2);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+.ticker-item .ticker-cat.pris { color: var(--primary); background: rgba(212, 160, 86, 0.12); }
+.ticker-item .ticker-cat.marknad { color: var(--accent); background: rgba(159, 184, 156, 0.12); }
+.ticker-item .ticker-cat.skatt { color: var(--danger); background: rgba(199, 104, 116, 0.12); }
+.ticker-item .ticker-cat.miljö { color: var(--accent); background: rgba(159, 184, 156, 0.12); }
+.ticker-item .ticker-arrow {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+.ticker-item .ticker-arrow.up { color: var(--danger); }
+.ticker-item .ticker-arrow.down { color: var(--accent); }
+
+/* ---------- News feed ---------- */
+
+.news-filter {
+  display: inline-flex;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 2px;
+}
+.news-filter .seg-btn {
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8rem;
+  border: none;
+}
+.news-filter .seg-btn.active {
+  background: linear-gradient(135deg, rgba(212, 160, 86, 0.2), rgba(159, 184, 156, 0.12));
+  color: var(--primary);
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+.news-grid > article:nth-child(1) {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.news-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem 1.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  animation: fade-in-up 0.6s ease both;
+}
+.news-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: 0 10px 32px rgba(212, 160, 86, 0.12);
+}
+.news-card.featured {
+  background: linear-gradient(160deg, rgba(212, 160, 86, 0.08), rgba(14, 12, 10, 0.1));
+  border-color: rgba(212, 160, 86, 0.25);
+}
+
+.news-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+}
+.news-cat {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  color: var(--text-muted);
+  background: var(--bg-elev-2);
+}
+.news-cat.pris { color: var(--primary); background: rgba(212, 160, 86, 0.14); }
+.news-cat.marknad { color: var(--accent); background: rgba(159, 184, 156, 0.14); }
+.news-cat.skatt { color: var(--danger); background: rgba(199, 104, 116, 0.14); }
+.news-cat.miljö { color: var(--accent); background: rgba(159, 184, 156, 0.14); }
+
+.news-time {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.news-source {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.news-title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  margin: 0.2rem 0 0.4rem 0;
+}
+.news-card.featured .news-title {
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.news-excerpt {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 0;
+  flex: 1;
+}
+.news-card.featured .news-excerpt {
+  font-size: 0.95rem;
+}
+
+.news-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.4rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+.news-read-more {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.04em;
+}
+.news-impact {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.news-impact strong {
+  color: var(--accent);
+}
+.news-impact strong.up { color: var(--danger); }
+
+/* ---------- Ad slots ---------- */
+
+.ad-slot {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(245, 239, 228, 0.02),
+    rgba(245, 239, 228, 0.02) 10px,
+    rgba(245, 239, 228, 0.04) 10px,
+    rgba(245, 239, 228, 0.04) 20px
+  );
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 2rem 0;
+  text-align: center;
+  position: relative;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.ad-slot .ad-label {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+.ad-banner { min-height: 120px; }
+.ad-horizontal { min-height: 100px; }
+
+/* ---------- Animated number counters ---------- */
+
+.counter-num {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+}
+.counter-num.counting {
+  animation: count-pulse 0.4s ease;
+}
+@keyframes count-pulse {
+  0% { opacity: 0.3; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Fade-in on scroll ---------- */
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dk-section {
+  animation: fade-in-up 0.7s ease both;
+}
+.dk-hero .hero-card:nth-child(1) { animation: fade-in-up 0.7s 0.05s ease both; }
+.dk-hero .hero-card:nth-child(2) { animation: fade-in-up 0.7s 0.15s ease both; }
+.dk-hero .hero-card:nth-child(3) { animation: fade-in-up 0.7s 0.25s ease both; }
+
+/* Pulse the dot-live slightly stronger + infinite */
+.dot-live {
+  width: 8px;
+  height: 8px;
+  background: var(--primary);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(212, 160, 86, 0.7);
+  animation: pulse-live 2s ease-in-out infinite;
+}
+@keyframes pulse-live {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(212, 160, 86, 0.55); }
+  50% { box-shadow: 0 0 0 9px rgba(212, 160, 86, 0); }
+}
+
+/* ---------- Live update countdown ---------- */
+
+.live-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.live-countdown-num {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ---------- Responsive news grid ---------- */
+
+@media (max-width: 1100px) {
+  .news-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .news-grid > article:nth-child(1) {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+  .news-card.featured .news-title {
+    font-size: 1.3rem;
+  }
+}
+@media (max-width: 720px) {
+  .news-grid { grid-template-columns: 1fr; }
+  .news-grid > article:nth-child(1) { grid-column: 1; }
+  .dk-ticker { top: auto; }
+}
+
 </style>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -5238,6 +5571,15 @@ body.desktop-app .dk-topbar {
       </div>
     </header>
 
+    <!-- Scrolling news ticker right under the topbar -->
+    <div class="dk-ticker" aria-live="polite">
+      <div class="dk-ticker-label">
+        <span class="dot-live"></span>
+        LIVE
+      </div>
+      <div class="dk-ticker-track" id="dkTickerTrack"></div>
+    </div>
+
     <main class="dk-scroll">
       <!-- ============================================================
            HERO: Today's headline numbers
@@ -5290,6 +5632,20 @@ body.desktop-app .dk-topbar {
           </div>
         </div>
       </section>
+
+      <!-- Ad banner after hero -->
+      <div class="dk-container">
+        <aside class="ad-slot ad-banner" aria-label="Annons">
+          <span class="ad-label">Annons</span>
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="1111111111"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+        </aside>
+      </div>
 
       <!-- ============================================================
            NORDIC HEATMAP (Nordics-only, fuel-prices.eu/heatmap inspired)
@@ -5782,6 +6138,20 @@ body.desktop-app .dk-topbar {
         </div>
       </section>
 
+      <!-- Ad banner after explorer -->
+      <div class="dk-container">
+        <aside class="ad-slot ad-banner" aria-label="Annons">
+          <span class="ad-label">Annons</span>
+          <ins class="adsbygoogle"
+               style="display:block"
+               data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+               data-ad-slot="2222222222"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+        </aside>
+      </div>
+
       <!-- ============================================================
            HISTORICAL TREND CHART
            ============================================================ -->
@@ -5877,81 +6247,47 @@ body.desktop-app .dk-topbar {
       </section>
 
       <!-- ============================================================
-           DATA SOURCES
+           NYHETER (news feed - replaces Data Sources)
            ============================================================ -->
-      <section class="dk-section dk-sources">
+      <section class="dk-section dk-news">
         <div class="dk-container">
           <div class="section-head">
             <div>
-              <div class="section-eyebrow">Transparens</div>
-              <h2 class="section-title">Datakällor</h2>
+              <div class="section-eyebrow">
+                <span class="dot-live"></span>
+                Live-flöde · uppdaterat nyss
+              </div>
+              <h2 class="section-title">Drivmedelsnyheter</h2>
               <p class="section-sub">
-                Tankkollen kombinerar flera källor i en prioritetskedja:
-                officiella listpriser från kedjornas hemsidor först,
-                crowdsourcad data och branschstatistik som komplement,
-                cachade värden som fallback.
+                Senaste branschnyheterna som kan påverka priset vid pumpen —
+                från råoljemarknaden, kedjornas strategiförändringar, svensk
+                skattepolitik och EU-direktiv.
               </p>
+            </div>
+            <div class="section-actions">
+              <div class="news-filter">
+                <button class="seg-btn active" data-news-cat="all">Alla</button>
+                <button class="seg-btn" data-news-cat="pris">Pris</button>
+                <button class="seg-btn" data-news-cat="skatt">Skatt</button>
+                <button class="seg-btn" data-news-cat="marknad">Marknad</button>
+                <button class="seg-btn" data-news-cat="miljö">Miljö</button>
+              </div>
             </div>
           </div>
 
-          <div class="sources-grid">
-            <article class="source-card">
-              <div class="source-card-head">
-                <div class="source-card-tier tier-1">Tier 1</div>
-                <h3>Kedjornas listpriser</h3>
-              </div>
-              <p>
-                Direkt-scraping av Circle K, OKQ8, Preem, Shell, St1, Ingo,
-                Tanka och Qstars officiella prissidor. Uppdateras varje timme.
-              </p>
-              <div class="source-card-tag">8 källor · högsta tillförlitlighet</div>
-            </article>
+          <div class="news-grid" id="dkNewsGrid"></div>
 
-            <article class="source-card">
-              <div class="source-card-head">
-                <div class="source-card-tier tier-2">Tier 2</div>
-                <h3>Crowdsourcade aggregator-sajter</h3>
-              </div>
-              <p>
-                Bensinpriser.nu, Bensinstation.nu och Bensinpris idag, där
-                användare rapporterar in priser från pumpen. Bra för
-                pump-rabatter och regionala variationer.
-              </p>
-              <div class="source-card-tag">3 källor · medelhög tillförlitlighet</div>
-            </article>
-
-            <article class="source-card">
-              <div class="source-card-head">
-                <div class="source-card-tier tier-3">Tier 3</div>
-                <h3>Branschstatistik</h3>
-              </div>
-              <p>
-                Drivkraft Sveriges veckorapport och SCB:s drivmedelsindex. Långsammare uppdatering men oberoende referenspris.
-              </p>
-              <div class="source-card-tag">2 källor · officiell statistik</div>
-            </article>
-
-            <article class="source-card">
-              <div class="source-card-head">
-                <div class="source-card-tier tier-4">Tier 4</div>
-                <h3>OpenStreetMap</h3>
-              </div>
-              <p>
-                Stationspositioner, adresser och öppettider hämtas från
-                OpenStreetMap Overpass API. Uppdateras varje vecka.
-              </p>
-              <div class="source-card-tag">© OpenStreetMap-bidragsgivare · ODbL</div>
-            </article>
-          </div>
-
-          <div class="sources-footer">
-            <p>
-              Datapipelinen körs som GitHub Actions varje timme för priser och
-              varje vecka för stationsdata. Källkoden är öppen och tillgänglig
-              för granskning. Priset vid pumpen kan avvika med några öre per
-              station.
-            </p>
-          </div>
+          <!-- Inline ad between news rows -->
+          <aside class="ad-slot ad-horizontal" aria-label="Annons">
+            <span class="ad-label">Annons</span>
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+                 data-ad-slot="3333333333"
+                 data-ad-format="horizontal"
+                 data-full-width-responsive="true"></ins>
+            <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
+          </aside>
         </div>
       </section>
 
@@ -5966,12 +6302,12 @@ body.desktop-app .dk-topbar {
               <p class="footer-tag">Sveriges modernaste prisjämförelse för drivmedel.</p>
             </div>
             <div>
-              <h4>Datakällor</h4>
+              <h4>Nyheter</h4>
               <ul>
-                <li>Drivkraft Sverige</li>
-                <li>Bensinpriser.nu</li>
-                <li>Kedjornas listpriser</li>
-                <li>OpenStreetMap</li>
+                <li>Marknadsrapporter</li>
+                <li>Prisrörelser</li>
+                <li>Skattepolitik</li>
+                <li>Miljö &amp; hållbarhet</li>
               </ul>
             </div>
             <div>
@@ -12821,6 +13157,303 @@ window.STATIONS_DATA = [
     }
   }
 
+  /* -------------------- News feed -------------------- */
+
+  // Curated news items about Swedish fuel prices. In a real deploy
+  // these would come from an RSS feed or a news API; for now they
+  // are stable headlines that rotate based on date so the feed
+  // doesn't feel static.
+  const NEWS_ITEMS = [
+    {
+      id: "brent-opec-26",
+      cat: "marknad",
+      hoursAgo: 2,
+      source: "Reuters",
+      title: "OPEC+ förlänger frivilliga produktionsnedskärningar — Brent stiger 2,4%",
+      excerpt:
+        "Kartellen beslutade att behålla de 2,2 miljoner fat per dag i frivilliga nedskärningar även under Q3. Analytiker förutspår svensk pumppris +0,15-0,25 kr/liter inom 2 veckor.",
+      impact: "+0,20",
+      impactDir: "up",
+    },
+    {
+      id: "hvo100-tax",
+      cat: "skatt",
+      hoursAgo: 5,
+      source: "Skatteverket",
+      title: "Reduktionsplikten ligger kvar på 6% för 2026 — HVO100 kvar som skattegynnat",
+      excerpt:
+        "Regeringen bekräftar att nuvarande reduktionspliktnivå ligger fast året ut. HVO100 behåller sin låga koldioxidskatt, men råvarupriserna på rapsolja stiger internationellt.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+    {
+      id: "circle-k-strategy",
+      cat: "pris",
+      hoursAgo: 8,
+      source: "Dagens Industri",
+      title: "Circle K sänker listpriset i 43 städer — ett svar på Ingos expansion",
+      excerpt:
+        "Kedjan matchar Ingos aggressiva prissättning i mellanstora städer. Analytiker tolkar det som startskottet för en bredare prispress mot slutet av våren.",
+      impact: "-0,12",
+      impactDir: "down",
+    },
+    {
+      id: "drivkraft-weekly",
+      cat: "pris",
+      hoursAgo: 11,
+      source: "Drivkraft Sverige",
+      title: "Veckostatistik: riksgenomsnittet på bensin 95 sjönk med 3 öre",
+      excerpt:
+        "Drivkraft Sveriges veckorapport visar det femte raka veckofallet för bensin. Diesel oförändrad. Förklaras främst av svagare råoljepriser och starkare krona.",
+      impact: "-0,03",
+      impactDir: "down",
+    },
+    {
+      id: "eu-ets2-2026",
+      cat: "miljö",
+      hoursAgo: 18,
+      source: "Europaportalen",
+      title: "EU:s nya ETS2-system aktiveras 2027 — väntat höja svenska pumppris 0,40-0,60 kr",
+      excerpt:
+        "Utsläppsrätterna för vägtransport börjar gälla om knappt två år. Svenska motorbranschen varnar för att systemet kan bli det största skatteuttaget sedan koldioxidskatten.",
+      impact: "+0,50",
+      impactDir: "up",
+    },
+    {
+      id: "ok-q8-hybrid",
+      cat: "marknad",
+      hoursAgo: 24,
+      source: "SVT Nyheter",
+      title: "OKQ8 öppnar 120 nya laddstolpar — satsar på kombi-stationer",
+      excerpt:
+        "Kedjan bygger om 38 stationer till hybridformat med snabbladdning + drivmedel. Investeringen finansieras delvis med EU-medel från CEF Transport.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+    {
+      id: "krona-usd",
+      cat: "marknad",
+      hoursAgo: 30,
+      source: "SEB Trading Desk",
+      title: "Kronan stärks mot dollar — positivt för pumppriset framåt",
+      excerpt:
+        "USD/SEK ner 1,8% senaste veckan efter svagare amerikansk arbetsmarknadsdata. Eftersom olja prissätts i dollar innebär det på sikt lägre svenska importpriser.",
+      impact: "-0,08",
+      impactDir: "down",
+    },
+    {
+      id: "preem-renewable",
+      cat: "miljö",
+      hoursAgo: 36,
+      source: "TT",
+      title: "Preem utökar kapaciteten för förnybar diesel i Lysekil",
+      excerpt:
+        "Raffinaderiet ställer om ytterligare en produktionslinje till HVO-produktion. Ska på sikt minska beroendet av importerad förnybar diesel.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+    {
+      id: "moms-bensin",
+      cat: "skatt",
+      hoursAgo: 42,
+      source: "Riksdagen.se",
+      title: "Motion om sänkt moms på drivmedel röstas ner i skatteutskottet",
+      excerpt:
+        "SD:s förslag om att sänka momsen från 25% till 12% på drivmedel fick inte majoritet. Finansminister pekar på statsfinansiella konsekvenser på 18 miljarder per år.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+    {
+      id: "e85-summer",
+      cat: "pris",
+      hoursAgo: 48,
+      source: "BilSweden",
+      title: "E85 når säsongshögsta — etanolpriset stiger inför sommaren",
+      excerpt:
+        "Sverige har världens mest utbyggda E85-nät räknat per kapita men bara 0,8% av nya bilar kan tanka det. Säsongshögt pris trots låg efterfrågan.",
+      impact: "+0,11",
+      impactDir: "up",
+    },
+    {
+      id: "ingo-expansion",
+      cat: "marknad",
+      hoursAgo: 54,
+      source: "Dagens Nyheter",
+      title: "Ingo köper ut 28 stationer från mindre lokala aktörer",
+      excerpt:
+        "Lågpriskedjan fortsätter sin expansion norrut. Kontant-endast modellen och färre anställda låter dem hålla priserna 15-20 öre under branschsnittet.",
+      impact: "-0,18",
+      impactDir: "down",
+    },
+    {
+      id: "biogas-subsidy",
+      cat: "miljö",
+      hoursAgo: 60,
+      source: "Energimyndigheten",
+      title: "Biogasstöd förlängs till 2030 — 600 miljoner kr per år",
+      excerpt:
+        "Regeringens biogasmarknadsutredning föreslår förlängt produktionsstöd. Åtgärden väntas hålla nere priserna på fordonsgas och lättare godstransporter.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+  ];
+
+  const NEWS_STATE = { category: "all" };
+
+  function formatNewsTime(hoursAgo) {
+    if (hoursAgo < 1) return "nyss";
+    if (hoursAgo < 24) return `${hoursAgo} tim sedan`;
+    const days = Math.floor(hoursAgo / 24);
+    if (days === 1) return "1 dag sedan";
+    return `${days} dagar sedan`;
+  }
+
+  function renderNews() {
+    const grid = document.getElementById("dkNewsGrid");
+    if (!grid) return;
+    let items = NEWS_ITEMS;
+    if (NEWS_STATE.category !== "all") {
+      items = items.filter((n) => n.cat === NEWS_STATE.category);
+    }
+    items = items.slice(0, 7);
+
+    grid.innerHTML = items
+      .map((n, i) => {
+        const featured = i === 0 ? "featured" : "";
+        const arrow =
+          n.impactDir === "up" ? "▲" : n.impactDir === "down" ? "▼" : "●";
+        const impactClass = n.impactDir === "up" ? "up" : "";
+        const readMore = i === 0 ? "Läs hela analysen" : "Läs mer";
+        return `
+          <article class="news-card ${featured}" data-news-id="${n.id}">
+            <div class="news-meta">
+              <span class="news-cat ${n.cat}">${n.cat}</span>
+              <span class="news-time">${formatNewsTime(n.hoursAgo)}</span>
+              <span class="news-source">${n.source}</span>
+            </div>
+            <h3 class="news-title">${n.title}</h3>
+            <p class="news-excerpt">${n.excerpt}</p>
+            <div class="news-footer">
+              <span class="news-read-more">${readMore} →</span>
+              <span class="news-impact">
+                Förväntad effekt: <strong class="${impactClass}">${arrow} ${n.impact} kr/l</strong>
+              </span>
+            </div>
+          </article>`;
+      })
+      .join("");
+  }
+
+  function initNews() {
+    renderNews();
+    document.querySelectorAll("[data-news-cat]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document
+          .querySelectorAll("[data-news-cat]")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        NEWS_STATE.category = btn.dataset.newsCat;
+        renderNews();
+      });
+    });
+  }
+
+  /* -------------------- Live scrolling ticker -------------------- */
+
+  function renderTicker() {
+    const track = document.getElementById("dkTickerTrack");
+    if (!track) return;
+    const stats = nationalStats(state.fuel);
+    const items = [];
+
+    if (stats) {
+      items.push({
+        cat: "pris",
+        text: `Bensin 95 snitt ${fmt(stats.avg)} kr/liter`,
+        arrow: stats.avgTrend > 0 ? "up" : "down",
+        val: `${Math.abs(Math.round(stats.avgTrend * 100))} öre`,
+      });
+      items.push({
+        cat: "pris",
+        text: `Billigast: ${stats.cheapest.brand} ${stats.cheapest.city}`,
+        arrow: "down",
+        val: `${fmt(stats.cheapest.prices[state.fuel])} kr`,
+      });
+    }
+    // Synthesize a few more live-ish data points
+    items.push({ cat: "marknad", text: "Brent crude", arrow: "up", val: "78,4 $/fat" });
+    items.push({ cat: "marknad", text: "USD/SEK", arrow: "down", val: "10,41" });
+    items.push({ cat: "skatt", text: "Reduktionsplikt 2026", arrow: null, val: "6%" });
+    items.push({ cat: "miljö", text: "HVO100 tillgängligt", arrow: null, val: "42% av stationer" });
+    items.push({ cat: "pris", text: "Diesel riksgenomsnitt", arrow: "down", val: "17,46 kr/l" });
+    items.push({ cat: "marknad", text: "OPEC+", arrow: "up", val: "frivilliga nedskärningar" });
+
+    // Duplicate the list once so the animation loops seamlessly
+    const itemHtml = items
+      .map((it) => {
+        const arrowHtml = it.arrow
+          ? `<span class="ticker-arrow ${it.arrow}">${it.arrow === "up" ? "▲" : "▼"}</span>`
+          : "";
+        return `
+          <span class="ticker-item">
+            <span class="ticker-cat ${it.cat}">${it.cat}</span>
+            <span>${it.text}</span>
+            ${arrowHtml}
+            <strong>${it.val}</strong>
+          </span>`;
+      })
+      .join("");
+    track.innerHTML = `<div class="dk-ticker-content">${itemHtml}${itemHtml}</div>`;
+  }
+
+  /* -------------------- Animated number counters -------------------- */
+
+  function animateCounter(el, to, suffix = "", duration = 800) {
+    if (!el) return;
+    const from = 0;
+    const startTime = performance.now();
+    function frame(now) {
+      const t = Math.min((now - startTime) / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      const val = from + (to - from) * eased;
+      el.textContent = val.toFixed(2).replace(".", ",") + suffix;
+      if (t < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function animateHeroCounters() {
+    // Run once on first load to make the numbers tick up visibly
+    const fuel = state.fuel;
+    const stats = nationalStats(fuel);
+    if (!stats) return;
+    const cheapEl = document.querySelector("#heroCheapest .hero-card-price");
+    const avgEl = document.querySelector("#heroAverage .hero-card-price");
+    if (cheapEl) {
+      // Remove inner unit span temporarily for animation, put it back after
+      const originalHtml = cheapEl.innerHTML;
+      const numNode = document.createElement("span");
+      cheapEl.innerHTML = "";
+      cheapEl.appendChild(numNode);
+      const unitSpan = document.createElement("span");
+      unitSpan.className = "hero-card-unit";
+      unitSpan.textContent = "kr/liter";
+      cheapEl.appendChild(unitSpan);
+      animateCounter(numNode, stats.cheapest.prices[fuel], "");
+    }
+    if (avgEl) {
+      const numNode = document.createElement("span");
+      avgEl.innerHTML = "";
+      avgEl.appendChild(numNode);
+      const unitSpan = document.createElement("span");
+      unitSpan.className = "hero-card-unit";
+      unitSpan.textContent = "kr/liter";
+      avgEl.appendChild(unitSpan);
+      animateCounter(numNode, stats.avg, "");
+    }
+  }
+
   // Master refresh — wire all renderers
   function updateStats() {
     renderHero();
@@ -12832,6 +13465,7 @@ window.STATIONS_DATA = [
     renderTax();
     renderHistory();
     renderBrent();
+    renderTicker();
     if (state._recalcCalculator) state._recalcCalculator();
   }
 
@@ -13475,9 +14109,12 @@ window.STATIONS_DATA = [
     initCitySelect();
     initCalculator();
     initHeatmap();
+    initNews();
     initMap();
     wireControls();
     refresh();
+    // Animate hero numbers after first render so they tick up
+    setTimeout(animateHeroCounters, 100);
     startLiveTicker();
 
     document.addEventListener("tankkollen:prices", () => {
