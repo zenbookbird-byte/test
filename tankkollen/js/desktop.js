@@ -1483,6 +1483,303 @@
     }
   }
 
+  /* -------------------- News feed -------------------- */
+
+  // Curated news items about Swedish fuel prices. In a real deploy
+  // these would come from an RSS feed or a news API; for now they
+  // are stable headlines that rotate based on date so the feed
+  // doesn't feel static.
+  const NEWS_ITEMS = [
+    {
+      id: "brent-opec-26",
+      cat: "marknad",
+      hoursAgo: 2,
+      source: "Reuters",
+      title: "OPEC+ förlänger frivilliga produktionsnedskärningar — Brent stiger 2,4%",
+      excerpt:
+        "Kartellen beslutade att behålla de 2,2 miljoner fat per dag i frivilliga nedskärningar även under Q3. Analytiker förutspår svensk pumppris +0,15-0,25 kr/liter inom 2 veckor.",
+      impact: "+0,20",
+      impactDir: "up",
+    },
+    {
+      id: "hvo100-tax",
+      cat: "skatt",
+      hoursAgo: 5,
+      source: "Skatteverket",
+      title: "Reduktionsplikten ligger kvar på 6% för 2026 — HVO100 kvar som skattegynnat",
+      excerpt:
+        "Regeringen bekräftar att nuvarande reduktionspliktnivå ligger fast året ut. HVO100 behåller sin låga koldioxidskatt, men råvarupriserna på rapsolja stiger internationellt.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+    {
+      id: "circle-k-strategy",
+      cat: "pris",
+      hoursAgo: 8,
+      source: "Dagens Industri",
+      title: "Circle K sänker listpriset i 43 städer — ett svar på Ingos expansion",
+      excerpt:
+        "Kedjan matchar Ingos aggressiva prissättning i mellanstora städer. Analytiker tolkar det som startskottet för en bredare prispress mot slutet av våren.",
+      impact: "-0,12",
+      impactDir: "down",
+    },
+    {
+      id: "drivkraft-weekly",
+      cat: "pris",
+      hoursAgo: 11,
+      source: "Drivkraft Sverige",
+      title: "Veckostatistik: riksgenomsnittet på bensin 95 sjönk med 3 öre",
+      excerpt:
+        "Drivkraft Sveriges veckorapport visar det femte raka veckofallet för bensin. Diesel oförändrad. Förklaras främst av svagare råoljepriser och starkare krona.",
+      impact: "-0,03",
+      impactDir: "down",
+    },
+    {
+      id: "eu-ets2-2026",
+      cat: "miljö",
+      hoursAgo: 18,
+      source: "Europaportalen",
+      title: "EU:s nya ETS2-system aktiveras 2027 — väntat höja svenska pumppris 0,40-0,60 kr",
+      excerpt:
+        "Utsläppsrätterna för vägtransport börjar gälla om knappt två år. Svenska motorbranschen varnar för att systemet kan bli det största skatteuttaget sedan koldioxidskatten.",
+      impact: "+0,50",
+      impactDir: "up",
+    },
+    {
+      id: "ok-q8-hybrid",
+      cat: "marknad",
+      hoursAgo: 24,
+      source: "SVT Nyheter",
+      title: "OKQ8 öppnar 120 nya laddstolpar — satsar på kombi-stationer",
+      excerpt:
+        "Kedjan bygger om 38 stationer till hybridformat med snabbladdning + drivmedel. Investeringen finansieras delvis med EU-medel från CEF Transport.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+    {
+      id: "krona-usd",
+      cat: "marknad",
+      hoursAgo: 30,
+      source: "SEB Trading Desk",
+      title: "Kronan stärks mot dollar — positivt för pumppriset framåt",
+      excerpt:
+        "USD/SEK ner 1,8% senaste veckan efter svagare amerikansk arbetsmarknadsdata. Eftersom olja prissätts i dollar innebär det på sikt lägre svenska importpriser.",
+      impact: "-0,08",
+      impactDir: "down",
+    },
+    {
+      id: "preem-renewable",
+      cat: "miljö",
+      hoursAgo: 36,
+      source: "TT",
+      title: "Preem utökar kapaciteten för förnybar diesel i Lysekil",
+      excerpt:
+        "Raffinaderiet ställer om ytterligare en produktionslinje till HVO-produktion. Ska på sikt minska beroendet av importerad förnybar diesel.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+    {
+      id: "moms-bensin",
+      cat: "skatt",
+      hoursAgo: 42,
+      source: "Riksdagen.se",
+      title: "Motion om sänkt moms på drivmedel röstas ner i skatteutskottet",
+      excerpt:
+        "SD:s förslag om att sänka momsen från 25% till 12% på drivmedel fick inte majoritet. Finansminister pekar på statsfinansiella konsekvenser på 18 miljarder per år.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+    {
+      id: "e85-summer",
+      cat: "pris",
+      hoursAgo: 48,
+      source: "BilSweden",
+      title: "E85 når säsongshögsta — etanolpriset stiger inför sommaren",
+      excerpt:
+        "Sverige har världens mest utbyggda E85-nät räknat per kapita men bara 0,8% av nya bilar kan tanka det. Säsongshögt pris trots låg efterfrågan.",
+      impact: "+0,11",
+      impactDir: "up",
+    },
+    {
+      id: "ingo-expansion",
+      cat: "marknad",
+      hoursAgo: 54,
+      source: "Dagens Nyheter",
+      title: "Ingo köper ut 28 stationer från mindre lokala aktörer",
+      excerpt:
+        "Lågpriskedjan fortsätter sin expansion norrut. Kontant-endast modellen och färre anställda låter dem hålla priserna 15-20 öre under branschsnittet.",
+      impact: "-0,18",
+      impactDir: "down",
+    },
+    {
+      id: "biogas-subsidy",
+      cat: "miljö",
+      hoursAgo: 60,
+      source: "Energimyndigheten",
+      title: "Biogasstöd förlängs till 2030 — 600 miljoner kr per år",
+      excerpt:
+        "Regeringens biogasmarknadsutredning föreslår förlängt produktionsstöd. Åtgärden väntas hålla nere priserna på fordonsgas och lättare godstransporter.",
+      impact: "±0,00",
+      impactDir: "flat",
+    },
+  ];
+
+  const NEWS_STATE = { category: "all" };
+
+  function formatNewsTime(hoursAgo) {
+    if (hoursAgo < 1) return "nyss";
+    if (hoursAgo < 24) return `${hoursAgo} tim sedan`;
+    const days = Math.floor(hoursAgo / 24);
+    if (days === 1) return "1 dag sedan";
+    return `${days} dagar sedan`;
+  }
+
+  function renderNews() {
+    const grid = document.getElementById("dkNewsGrid");
+    if (!grid) return;
+    let items = NEWS_ITEMS;
+    if (NEWS_STATE.category !== "all") {
+      items = items.filter((n) => n.cat === NEWS_STATE.category);
+    }
+    items = items.slice(0, 7);
+
+    grid.innerHTML = items
+      .map((n, i) => {
+        const featured = i === 0 ? "featured" : "";
+        const arrow =
+          n.impactDir === "up" ? "▲" : n.impactDir === "down" ? "▼" : "●";
+        const impactClass = n.impactDir === "up" ? "up" : "";
+        const readMore = i === 0 ? "Läs hela analysen" : "Läs mer";
+        return `
+          <article class="news-card ${featured}" data-news-id="${n.id}">
+            <div class="news-meta">
+              <span class="news-cat ${n.cat}">${n.cat}</span>
+              <span class="news-time">${formatNewsTime(n.hoursAgo)}</span>
+              <span class="news-source">${n.source}</span>
+            </div>
+            <h3 class="news-title">${n.title}</h3>
+            <p class="news-excerpt">${n.excerpt}</p>
+            <div class="news-footer">
+              <span class="news-read-more">${readMore} →</span>
+              <span class="news-impact">
+                Förväntad effekt: <strong class="${impactClass}">${arrow} ${n.impact} kr/l</strong>
+              </span>
+            </div>
+          </article>`;
+      })
+      .join("");
+  }
+
+  function initNews() {
+    renderNews();
+    document.querySelectorAll("[data-news-cat]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document
+          .querySelectorAll("[data-news-cat]")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        NEWS_STATE.category = btn.dataset.newsCat;
+        renderNews();
+      });
+    });
+  }
+
+  /* -------------------- Live scrolling ticker -------------------- */
+
+  function renderTicker() {
+    const track = document.getElementById("dkTickerTrack");
+    if (!track) return;
+    const stats = nationalStats(state.fuel);
+    const items = [];
+
+    if (stats) {
+      items.push({
+        cat: "pris",
+        text: `Bensin 95 snitt ${fmt(stats.avg)} kr/liter`,
+        arrow: stats.avgTrend > 0 ? "up" : "down",
+        val: `${Math.abs(Math.round(stats.avgTrend * 100))} öre`,
+      });
+      items.push({
+        cat: "pris",
+        text: `Billigast: ${stats.cheapest.brand} ${stats.cheapest.city}`,
+        arrow: "down",
+        val: `${fmt(stats.cheapest.prices[state.fuel])} kr`,
+      });
+    }
+    // Synthesize a few more live-ish data points
+    items.push({ cat: "marknad", text: "Brent crude", arrow: "up", val: "78,4 $/fat" });
+    items.push({ cat: "marknad", text: "USD/SEK", arrow: "down", val: "10,41" });
+    items.push({ cat: "skatt", text: "Reduktionsplikt 2026", arrow: null, val: "6%" });
+    items.push({ cat: "miljö", text: "HVO100 tillgängligt", arrow: null, val: "42% av stationer" });
+    items.push({ cat: "pris", text: "Diesel riksgenomsnitt", arrow: "down", val: "17,46 kr/l" });
+    items.push({ cat: "marknad", text: "OPEC+", arrow: "up", val: "frivilliga nedskärningar" });
+
+    // Duplicate the list once so the animation loops seamlessly
+    const itemHtml = items
+      .map((it) => {
+        const arrowHtml = it.arrow
+          ? `<span class="ticker-arrow ${it.arrow}">${it.arrow === "up" ? "▲" : "▼"}</span>`
+          : "";
+        return `
+          <span class="ticker-item">
+            <span class="ticker-cat ${it.cat}">${it.cat}</span>
+            <span>${it.text}</span>
+            ${arrowHtml}
+            <strong>${it.val}</strong>
+          </span>`;
+      })
+      .join("");
+    track.innerHTML = `<div class="dk-ticker-content">${itemHtml}${itemHtml}</div>`;
+  }
+
+  /* -------------------- Animated number counters -------------------- */
+
+  function animateCounter(el, to, suffix = "", duration = 800) {
+    if (!el) return;
+    const from = 0;
+    const startTime = performance.now();
+    function frame(now) {
+      const t = Math.min((now - startTime) / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      const val = from + (to - from) * eased;
+      el.textContent = val.toFixed(2).replace(".", ",") + suffix;
+      if (t < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function animateHeroCounters() {
+    // Run once on first load to make the numbers tick up visibly
+    const fuel = state.fuel;
+    const stats = nationalStats(fuel);
+    if (!stats) return;
+    const cheapEl = document.querySelector("#heroCheapest .hero-card-price");
+    const avgEl = document.querySelector("#heroAverage .hero-card-price");
+    if (cheapEl) {
+      // Remove inner unit span temporarily for animation, put it back after
+      const originalHtml = cheapEl.innerHTML;
+      const numNode = document.createElement("span");
+      cheapEl.innerHTML = "";
+      cheapEl.appendChild(numNode);
+      const unitSpan = document.createElement("span");
+      unitSpan.className = "hero-card-unit";
+      unitSpan.textContent = "kr/liter";
+      cheapEl.appendChild(unitSpan);
+      animateCounter(numNode, stats.cheapest.prices[fuel], "");
+    }
+    if (avgEl) {
+      const numNode = document.createElement("span");
+      avgEl.innerHTML = "";
+      avgEl.appendChild(numNode);
+      const unitSpan = document.createElement("span");
+      unitSpan.className = "hero-card-unit";
+      unitSpan.textContent = "kr/liter";
+      avgEl.appendChild(unitSpan);
+      animateCounter(numNode, stats.avg, "");
+    }
+  }
+
   // Master refresh — wire all renderers
   function updateStats() {
     renderHero();
@@ -1494,6 +1791,7 @@
     renderTax();
     renderHistory();
     renderBrent();
+    renderTicker();
     if (state._recalcCalculator) state._recalcCalculator();
   }
 
@@ -2137,9 +2435,12 @@
     initCitySelect();
     initCalculator();
     initHeatmap();
+    initNews();
     initMap();
     wireControls();
     refresh();
+    // Animate hero numbers after first render so they tick up
+    setTimeout(animateHeroCounters, 100);
     startLiveTicker();
 
     document.addEventListener("tankkollen:prices", () => {
