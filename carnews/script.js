@@ -155,23 +155,32 @@ function minutesAgo(n){
   return Math.floor(n/1440) + " dygn sedan";
 }
 
+function minutesSince(iso){
+  if(!iso) return 0;
+  const then = new Date(iso).getTime();
+  if(isNaN(then)) return 0;
+  return Math.max(0, Math.floor((Date.now() - then) / 60000));
+}
+
 function cardHtml(a){
+  const href = a.url || "#";
   return `
-    <a class="card" href="#">
+    <a class="card" href="${href}">
       <div class="card-img" style="background-image:url('${a.img}')"></div>
       <div class="card-body">
         <span class="tag">${a.tag}</span>
         <h3>${a.title}</h3>
         <p>${a.excerpt}</p>
-        <span class="meta">${minutesAgo(a.minutes)} · ${a.author}</span>
+        <span class="meta">${minutesAgo(a.minutes ?? minutesSince(a.publishedAt))} · ${a.author}</span>
       </div>
     </a>
   `;
 }
 
 function testHtml(t){
+  const href = t.url || "#";
   return `
-    <a class="test-item" href="#">
+    <a class="test-item" href="${href}">
       <div class="card-img" style="background-image:url('${t.img}')"></div>
       <div>
         <h3>${t.title}</h3>
@@ -181,6 +190,40 @@ function testHtml(t){
       <div class="score">${t.score}<small>AV 5</small></div>
     </a>
   `;
+}
+
+/* ------- Dynamisk inläsning från articles.json ------- */
+// Mappa section (från agenter) -> bucket i UI:t
+const SECTION_BUCKET = {
+  nyheter: "nyheter",
+  elbilar: "ev",
+  tester: "tester",
+  motorsport: "motorsport",
+  kopguide: "guider",
+  klassiker: "nyheter", // Klassiker visas i huvudflödet
+};
+
+async function loadDynamicArticles(){
+  try{
+    const res = await fetch("data/articles.json", {cache: "no-store"});
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const items = (data.articles || []);
+    if(items.length === 0) return; // Ingen override – behåll demo-data
+
+    // Töm och fyll från articles.json
+    Object.keys(articles).forEach(k => articles[k] = []);
+    items.forEach(a => {
+      const bucket = SECTION_BUCKET[a.section];
+      if(!bucket || !articles[bucket]) return;
+      articles[bucket].push(a);
+    });
+
+    // Rita om
+    render();
+  }catch(e){
+    console.warn("Kunde inte ladda articles.json – visar demo-data.", e);
+  }
 }
 
 function render(){
@@ -214,6 +257,7 @@ function tick(){
 render();
 tick();
 setInterval(tick, 1000);
+loadDynamicArticles();
 
 // Simulera att en ny artikel dyker upp var 30:e sekund (flyttas längst upp)
 setInterval(() => {

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}} – BilNytt.se</title>
+<meta name="description" content="{{EXCERPT}}">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://bilnytt.example/articles/{{SLUG}}.html">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{TITLE}}">
+<meta property="og:description" content="{{EXCERPT}}">
+<meta property="og:image" content="{{IMAGE}}">
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@type":"NewsArticle",
+  "headline":"{{TITLE_JSON}}",
+  "datePublished":"{{PUBLISHED_AT}}",
+  "dateModified":"{{PUBLISHED_AT}}",
+  "author":{"@type":"Person","name":"{{AUTHOR}}"},
+  "publisher":{"@type":"Organization","name":"BilNytt.se"},
+  "image":"{{IMAGE}}",
+  "articleSection":"{{SECTION_LABEL}}"
+}
+</script>
+<link rel="stylesheet" href="../style.css">
+<style>
+  .article{max-width:760px;margin:40px auto;background:#fff;padding:40px;border-radius:10px;box-shadow:var(--shadow)}
+  .article h1{font-size:36px;line-height:1.15;margin-bottom:12px}
+  .article .lead{font-size:19px;color:var(--text-soft);margin-bottom:24px;font-weight:500}
+  .article p{margin:16px 0;font-size:17px;line-height:1.7}
+  .article h2{margin-top:32px;font-size:24px}
+  .article ol, .article ul{margin:16px 0 16px 24px;font-size:17px;line-height:1.7}
+  .article .cover{width:100%;height:420px;background-size:cover;background-position:center;border-radius:8px;margin:20px 0}
+  .back{display:inline-block;margin-bottom:20px;color:var(--brand);font-weight:600}
+  .score-pill{display:inline-block;background:var(--brand);color:#fff;padding:4px 12px;border-radius:6px;font-weight:800;margin-left:8px}
+</style>
+</head>
+<body>
+
+<div class="ad-slot ad-leaderboard"><span class="ad-label">ANNONS</span><div class="ad-placeholder">728 × 90</div></div>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="../index.html" class="logo"><span class="logo-mark">B</span><span class="logo-text">BilNytt<span class="dot">.</span>se</span></a>
+    <nav class="main-nav">
+      <a href="../index.html#nyheter">Nyheter</a>
+      <a href="../index.html#elbilar">Elbilar</a>
+      <a href="../index.html#tester">Tester</a>
+      <a href="../index.html#motorsport">Motorsport</a>
+      <a href="../index.html#guider">Köpguide</a>
+    </nav>
+  </div>
+</header>
+
+<article class="article">
+  <a class="back" href="../index.html">← Tillbaka</a>
+  <span class="tag tag-red">{{TAG_UPPER}}</span>{{SCORE_PILL}}
+  <h1>{{TITLE}}</h1>
+  <p class="lead">{{LEAD}}</p>
+  <div class="cover" style="background-image:url('{{IMAGE}}')"></div>
+
+  {{BODY_HTML}}
+
+  <p><em>Publicerad {{PUBLISHED_DATE_SV}} · av {{AUTHOR}}{{SOURCE_NOTE}}</em></p>
+</article>
+
+<footer class="site-footer">
+  <div class="copyright container">© 2026 BilNytt.se</div>
+</footer>
+
+</body>
+</html>

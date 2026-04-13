@@ -1,0 +1,64 @@
+# RSS-källor och topics per agent.
+# Redigera fritt – generatorn läser denna fil vid varje körning.
+#
+# Varje agent har:
+#   feeds:   lista med RSS/Atom-URL:er
+#   topics:  fallback-ämnen om inga nya items finns i flödena
+#   daily:   hur många artiklar agenten ska producera per dag (vid schemalagd körning)
+
+nyheter:
+  daily: 2
+  feeds:
+    - https://www.autocar.co.uk/rss
+    - https://www.motor1.com/rss/news/all/
+  topics:
+    - "Nya bilmodeller lanserade den här veckan"
+    - "Prissänkningar på nya bilar i Sverige"
+    - "Branschnyheter från Europas bilmarknad"
+
+elbilar:
+  daily: 2
+  feeds:
+    - https://electrek.co/feed/
+    - https://insideevs.com/rss/news/all/
+  topics:
+    - "Ny elbilsmodell – specifikationer och räckvidd"
+    - "Laddnätsutbyggnad i Sverige 2026"
+    - "Räckviddstest i svensk vinter"
+
+tester:
+  daily: 1
+  feeds:
+    - https://www.caranddriver.com/rss/all.xml/
+  topics:
+    - "Provkörning av en ny SUV"
+    - "Provkörning av en kompakt sportbil"
+    - "Långtidstest elbil 20 000 km"
+
+motorsport:
+  daily: 1
+  feeds:
+    - https://www.autosport.com/rss/feed/f1
+    - https://www.motorsport.com/rss/all/news/
+  topics:
+    - "Senaste F1-loppet – analys"
+    - "WRC-ledning inför nästa deltävling"
+    - "STCC: inför säsongsstarten"
+
+kopguide:
+  daily: 1
+  feeds: []
+  topics:
+    - "Bästa elbilen för under 400 000 kr 2026"
+    - "5 saker att tänka på när du köper begagnad SUV"
+    - "Familjebil 2026: bensin, hybrid eller el?"
+    - "Bästa kombin under 300 000 kr"
+
+klassiker:
+  daily: 0   # Körs bara på veckobasis eller manuellt
+  feeds: []
+  topics:
+    - "Volvo 240 – svensk folkbil och samlarobjekt"
+    - "Saab 900 Turbo – så har värdet utvecklats"
+    - "Porsche 911 från 90-talet – köpguide"
+    - "P1800: Rogerssons val och varför"
