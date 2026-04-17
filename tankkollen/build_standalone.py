@@ -24,6 +24,8 @@ SOURCE = HERE / "dator.html"
 
 
 def read(rel: str) -> str:
+    # Strip any ?v=... cache-bust query string from the href
+    rel = rel.split("?", 1)[0]
     p = HERE / rel
     return p.read_text(encoding="utf-8")
 
