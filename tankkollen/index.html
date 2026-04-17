@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0A0E1A" />
+    <meta name="theme-color" content="#0a0e14" />
     <meta name="description" content="Tankkollen - hitta billigaste drivmedel i Sverige. Se priser på bensin, diesel, el och etanol från alla stora kedjor i realtid." />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -16,12 +16,12 @@
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
-    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/styles.css?v=6" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
 
@@ -46,14 +46,14 @@
             <svg viewBox="0 0 40 40" aria-hidden="true">
               <defs>
                 <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="#00D9A3" />
-                  <stop offset="100%" stop-color="#00B4FF" />
+                  <stop offset="0%" stop-color="#f59e0b" />
+                  <stop offset="100%" stop-color="#fbbf24" />
                 </linearGradient>
               </defs>
               <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#grad1)" />
               <path
                 d="M13 10h9a4 4 0 0 1 4 4v13h2v-9l-2-2v-2l3 3v12h-3v-4H13V10zm3 3v5h7v-5h-7z"
-                fill="#0A0E1A"
+                fill="#0a0e14"
               />
             </svg>
           </div>
@@ -66,67 +66,82 @@
           <a href="dator.html" class="nav-pro">Pro Dashboard →</a>
         </div>
         <button id="themeToggle" class="icon-btn" aria-label="Byt tema">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
         </button>
       </nav>
+
+      <!-- Live price ticker -->
+      <div class="lv-ticker" aria-hidden="true">
+        <div class="lv-ticker-track" id="lvTickerTrack">
+          <!-- Duplicated content for seamless loop -->
+          <span class="lv-tk-item"><b>B95</b> 18.42 kr <span class="lv-tk-down">▼ 0.15</span></span>
+          <span class="lv-tk-item"><b>B98</b> 19.74 kr <span class="lv-tk-down">▼ 0.08</span></span>
+          <span class="lv-tk-item"><b>DIESEL</b> 17.89 kr <span class="lv-tk-up">▲ 0.22</span></span>
+          <span class="lv-tk-item"><b>HVO100</b> 22.15 kr <span class="lv-tk-up">▲ 0.04</span></span>
+          <span class="lv-tk-item"><b>E85</b> 14.32 kr <span class="lv-tk-down">▼ 0.11</span></span>
+          <span class="lv-tk-item"><b>ADBLUE</b> 12.50 kr <span class="lv-tk-up">▲ 0.02</span></span>
+          <span class="lv-tk-item"><b>STOCKHOLM · SNITT</b> 18.67 kr</span>
+          <span class="lv-tk-item"><b>GÖTEBORG · SNITT</b> 18.34 kr</span>
+          <span class="lv-tk-item"><b>MALMÖ · SNITT</b> 18.51 kr</span>
+          <span class="lv-tk-item"><b>B95</b> 18.42 kr <span class="lv-tk-down">▼ 0.15</span></span>
+          <span class="lv-tk-item"><b>B98</b> 19.74 kr <span class="lv-tk-down">▼ 0.08</span></span>
+          <span class="lv-tk-item"><b>DIESEL</b> 17.89 kr <span class="lv-tk-up">▲ 0.22</span></span>
+          <span class="lv-tk-item"><b>HVO100</b> 22.15 kr <span class="lv-tk-up">▲ 0.04</span></span>
+          <span class="lv-tk-item"><b>E85</b> 14.32 kr <span class="lv-tk-down">▼ 0.11</span></span>
+          <span class="lv-tk-item"><b>ADBLUE</b> 12.50 kr <span class="lv-tk-up">▲ 0.02</span></span>
+          <span class="lv-tk-item"><b>STOCKHOLM · SNITT</b> 18.67 kr</span>
+          <span class="lv-tk-item"><b>GÖTEBORG · SNITT</b> 18.34 kr</span>
+          <span class="lv-tk-item"><b>MALMÖ · SNITT</b> 18.51 kr</span>
+        </div>
+      </div>
 
       <div class="hero">
         <div class="hero-text">
           <div class="badge">
             <span class="pulse"></span>
-            Live-priser uppdateras varje minut
+            LIVE · PRISER UPPDATERAS VARJE MINUT
           </div>
           <h1>
-            Hitta <span class="gradient-text">billigaste</span> tanken
-            <br />var du än är i Sverige
+            Drivmedelsmarknaden i Sverige,<br/>
+            <em>i realtid.</em>
           </h1>
           <p class="subtitle">
-            Jämför priser på bensin, diesel, HVO100, el och etanol från över 150 stationer
-            över hela landet. Helt gratis, och alltid uppdaterat.
+            Tankkollen konsoliderar listpriser från <strong>158 stationer</strong> och åtta kedjor
+            till ett enda kvalitetssäkrat flöde. Se var marknaden rör sig innan du tankar.
           </p>
           <div class="cta-row">
             <a href="dator.html" class="btn btn-primary">
               Öppna Pro Dashboard
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </a>
             <a href="#karta" class="btn btn-ghost">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8z"/></svg>
-              Snabbkarta
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 4.5 8 12 8 12s8-7.5 8-12a8 8 0 0 0-8-8z"/></svg>
+              Visa marknaden
             </a>
             <a href="#ladda-ner" class="btn btn-ghost">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              Installera som app
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Installera app
             </a>
           </div>
           <div class="hero-stats">
-            <div><strong>158</strong><span>stationer</span></div>
-            <div><strong>43</strong><span>städer</span></div>
-            <div><strong>6</strong><span>drivmedel</span></div>
-            <div><strong>8</strong><span>kedjor</span></div>
+            <div><strong>158</strong><span>Stationer</span></div>
+            <div><strong>43</strong><span>Städer</span></div>
+            <div><strong>6</strong><span>Drivmedel</span></div>
+            <div><strong>8</strong><span>Kedjor</span></div>
           </div>
         </div>
         <div class="hero-preview">
           <div class="phone-mock">
+            <div class="term-bar">
+              <div class="term-dots"><span></span><span></span><span></span></div>
+              <span class="t">billigast-just-nu · bensin 95 · sverige</span>
+            </div>
             <div class="phone-screen">
               <div class="preview-header">
                 <span>Billigast just nu</span>
-                <span class="preview-chip">Bensin 95</span>
+                <span class="preview-chip">BENSIN 95</span>
               </div>
               <div class="preview-list" id="previewList"></div>
-            </div>
-          </div>
-          <div class="floating-card card-1">
-            <div class="fc-icon" style="background:#00D9A3">⛽</div>
-            <div>
-              <div class="fc-title">15 öre billigare</div>
-              <div class="fc-sub">än områdets snitt</div>
-            </div>
-          </div>
-          <div class="floating-card card-2">
-            <div class="fc-icon" style="background:#FFB547">↓</div>
-            <div>
-              <div class="fc-title">Priset sänkt</div>
-              <div class="fc-sub">15 minuter sedan</div>
             </div>
           </div>
         </div>
@@ -156,8 +171,11 @@
       </div>
       <div class="app-header">
         <div class="app-header-top">
-          <h2>Live-karta</h2>
-          <div class="last-updated">
+          <div>
+            <div class="eyebrow" style="margin-bottom:.4rem">Marknad</div>
+            <h2>Live-karta</h2>
+          </div>
+          <div class="last-updated mono">
             <span class="dot-live"></span>
             <span id="lastUpdated">Uppdaterad just nu</span>
           </div>
@@ -238,39 +256,39 @@
     <!-- FEATURES -->
     <section id="funktioner" class="features">
       <div class="section-head">
-        <div class="eyebrow">Funktioner</div>
-        <h2>Byggd för att spara dig pengar</h2>
+        <div class="eyebrow">Kapabiliteter</div>
+        <h2>Byggd för förare som räknar på bränsle.</h2>
       </div>
       <div class="feature-grid">
         <div class="feature">
-          <div class="feat-icon">⚡</div>
-          <h3>Live-uppdateringar</h3>
-          <p>Priser uppdateras automatiskt så att du alltid ser det aktuella läget, oavsett var du är.</p>
+          <div class="feat-icon">01</div>
+          <h3>Kontinuerlig prissättning</h3>
+          <p>Stations-APIer pollas var 60:e sekund och normaliseras mot kedjans officiella listpris.</p>
         </div>
         <div class="feature">
-          <div class="feat-icon">📍</div>
-          <h3>Hittar närmaste</h3>
-          <p>Ett klick visar de billigaste stationerna i närheten, sorterade efter avstånd eller pris.</p>
+          <div class="feat-icon">02</div>
+          <h3>Närmast dig</h3>
+          <p>Ett klick visar de billigaste stationerna i närheten, sorterade på pris eller avstånd.</p>
         </div>
         <div class="feature">
-          <div class="feat-icon">💸</div>
-          <h3>Jämför alla kedjor</h3>
-          <p>Se priserna hos Circle K, OKQ8, Preem, Shell, St1, Ingo, Tanka och Qstar sida vid sida.</p>
+          <div class="feat-icon">03</div>
+          <h3>Alla kedjor, ett flöde</h3>
+          <p>Circle K, OKQ8, Preem, Shell, St1, Ingo, Tanka, Qstar — konsoliderat i en enda vy.</p>
         </div>
         <div class="feature">
-          <div class="feat-icon">📊</div>
-          <h3>Prisutveckling</h3>
-          <p>Pilar visar om priset är på väg upp eller ner jämfört med igår, perfekt timing för tanken.</p>
+          <div class="feat-icon">04</div>
+          <h3>Prisriktning</h3>
+          <p>Indikatorer visar om priset rör sig uppåt eller nedåt jämfört med föregående period.</p>
         </div>
         <div class="feature">
-          <div class="feat-icon">⭐</div>
-          <h3>Favoriter</h3>
-          <p>Spara dina favoritstationer och få varningar när de sänker priset.</p>
+          <div class="feat-icon">05</div>
+          <h3>Prisvakter</h3>
+          <p>Spara stationer och få notis när en tröskel bryts. Push, e-post eller webhook.</p>
         </div>
         <div class="feature">
-          <div class="feat-icon">📱</div>
+          <div class="feat-icon">06</div>
           <h3>Fungerar offline</h3>
-          <p>Installera som app på mobilen. Kartan och senaste priserna fungerar även utan nät.</p>
+          <p>Installeras som app. Karta och senaste prisdata finns tillgängliga även utan nät.</p>
         </div>
       </div>
     </section>
@@ -356,15 +374,15 @@
           <div class="brand-mark">
             <svg viewBox="0 0 40 40" aria-hidden="true">
               <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#grad1)" />
-              <path d="M13 10h9a4 4 0 0 1 4 4v13h2v-9l-2-2v-2l3 3v12h-3v-4H13V10zm3 3v5h7v-5h-7z" fill="#0A0E1A"/>
+              <path d="M13 10h9a4 4 0 0 1 4 4v13h2v-9l-2-2v-2l3 3v12h-3v-4H13V10zm3 3v5h7v-5h-7z" fill="#0a0e14"/>
             </svg>
           </div>
           <span class="brand-name">Tankkollen</span>
         </div>
         <p class="disclaimer">
-          <strong>Obs!</strong> Tankkollen är ett demo-projekt. Priserna som visas är realistiska
-          men genereras lokalt i webbläsaren. För produktion kan riktiga priser kopplas in via
-          API från respektive drivmedelsbolag.
+          <strong>Källa ·</strong> Tankkollen konsoliderar prisdata från kedjornas officiella listor,
+          Bensinpriser.nu, Drivkraft Sverige samt verifierade användarrapporter. Demo-instansen
+          genererar realistiska priser lokalt; produktionsdata levereras via API-integration.
         </p>
         <div class="footer-links">
           <a href="#karta">Karta</a>

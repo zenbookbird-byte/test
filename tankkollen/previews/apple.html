@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tankkollen — Option B: Apple / Linear</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#ffffff;
+    --bg-soft:#fafafa;
+    --bg-mute:#f5f5f7;
+    --line:#e6e6e8;
+    --line-soft:#eeeef0;
+    --text:#1d1d1f;
+    --text-dim:#515154;
+    --text-mute:#86868b;
+    --accent:#0071e3;
+    --accent-dim:#0055a8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter','SF Pro Display',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased;letter-spacing:-.011em}
+  .pv-banner{position:fixed;top:0;left:0;right:0;height:32px;background:#1d1d1f;display:flex;align-items:center;justify-content:space-between;padding:0 18px;z-index:200;font-size:12px;color:#c7c7cc;letter-spacing:-.005em}
+  .pv-banner a{color:#5eb3ff;text-decoration:none;font-weight:500}
+  .pv-banner a:hover{text-decoration:underline}
+
+  /* NAV */
+  header.nav{position:sticky;top:32px;z-index:100;background:rgba(255,255,255,.72);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line-soft)}
+  .nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;gap:24px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:-.015em;font-size:17px}
+  .brand-mark{width:24px;height:24px;background:linear-gradient(135deg,#0071e3,#42a5ff);border-radius:7px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700}
+  .nav-links{display:flex;gap:28px;font-size:14px;color:var(--text-dim);font-weight:400}
+  .nav-links a{color:inherit;text-decoration:none;transition:color .15s}
+  .nav-links a:hover{color:var(--text)}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:980px;background:transparent;color:var(--text);text-decoration:none;font-size:14px;font-weight:500;letter-spacing:-.005em;transition:all .15s;border:none;cursor:pointer;font-family:inherit}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:var(--accent-dim)}
+  .btn-ghost{color:var(--accent)}
+  .btn-ghost:hover{color:var(--accent-dim)}
+
+  /* HERO */
+  .hero{max-width:1100px;margin:0 auto;padding:120px 24px 40px;text-align:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--accent);font-weight:500;margin-bottom:22px;letter-spacing:-.005em}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:#34c759;box-shadow:0 0 0 3px rgba(52,199,89,.16)}
+  h1.lead{font-size:84px;font-weight:800;letter-spacing:-.045em;line-height:1.02;margin-bottom:24px;max-width:900px;margin-left:auto;margin-right:auto}
+  h1.lead span{background:linear-gradient(90deg,#0071e3 0%,#9f6dff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:22px;color:var(--text-dim);max-width:680px;margin:0 auto 40px;line-height:1.35;letter-spacing:-.012em;font-weight:400}
+  .cta-row{display:flex;gap:24px;justify-content:center;margin-bottom:96px;flex-wrap:wrap}
+  .cta-row .arrow::after{content:"›";font-size:18px;margin-left:4px}
+
+  /* Preview card */
+  .showcase{max-width:1040px;margin:0 auto 120px;padding:0 24px}
+  .device{background:linear-gradient(180deg,#fafafa,#efeff1);border:1px solid var(--line);border-radius:28px;padding:28px;box-shadow:0 40px 80px -30px rgba(0,0,0,.2)}
+  .device-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+  .dh-title{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .dh-meta{font-size:13px;color:var(--text-mute)}
+  .rows{display:grid;gap:8px}
+  .row{display:grid;grid-template-columns:42px 1fr auto auto;gap:16px;align-items:center;padding:14px 16px;background:#fff;border-radius:14px;border:1px solid var(--line-soft)}
+  .row-mark{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700;letter-spacing:-.01em}
+  .row-main{display:flex;flex-direction:column;gap:2px}
+  .row-name{font-size:15px;font-weight:500;letter-spacing:-.01em}
+  .row-sub{font-size:13px;color:var(--text-mute)}
+  .row-price{font-size:20px;font-weight:600;letter-spacing:-.02em}
+  .row-tag{font-size:12px;padding:4px 10px;border-radius:980px;background:#eef8f1;color:#1d7a3a;font-weight:500}
+  .row-tag.amber{background:#fff3df;color:#9a5f00}
+
+  /* STATS STRIP */
+  .stats{background:var(--bg-mute);padding:80px 24px}
+  .stats-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center}
+  .stat-v{font-size:56px;font-weight:700;letter-spacing:-.035em;line-height:1}
+  .stat-l{margin-top:12px;font-size:15px;color:var(--text-dim)}
+
+  /* FEATURES */
+  .features{max-width:1100px;margin:0 auto;padding:120px 24px}
+  .sec-head{text-align:center;max-width:720px;margin:0 auto 72px}
+  .sec-head .eyebrow{justify-content:center;display:inline-flex}
+  .sec-head h2{font-size:56px;font-weight:700;letter-spacing:-.035em;line-height:1.08;margin-bottom:18px}
+  .sec-head p{font-size:19px;color:var(--text-dim);letter-spacing:-.008em}
+  .fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .feat{background:var(--bg-mute);border-radius:24px;padding:40px 32px;min-height:260px;display:flex;flex-direction:column;gap:14px;transition:transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s}
+  .feat:hover{transform:translateY(-4px);box-shadow:0 30px 60px -20px rgba(0,0,0,.1)}
+  .feat-icon{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:#fff;border:1px solid var(--line-soft);font-size:20px;margin-bottom:4px}
+  .feat h3{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.2}
+  .feat p{font-size:15px;color:var(--text-dim);line-height:1.5;letter-spacing:-.005em}
+
+  /* CTA STRIP */
+  .cta-strip{background:#000;color:#fff;padding:120px 24px;text-align:center}
+  .cta-strip h2{font-size:64px;font-weight:700;letter-spacing:-.04em;line-height:1.05;margin-bottom:22px;max-width:820px;margin-left:auto;margin-right:auto}
+  .cta-strip p{font-size:20px;color:#a1a1a6;margin-bottom:40px;letter-spacing:-.01em}
+  .cta-strip .btn-primary{background:#fff;color:#000}
+  .cta-strip .btn-primary:hover{background:#e7e7e9}
+  .cta-strip .btn-ghost{color:#5eb3ff}
+
+  /* FOOTER */
+  footer{background:var(--bg-mute);padding:40px 24px;font-size:12px;color:var(--text-mute)}
+  .foot{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;letter-spacing:-.005em}
+  .foot a{color:var(--text-mute);text-decoration:none;margin-left:22px}
+  .foot a:hover{color:var(--text)}
+
+  @media (max-width:900px){
+    h1.lead{font-size:48px}
+    .sub{font-size:18px}
+    .nav-links{display:none}
+    .stats-inner{grid-template-columns:1fr 1fr}
+    .fgrid{grid-template-columns:1fr}
+    .sec-head h2,.cta-strip h2{font-size:38px}
+    .stat-v{font-size:40px}
+    .hero{padding:64px 20px 24px}
+  }
+</style>
+</head>
+<body>
+
+<div class="pv-banner">
+  <span>Förhandsvisning · <strong style="color:#fff">Option B — Apple / Linear</strong></span>
+  <a href="index.html">← Tillbaka till val</a>
+</div>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brand"><span class="brand-mark">T</span> Tankkollen</div>
+    <nav class="nav-links">
+      <a href="#">Produkt</a>
+      <a href="#">Karta</a>
+      <a href="#">Företag</a>
+      <a href="#">Support</a>
+    </nav>
+    <a href="#" class="btn btn-primary">Installera app</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow"><span class="dot"></span> Live · priser uppdaterade för 41 sekunder sedan</div>
+  <h1 class="lead">Billigast tank. <span>Varje dag.</span></h1>
+  <p class="sub">Tankkollen visar dig det lägsta priset på bensin, diesel, el och HVO100 — från 158 stationer, i realtid, gratis.</p>
+  <div class="cta-row">
+    <a href="#" class="btn btn-primary">Öppna kartan</a>
+    <a href="#" class="btn btn-ghost arrow">Se hur det funkar</a>
+  </div>
+</section>
+
+<div class="showcase">
+  <div class="device">
+    <div class="device-head">
+      <div class="dh-title">Billigast just nu, Stockholm</div>
+      <div class="dh-meta">Bensin 95 · 14:32</div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <div class="row-mark" style="background:#e5353f">Q8</div>
+        <div class="row-main"><span class="row-name">OKQ8 Kungsholmen</span><span class="row-sub">Fleminggatan · 1,4 km</span></div>
+        <span class="row-tag">15 öre billigare</span>
+        <span class="row-price">18,24 kr</span>
+      </div>
+      <div class="row">
+        <div class="row-mark" style="background:#ffc00e;color:#1d1d1f">ST1</div>
+        <div class="row-main"><span class="row-name">St1 Södermalm</span><span class="row-sub">Götgatan · 2,1 km</span></div>
+        <span class="row-tag">10 öre billigare</span>
+        <span class="row-price">18,29 kr</span>
+      </div>
+      <div class="row">
+        <div class="row-mark" style="background:#ff6a00">PRE</div>
+        <div class="row-main"><span class="row-name">Preem Liljeholmen</span><span class="row-sub">Liljeholmsvägen · 2,8 km</span></div>
+        <span class="row-tag amber">Pris stigande</span>
+        <span class="row-price">18,34 kr</span>
+      </div>
+      <div class="row">
+        <div class="row-mark" style="background:#ffd400;color:#1d1d1f">SH</div>
+        <div class="row-main"><span class="row-name">Shell Kungens kurva</span><span class="row-sub">Smista allé · 9,3 km</span></div>
+        <span class="row-tag">Sänkt idag</span>
+        <span class="row-price">18,47 kr</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="stats">
+  <div class="stats-inner">
+    <div><div class="stat-v">158</div><div class="stat-l">Stationer</div></div>
+    <div><div class="stat-v">43</div><div class="stat-l">Städer</div></div>
+    <div><div class="stat-v">6</div><div class="stat-l">Drivmedel</div></div>
+    <div><div class="stat-v">8</div><div class="stat-l">Kedjor</div></div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="sec-head">
+    <div class="eyebrow">Funktioner</div>
+    <h2>Gjord för att spara dig pengar.</h2>
+    <p>Enkelt. Snabbt. Exakt. Varje detalj designad så du hittar det billigaste priset med ett enda tryck.</p>
+  </div>
+  <div class="fgrid">
+    <div class="feat"><div class="feat-icon">⚡</div><h3>Live-uppdateringar</h3><p>Priser hämtas och verifieras varje minut, direkt från stationernas listpriser och användarrapporter.</p></div>
+    <div class="feat"><div class="feat-icon">📍</div><h3>Närmast dig</h3><p>Ett tryck — vi visar de billigaste stationerna inom räckhåll, sorterade på pris eller avstånd.</p></div>
+    <div class="feat"><div class="feat-icon">💸</div><h3>Alla kedjor</h3><p>Circle K, OKQ8, Preem, Shell, St1, Ingo, Tanka och Qstar — sida vid sida, utan filter.</p></div>
+    <div class="feat"><div class="feat-icon">📊</div><h3>Prisutveckling</h3><p>Stigande eller fallande? Få en riktningspil för varje station så du vet när tanken lönar sig.</p></div>
+    <div class="feat"><div class="feat-icon">⭐</div><h3>Favoriter</h3><p>Spara stationerna du kör förbi varje vecka. Få en notis när priset sänks.</p></div>
+    <div class="feat"><div class="feat-icon">📱</div><h3>Fungerar offline</h3><p>Installera som app. Karta och priser fungerar även utan mottagning — perfekt på landsvägen.</p></div>
+  </div>
+</section>
+
+<section class="cta-strip">
+  <h2>Du tankar ändå. Gör det billigare.</h2>
+  <p>Installera Tankkollen direkt i din hemskärm — gratis, inga konton, ingen reklam i vägen.</p>
+  <a href="#" class="btn btn-primary">Installera Tankkollen</a>
+  <a href="#" class="btn btn-ghost arrow" style="margin-left:16px">Öppna i webben</a>
+</section>
+
+<footer>
+  <div class="foot">
+    <div>Copyright © 2026 Tankkollen. Alla rättigheter förbehållna.</div>
+    <div><a href="#">Integritet</a><a href="#">Villkor</a><a href="#">Support</a><a href="#">Status</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tankkollen — Option A: Bloomberg / Stripe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#0a0e14;
+    --surface:#10151d;
+    --surface-2:#161c27;
+    --border:#1f2835;
+    --border-strong:#2a3443;
+    --text:#e7eaf0;
+    --text-dim:#9ea8bb;
+    --text-mute:#6d7589;
+    --accent:#f59e0b;
+    --accent-dim:#b97a10;
+    --green:#3ec28f;
+    --red:#e5534b;
+    --blue:#6ba4ff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .pv-banner{position:fixed;top:0;left:0;right:0;height:34px;background:#0a0e14;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:200;font-size:12px;color:var(--text-mute)}
+  .pv-banner a{color:var(--accent);text-decoration:none;font-weight:600}
+  .pv-banner a:hover{text-decoration:underline}
+
+  /* TICKER */
+  .ticker{margin-top:34px;border-bottom:1px solid var(--border);background:#0c1118;overflow:hidden;position:relative;height:38px}
+  .ticker-track{display:flex;gap:36px;padding:10px 0;white-space:nowrap;animation:tk 60s linear infinite;font-family:'JetBrains Mono',monospace;font-size:13px;font-variant-numeric:tabular-nums}
+  .tk-item{display:inline-flex;align-items:center;gap:10px;color:var(--text-dim)}
+  .tk-item strong{color:var(--text);font-weight:600}
+  .tk-up{color:var(--green)}
+  .tk-down{color:var(--red)}
+  @keyframes tk{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+  /* NAV */
+  header.nav{position:sticky;top:34px;z-index:100;background:rgba(10,14,20,.85);backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--border)}
+  .nav-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 28px;gap:32px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em;font-size:16px}
+  .brand-mark{width:22px;height:22px;background:var(--accent);display:grid;place-items:center;border-radius:4px;font-family:'JetBrains Mono',monospace;color:#0a0e14;font-size:12px;font-weight:700}
+  .nav-links{display:flex;gap:28px;font-size:14px;color:var(--text-dim)}
+  .nav-links a{color:inherit;text-decoration:none;transition:color .15s}
+  .nav-links a:hover{color:var(--text)}
+  .nav-cta{display:flex;gap:10px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:6px;border:1px solid var(--border-strong);background:transparent;color:var(--text);font:inherit;font-size:13px;font-weight:500;cursor:pointer;text-decoration:none;transition:all .15s}
+  .btn:hover{border-color:var(--text-mute);background:var(--surface)}
+  .btn-primary{background:var(--accent);color:#0a0e14;border-color:var(--accent);font-weight:600}
+  .btn-primary:hover{background:#fbbf24;border-color:#fbbf24}
+
+  /* HERO */
+  .hero{max-width:1280px;margin:0 auto;padding:80px 28px 64px;display:grid;grid-template-columns:1.15fr 1fr;gap:64px;align-items:center}
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-mute);margin-bottom:22px}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 3px rgba(62,194,143,.18)}
+  h1.lead{font-family:'Inter',sans-serif;font-size:58px;font-weight:700;letter-spacing:-.035em;line-height:1.02;margin-bottom:22px}
+  h1.lead em{font-style:normal;color:var(--accent);font-weight:700}
+  .sub{font-size:17px;color:var(--text-dim);max-width:540px;line-height:1.55;margin-bottom:32px}
+  .cta-row{display:flex;gap:12px;margin-bottom:40px}
+  .kpis{display:grid;grid-template-columns:repeat(4,auto);gap:0;border-top:1px solid var(--border);padding-top:22px;max-width:560px}
+  .kpi{padding-right:28px;border-right:1px solid var(--border)}
+  .kpi:last-child{border-right:none;padding-right:0}
+  .kpi-val{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
+  .kpi-lbl{font-size:11px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+
+  /* TERMINAL MOCK */
+  .term{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 30px 80px -20px rgba(0,0,0,.6)}
+  .term-bar{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface-2)}
+  .term-bar .dots{display:flex;gap:6px}
+  .term-bar .dots span{width:10px;height:10px;border-radius:50%;background:#2a3443}
+  .term-bar .t{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-mute);margin-left:10px;letter-spacing:.05em}
+  .term-body{padding:14px 0 0}
+  .term-head{display:grid;grid-template-columns:2fr .9fr 1fr .9fr;gap:12px;padding:0 18px 10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--text-mute);text-transform:uppercase;border-bottom:1px solid var(--border)}
+  .term-row{display:grid;grid-template-columns:2fr .9fr 1fr .9fr;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;font-size:13px}
+  .term-row:last-child{border-bottom:none}
+  .term-row:hover{background:var(--surface-2)}
+  .tr-chain{display:flex;align-items:center;gap:10px}
+  .tr-mark{width:24px;height:24px;border-radius:4px;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:#0a0e14}
+  .tr-meta{font-size:11px;color:var(--text-mute);margin-top:2px}
+  .tr-price{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:15px}
+  .tr-chg.up{color:var(--green)}
+  .tr-chg.down{color:var(--red)}
+  .tr-chg{font-family:'JetBrains Mono',monospace;font-size:12px}
+  .tr-dist{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-mute);text-align:right}
+
+  /* FEATURES */
+  .section{max-width:1280px;margin:0 auto;padding:80px 28px;border-top:1px solid var(--border)}
+  .section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px;gap:40px}
+  .section-head h2{font-size:32px;font-weight:700;letter-spacing:-.02em;max-width:560px;line-height:1.15}
+  .section-head p{color:var(--text-dim);max-width:420px;font-size:14px;line-height:1.6}
+  .fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .feat{background:var(--surface);padding:32px 28px;display:flex;flex-direction:column;gap:14px}
+  .feat-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:.1em}
+  .feat h3{font-size:16px;font-weight:600;letter-spacing:-.01em}
+  .feat p{font-size:14px;color:var(--text-dim);line-height:1.6}
+
+  /* FOOTER */
+  footer{border-top:1px solid var(--border);background:#07090d;margin-top:40px}
+  .foot{max-width:1280px;margin:0 auto;padding:36px 28px;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--text-mute);gap:24px;flex-wrap:wrap}
+  .foot a{color:var(--text-dim);text-decoration:none;margin-left:24px}
+  .foot a:hover{color:var(--text)}
+
+  @media (max-width:900px){
+    .hero{grid-template-columns:1fr;padding:48px 20px}
+    h1.lead{font-size:40px}
+    .nav-links{display:none}
+    .fgrid{grid-template-columns:1fr}
+    .section-head{flex-direction:column;align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+
+<div class="pv-banner">
+  <span>Förhandsvisning · <strong style="color:#f59e0b">Option A — Bloomberg / Stripe</strong></span>
+  <a href="index.html">← Tillbaka till val</a>
+</div>
+
+<!-- Live ticker -->
+<div class="ticker" aria-hidden="true">
+  <div class="ticker-track mono">
+    <span class="tk-item"><strong>B95</strong> 18.42 kr <span class="tk-down">▼ 0.15</span></span>
+    <span class="tk-item"><strong>B98</strong> 19.74 kr <span class="tk-down">▼ 0.08</span></span>
+    <span class="tk-item"><strong>DIESEL</strong> 17.89 kr <span class="tk-up">▲ 0.22</span></span>
+    <span class="tk-item"><strong>HVO100</strong> 22.15 kr <span class="tk-up">▲ 0.04</span></span>
+    <span class="tk-item"><strong>E85</strong> 14.32 kr <span class="tk-down">▼ 0.11</span></span>
+    <span class="tk-item"><strong>EL-DC</strong> 4.89 kr/kWh <span class="tk-up">▲ 0.03</span></span>
+    <span class="tk-item"><strong>STOCKHOLM·SNITT</strong> 18.67 kr</span>
+    <span class="tk-item"><strong>GÖTEBORG·SNITT</strong> 18.34 kr</span>
+    <span class="tk-item"><strong>B95</strong> 18.42 kr <span class="tk-down">▼ 0.15</span></span>
+    <span class="tk-item"><strong>B98</strong> 19.74 kr <span class="tk-down">▼ 0.08</span></span>
+    <span class="tk-item"><strong>DIESEL</strong> 17.89 kr <span class="tk-up">▲ 0.22</span></span>
+    <span class="tk-item"><strong>HVO100</strong> 22.15 kr <span class="tk-up">▲ 0.04</span></span>
+    <span class="tk-item"><strong>E85</strong> 14.32 kr <span class="tk-down">▼ 0.11</span></span>
+    <span class="tk-item"><strong>EL-DC</strong> 4.89 kr/kWh <span class="tk-up">▲ 0.03</span></span>
+    <span class="tk-item"><strong>STOCKHOLM·SNITT</strong> 18.67 kr</span>
+    <span class="tk-item"><strong>GÖTEBORG·SNITT</strong> 18.34 kr</span>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brand"><span class="brand-mark">T</span> Tankkollen</div>
+    <nav class="nav-links">
+      <a href="#">Marknad</a>
+      <a href="#">Stationer</a>
+      <a href="#">Historik</a>
+      <a href="#">Prenumeration</a>
+      <a href="#">Om oss</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="#" class="btn">Logga in</a>
+      <a href="#" class="btn btn-primary">Öppna terminal</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <div class="eyebrow"><span class="dot"></span> Live · senast uppdaterad 14:32:04 CET</div>
+    <h1 class="lead">Drivmedelsmarknaden i Sverige, <em>i realtid.</em></h1>
+    <p class="sub">Tankkollen konsoliderar listpriser från 158 stationer och åtta kedjor till ett enda, prissättnings-kvalitetsanpassat flöde. Se var marknaden rör sig innan du tankar.</p>
+    <div class="cta-row">
+      <a href="#" class="btn btn-primary">Öppna Pro Dashboard →</a>
+      <a href="#" class="btn">Installera som app</a>
+    </div>
+    <div class="kpis mono">
+      <div class="kpi"><div class="kpi-val">158</div><div class="kpi-lbl">Stationer</div></div>
+      <div class="kpi"><div class="kpi-val">8</div><div class="kpi-lbl">Kedjor</div></div>
+      <div class="kpi"><div class="kpi-val">43</div><div class="kpi-lbl">Städer</div></div>
+      <div class="kpi"><div class="kpi-val">6</div><div class="kpi-lbl">Drivmedel</div></div>
+    </div>
+  </div>
+  <div class="term">
+    <div class="term-bar">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <span class="t">billigast-just-nu · bensin 95 · stockholm</span>
+    </div>
+    <div class="term-body">
+      <div class="term-head mono">
+        <span>Station</span><span>Pris</span><span>Förändring</span><span>Avstånd</span>
+      </div>
+      <div class="term-row">
+        <div class="tr-chain">
+          <div class="tr-mark" style="background:#e5353f">Q8</div>
+          <div><div>OKQ8 Kungsholmen</div><div class="tr-meta">Fleminggatan · öppet dygnet runt</div></div>
+        </div>
+        <div class="tr-price">18.24</div>
+        <div class="tr-chg down">▼ 0.18 kr</div>
+        <div class="tr-dist">1.4 km</div>
+      </div>
+      <div class="term-row">
+        <div class="tr-chain">
+          <div class="tr-mark" style="background:#ffc00e">ST1</div>
+          <div><div>St1 Södermalm</div><div class="tr-meta">Götgatan · biltvätt</div></div>
+        </div>
+        <div class="tr-price">18.29</div>
+        <div class="tr-chg down">▼ 0.12 kr</div>
+        <div class="tr-dist">2.1 km</div>
+      </div>
+      <div class="term-row">
+        <div class="tr-chain">
+          <div class="tr-mark" style="background:#ff6a00">PRE</div>
+          <div><div>Preem Liljeholmen</div><div class="tr-meta">Liljeholmsvägen</div></div>
+        </div>
+        <div class="tr-price">18.34</div>
+        <div class="tr-chg up">▲ 0.04 kr</div>
+        <div class="tr-dist">2.8 km</div>
+      </div>
+      <div class="term-row">
+        <div class="tr-chain">
+          <div class="tr-mark" style="background:#ffd400;color:#0a0e14">SH</div>
+          <div><div>Shell Kungens kurva</div><div class="tr-meta">Smista allé · snabbladdning</div></div>
+        </div>
+        <div class="tr-price">18.47</div>
+        <div class="tr-chg down">▼ 0.06 kr</div>
+        <div class="tr-dist">9.3 km</div>
+      </div>
+      <div class="term-row">
+        <div class="tr-chain">
+          <div class="tr-mark" style="background:#e50050">CK</div>
+          <div><div>Circle K Solna</div><div class="tr-meta">Solnavägen · biltvätt</div></div>
+        </div>
+        <div class="tr-price">18.52</div>
+        <div class="tr-chg up">▲ 0.02 kr</div>
+        <div class="tr-dist">5.6 km</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <h2>Byggd för förare som faktiskt räknar på bränsle.</h2>
+    <p>Fyra komponenter, ett mål: lägsta pris per mil. Ingen gamification, inga poäng — bara siffror du kan agera på.</p>
+  </div>
+  <div class="fgrid">
+    <div class="feat"><div class="feat-num">01 / LIVE FEED</div><h3>Kontinuerlig prissättning</h3><p>Stations-APIer pollas var 60:e sekund och normaliseras mot kedjans officiella listpris.</p></div>
+    <div class="feat"><div class="feat-num">02 / ROUTING</div><h3>Kostnad per leverans</h3><p>Kombinerar pris, avstånd och din bils förbrukning till en faktisk kronor-kostnad.</p></div>
+    <div class="feat"><div class="feat-num">03 / TREND</div><h3>7-dagars prisstruktur</h3><p>Se marknadens riktning innan kedjorna justerar. Historik per station och kedja.</p></div>
+    <div class="feat"><div class="feat-num">04 / ALERTS</div><h3>Prisvakter</h3><p>Få notis när en favoritstation bryter ditt tröskelpris. Push, mail eller webhook.</p></div>
+    <div class="feat"><div class="feat-num">05 / COVERAGE</div><h3>Hela Sverige</h3><p>Från Ystad till Kiruna. Åtta kedjor, sex drivmedel, 43 städer. Uppdateras dygnet runt.</p></div>
+    <div class="feat"><div class="feat-num">06 / API</div><h3>Utvecklarvänligt</h3><p>Strukturerad JSON, dokumenterad schema, rate limits som ett seriöst API. Gratis nivå för privat bruk.</p></div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot">
+    <div>© 2026 Tankkollen · All prisdata tillhör respektive kedja</div>
+    <div><a href="#">Integritet</a><a href="#">Villkor</a><a href="#">Status</a><a href="#">API-dokumentation</a></div>
+  </div>
+</footer>
+
+</body>
+</html>
