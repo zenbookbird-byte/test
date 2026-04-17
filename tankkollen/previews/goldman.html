@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tankkollen — Option C: JPMorgan / Goldman</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#f7f4ec;
+    --bg-card:#fffdf7;
+    --bg-dark:#0b1d3a;
+    --bg-darker:#071429;
+    --line:#d9d1bd;
+    --line-soft:#e6dfcd;
+    --text:#0b1d3a;
+    --text-body:#2b3a54;
+    --text-mute:#6b7387;
+    --text-light:#f7f4ec;
+    --gold:#a67c2e;
+    --gold-dim:#8a6524;
+    --gold-soft:#d9b977;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text-body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .serif{font-family:'Source Serif 4',Georgia,serif}
+  .pv-banner{position:fixed;top:0;left:0;right:0;height:34px;background:var(--bg-darker);color:#cbd3e0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:200;font-size:12px}
+  .pv-banner a{color:var(--gold-soft);text-decoration:none;font-weight:500}
+  .pv-banner a:hover{text-decoration:underline}
+
+  /* TOP BAR */
+  .topbar{margin-top:34px;background:var(--bg-darker);color:#cbd3e0;font-size:12px}
+  .topbar-inner{max-width:1200px;margin:0 auto;padding:10px 28px;display:flex;justify-content:space-between;align-items:center;letter-spacing:.02em}
+  .topbar-meta{display:flex;gap:28px}
+  .topbar a{color:#cbd3e0;text-decoration:none}
+  .topbar a:hover{color:#fff}
+
+  /* NAV */
+  header.nav{background:var(--bg-dark);color:var(--text-light);position:sticky;top:34px;z-index:100;border-bottom:2px solid var(--gold)}
+  .nav-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:22px 28px;gap:24px}
+  .brand{display:flex;align-items:center;gap:14px;letter-spacing:.02em}
+  .brand-mark{width:36px;height:36px;background:transparent;border:1.5px solid var(--gold);display:grid;place-items:center;color:var(--gold);font-family:'Source Serif 4',serif;font-size:20px;font-weight:700;font-style:italic}
+  .brand-name{font-family:'Source Serif 4',serif;font-size:22px;font-weight:600;letter-spacing:.005em}
+  .nav-links{display:flex;gap:34px;font-size:14px;color:#d0d6e0;font-weight:500;letter-spacing:.02em}
+  .nav-links a{color:inherit;text-decoration:none;padding:4px 0;border-bottom:1.5px solid transparent;transition:border-color .2s,color .2s}
+  .nav-links a:hover{color:#fff;border-bottom-color:var(--gold)}
+  .nav-cta{display:flex;gap:14px;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:2px;background:transparent;color:var(--text-light);font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;border:1px solid rgba(255,255,255,.3);cursor:pointer;transition:all .2s}
+  .btn:hover{border-color:var(--gold);color:var(--gold-soft)}
+  .btn-primary{background:var(--gold);color:var(--bg-darker);border-color:var(--gold)}
+  .btn-primary:hover{background:var(--gold-dim);border-color:var(--gold-dim);color:#fff}
+  .btn-dark{color:var(--text);border-color:var(--text)}
+  .btn-dark:hover{border-color:var(--gold-dim);color:var(--gold-dim)}
+
+  /* HERO */
+  .hero{max-width:1200px;margin:0 auto;padding:96px 28px 64px;display:grid;grid-template-columns:1.2fr 1fr;gap:80px;align-items:center}
+  .eyebrow{font-size:12px;color:var(--gold-dim);letter-spacing:.22em;text-transform:uppercase;font-weight:600;margin-bottom:32px;display:flex;align-items:center;gap:14px}
+  .eyebrow::before{content:"";display:inline-block;width:32px;height:1.5px;background:var(--gold)}
+  h1.lead{font-family:'Source Serif 4',serif;font-size:68px;font-weight:500;letter-spacing:-.015em;line-height:1.04;color:var(--text);margin-bottom:28px}
+  h1.lead em{font-style:italic;color:var(--gold-dim);font-weight:500}
+  .sub{font-size:19px;color:var(--text-body);max-width:540px;line-height:1.6;margin-bottom:40px;font-weight:400}
+  .sub strong{color:var(--text);font-weight:600}
+  .cta-row{display:flex;gap:14px;margin-bottom:56px;flex-wrap:wrap}
+  .rule-stats{border-top:1.5px solid var(--line);padding-top:28px;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;max-width:620px}
+  .rs{}
+  .rs-v{font-family:'Source Serif 4',serif;font-size:36px;font-weight:600;color:var(--text);letter-spacing:-.015em;line-height:1}
+  .rs-l{font-size:11px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.14em;margin-top:10px;font-weight:600}
+
+  /* QUOTE CARD */
+  .quote-card{background:var(--bg-card);border:1px solid var(--line);padding:40px 36px;position:relative;box-shadow:0 30px 80px -30px rgba(11,29,58,.25)}
+  .qc-tab{position:absolute;top:-1px;left:36px;background:var(--gold);color:var(--bg-darker);padding:8px 16px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  .qc-label{font-size:11px;color:var(--text-mute);text-transform:uppercase;letter-spacing:.18em;font-weight:600;margin-top:20px;margin-bottom:14px}
+  .qc-main{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:22px;border-bottom:1px solid var(--line-soft)}
+  .qc-name{font-family:'Source Serif 4',serif;font-size:22px;font-weight:600;color:var(--text);letter-spacing:-.005em}
+  .qc-sub{font-size:13px;color:var(--text-mute);margin-top:3px}
+  .qc-price{font-family:'Source Serif 4',serif;font-size:44px;font-weight:600;letter-spacing:-.015em;color:var(--text);line-height:1}
+  .qc-delta{font-size:12px;color:#1f7a3a;margin-top:6px;letter-spacing:.05em;font-weight:600}
+  .qc-list{margin-top:18px}
+  .qc-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line-soft);font-size:14px}
+  .qc-row:last-child{border-bottom:none}
+  .qc-r-name{color:var(--text)}
+  .qc-r-sub{font-size:12px;color:var(--text-mute);margin-top:2px}
+  .qc-r-price{font-family:'Source Serif 4',serif;font-size:18px;font-weight:600;color:var(--text);letter-spacing:-.01em}
+  .qc-foot{margin-top:22px;padding-top:18px;border-top:1.5px solid var(--line);font-size:11px;color:var(--text-mute);letter-spacing:.08em;text-transform:uppercase;font-weight:600;display:flex;justify-content:space-between}
+
+  /* PULL QUOTE STRIP */
+  .pull{background:var(--bg-dark);color:var(--text-light);padding:100px 28px}
+  .pull-inner{max-width:960px;margin:0 auto;text-align:center}
+  .pull-mark{font-family:'Source Serif 4',serif;font-size:72px;color:var(--gold);line-height:0;margin-bottom:20px;font-style:italic;font-weight:600}
+  .pull blockquote{font-family:'Source Serif 4',serif;font-size:34px;font-weight:400;letter-spacing:-.01em;line-height:1.3;color:#f3eedf;margin-bottom:28px}
+  .pull-cite{font-size:13px;color:var(--gold-soft);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+
+  /* CAPABILITIES */
+  .cap{max-width:1200px;margin:0 auto;padding:110px 28px}
+  .cap-head{display:grid;grid-template-columns:1fr 1.5fr;gap:80px;margin-bottom:64px;align-items:end}
+  .cap-head h2{font-family:'Source Serif 4',serif;font-size:48px;font-weight:500;letter-spacing:-.015em;line-height:1.1;color:var(--text)}
+  .cap-head p{color:var(--text-body);font-size:17px;line-height:1.65}
+  .cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1.5px solid var(--line)}
+  .cap-item{padding:40px 32px 36px;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+  .cap-item:nth-child(3n){border-right:none}
+  .cap-item:nth-last-child(-n+3){border-bottom:none}
+  .cap-num{font-family:'Source Serif 4',serif;font-style:italic;font-size:14px;color:var(--gold-dim);letter-spacing:.02em;margin-bottom:14px}
+  .cap-item h3{font-family:'Source Serif 4',serif;font-size:22px;font-weight:600;letter-spacing:-.01em;margin-bottom:10px;color:var(--text)}
+  .cap-item p{font-size:15px;color:var(--text-body);line-height:1.6}
+
+  /* DOWNLOAD BAND */
+  .band{background:var(--bg-card);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:72px 28px}
+  .band-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr;gap:60px;align-items:center}
+  .band h2{font-family:'Source Serif 4',serif;font-size:38px;font-weight:500;letter-spacing:-.015em;line-height:1.15;color:var(--text);margin-bottom:12px}
+  .band p{color:var(--text-body);font-size:16px;max-width:520px;line-height:1.6}
+
+  /* FOOTER */
+  footer{background:var(--bg-darker);color:#a6b0c2;padding:56px 28px 28px;font-size:13px}
+  .foot-inner{max-width:1200px;margin:0 auto}
+  .foot-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;padding-bottom:36px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .foot-brand{max-width:320px}
+  .foot-brand .brand-name{color:var(--text-light);font-size:20px}
+  .foot-brand p{margin-top:14px;font-size:13px;line-height:1.6;color:#8995ab}
+  .foot-col h4{font-size:11px;color:var(--gold-soft);text-transform:uppercase;letter-spacing:.16em;font-weight:700;margin-bottom:14px}
+  .foot-col a{display:block;color:#a6b0c2;text-decoration:none;padding:4px 0;font-size:13px}
+  .foot-col a:hover{color:#fff}
+  .foot-bot{display:flex;justify-content:space-between;padding-top:24px;font-size:12px;color:#6b7389;letter-spacing:.02em;flex-wrap:wrap;gap:12px}
+
+  @media (max-width:900px){
+    .hero,.cap-head,.band-inner,.foot-top{grid-template-columns:1fr;gap:40px}
+    h1.lead{font-size:40px}
+    .cap-head h2,.band h2{font-size:30px}
+    .pull blockquote{font-size:22px}
+    .cap-grid{grid-template-columns:1fr}
+    .cap-item,.cap-item:nth-child(3n){border-right:none}
+    .cap-item:nth-last-child(-n+3){border-bottom:1px solid var(--line)}
+    .cap-item:last-child{border-bottom:none}
+    .nav-links{display:none}
+    .rule-stats{grid-template-columns:1fr 1fr}
+    .topbar-meta{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="pv-banner">
+  <span>Förhandsvisning · <strong style="color:#fff">Option C — JPMorgan / Goldman</strong></span>
+  <a href="index.html">← Tillbaka till val</a>
+</div>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-meta">
+      <span>Stockholm · 14:32 CET</span>
+      <span>Marknad öppen</span>
+      <span>SEK</span>
+    </div>
+    <div>
+      <a href="#">Investor Relations</a> · <a href="#">Karriär</a> · <a href="#">Kontakt</a>
+    </div>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="nav-inner">
+    <div class="brand"><span class="brand-mark">T</span><span class="brand-name">Tankkollen</span></div>
+    <nav class="nav-links">
+      <a href="#">Marknadsdata</a>
+      <a href="#">Tjänster</a>
+      <a href="#">Insikter</a>
+      <a href="#">Om oss</a>
+      <a href="#">Kontakt</a>
+    </nav>
+    <div class="nav-cta">
+      <a href="#" class="btn">Logga in</a>
+      <a href="#" class="btn btn-primary">Öppna konto</a>
+    </div>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <div class="eyebrow">Drivmedelsintelligens sedan 2024</div>
+    <h1 class="lead">Marknadens mest tillförlitliga <em>prisunderlag</em> för svenska drivmedel.</h1>
+    <p class="sub">Tankkollen sammanställer, verifierar och distribuerar listpriser från <strong>158 stationer</strong> och åtta kedjor till privatpersoner, åkerier och handelsanalytiker — dygnet runt, utan undantag.</p>
+    <div class="cta-row">
+      <a href="#" class="btn btn-dark">Visa marknaden</a>
+      <a href="#" class="btn btn-primary">Begär offert</a>
+    </div>
+    <div class="rule-stats">
+      <div class="rs"><div class="rs-v">158</div><div class="rs-l">Stationer</div></div>
+      <div class="rs"><div class="rs-v">8</div><div class="rs-l">Kedjor</div></div>
+      <div class="rs"><div class="rs-v">43</div><div class="rs-l">Städer</div></div>
+      <div class="rs"><div class="rs-v">24/7</div><div class="rs-l">Täckning</div></div>
+    </div>
+  </div>
+  <div class="quote-card">
+    <div class="qc-tab">Marknadsnotering</div>
+    <div class="qc-label">Bensin 95 · Sverige · snittpris</div>
+    <div class="qc-main">
+      <div><div class="qc-name">Riksgenomsnitt</div><div class="qc-sub">Uppdaterat 14:32 · 158 stationer</div></div>
+      <div style="text-align:right"><div class="qc-price">18,42</div><div class="qc-delta">▼ 0,15 kr / 24 tim</div></div>
+    </div>
+    <div class="qc-label">Dagens lägsta — Stockholmsområdet</div>
+    <div class="qc-list">
+      <div class="qc-row">
+        <div><div class="qc-r-name">OKQ8 Kungsholmen</div><div class="qc-r-sub">Fleminggatan · 1,4 km</div></div>
+        <div class="qc-r-price">18,24 kr</div>
+      </div>
+      <div class="qc-row">
+        <div><div class="qc-r-name">St1 Södermalm</div><div class="qc-r-sub">Götgatan · 2,1 km</div></div>
+        <div class="qc-r-price">18,29 kr</div>
+      </div>
+      <div class="qc-row">
+        <div><div class="qc-r-name">Preem Liljeholmen</div><div class="qc-r-sub">Liljeholmsvägen · 2,8 km</div></div>
+        <div class="qc-r-price">18,34 kr</div>
+      </div>
+    </div>
+    <div class="qc-foot">
+      <span>Källa · Tankkollen</span>
+      <span>Verifierat</span>
+    </div>
+  </div>
+</section>
+
+<section class="pull">
+  <div class="pull-inner">
+    <div class="pull-mark serif">“</div>
+    <blockquote>Genom rigorös datainsamling och tidlös enkelhet hjälper vi svenska förare att fatta bättre beslut — varje dag, vid varje pump.</blockquote>
+    <div class="pull-cite">— Vår verksamhetsprincip</div>
+  </div>
+</section>
+
+<section class="cap">
+  <div class="cap-head">
+    <h2>Kapabiliteter som möter ett professionellt behov.</h2>
+    <p>Från enskilda förare till logistikföretag med hundratals fordon — våra data-, analys- och varningstjänster är byggda för att skala med ditt behov utan att kompromissa med noggrannheten.</p>
+  </div>
+  <div class="cap-grid">
+    <div class="cap-item"><div class="cap-num serif">I.</div><h3>Verifierad prisdata</h3><p>Kedjornas officiella listor korsverifieras mot användarrapporter och tredjepartskällor innan publicering.</p></div>
+    <div class="cap-item"><div class="cap-num serif">II.</div><h3>Ruttoptimering</h3><p>Beräkna faktisk kostnad per körning baserat på fordonets förbrukning, inte bara pumppriset.</p></div>
+    <div class="cap-item"><div class="cap-num serif">III.</div><h3>Marknadsanalys</h3><p>Historiska serier per station, kedja och region. Identifiera mönster innan de blir pressmeddelanden.</p></div>
+    <div class="cap-item"><div class="cap-num serif">IV.</div><h3>Prisnotiser</h3><p>Tröskel-baserade varningar via push, e-post eller webhook när marknaden rör sig.</p></div>
+    <div class="cap-item"><div class="cap-num serif">V.</div><h3>Nationell täckning</h3><p>Från Ystad till Kiruna — åtta kedjor, sex drivmedel, 43 städer. Dygnetruntuppdatering.</p></div>
+    <div class="cap-item"><div class="cap-num serif">VI.</div><h3>Företags-API</h3><p>Dokumenterad REST, rate limits av institutionell kvalitet, SLA för verksamhetskritisk användning.</p></div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="band-inner">
+    <div>
+      <h2>Tillgång till marknaden, var du än är.</h2>
+      <p>Tankkollen installeras direkt från din webbläsare som en app på hemskärmen. Ingen butik, ingen väntan — bara prisdata när du behöver den.</p>
+    </div>
+    <div style="text-align:right">
+      <a href="#" class="btn btn-primary">Installera nu</a>
+      <a href="#" class="btn btn-dark" style="margin-left:10px">Läs manualen</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-inner">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <div class="brand"><span class="brand-mark">T</span><span class="brand-name serif">Tankkollen</span></div>
+        <p>Sveriges mest tillförlitliga underlag för drivmedelspriser, etablerat 2024. Oberoende, avgiftsfritt för privatpersoner.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Produkt</h4>
+        <a href="#">Live-karta</a><a href="#">Pro Dashboard</a><a href="#">API</a><a href="#">Installera app</a>
+      </div>
+      <div class="foot-col">
+        <h4>Företag</h4>
+        <a href="#">Om oss</a><a href="#">Insikter</a><a href="#">Press</a><a href="#">Karriär</a>
+      </div>
+      <div class="foot-col">
+        <h4>Juridik</h4>
+        <a href="#">Villkor</a><a href="#">Integritet</a><a href="#">Datakällor</a><a href="#">Kontakt</a>
+      </div>
+    </div>
+    <div class="foot-bot">
+      <div>© 2026 Tankkollen AB · Org.nr 559XXX-XXXX</div>
+      <div>Stockholm · Göteborg · Malmö</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
