@@ -49,8 +49,9 @@ SOURCES_YML = AGENTS_DIR / "sources.yml"
 STYLE_GUIDE = AGENTS_DIR / "style-guide.md"
 
 # ── Config ──────────────────────────────────────────────────────────
-MODEL = os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-6")
-MAX_TOKENS = 3500
+MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-4-7")
+MAX_TOKENS = 8000
+API_TIMEOUT = 300.0  # 5 min – prevents stream idle disconnect
 
 SECTION_LABEL = {
     "nyheter": "Nyhet",
@@ -58,6 +59,7 @@ SECTION_LABEL = {
     "tester": "Test",
     "motorsport": "Motorsport",
     "kopguide": "Guide",
+    "erbjudanden": "Erbjudande",
     "klassiker": "Klassiker",
 }
 
@@ -152,14 +154,15 @@ ARTICLE_SCHEMA_INSTRUCTION = """
 Returnera ENBART giltig JSON (ingen markdown, inga kodblock). JSON-schema:
 
 {
-  "title":       "string – rubrik max 70 tecken",
-  "excerpt":     "string – 1 mening max 200 tecken för kort",
-  "lead":        "string – 1–2 meningar, max 220 tecken",
-  "body_html":   "string – brödtext som HTML med <h2> och <p>. Ingen <h1>. Får ha <ol>/<ul>/<li>.",
-  "tag":         "string – etikett enligt agentens tillåtna taggar",
-  "author":      "string – namn från agentens författarlista",
-  "image_query": "string – 2-4 engelska sökord för bild",
-  "score":       "number – ENDAST för testagenten (1.0–5.0), annars null"
+  "title":        "string – rubrik max 70 tecken",
+  "excerpt":      "string – 1 mening max 200 tecken för kort",
+  "lead":         "string – 1–2 meningar, max 220 tecken",
+  "body_html":    "string – brödtext som HTML. Ingen <h1>. Får innehålla <h2>, <h3>, <p>, <ol>/<ul>/<li>, <figure><img><figcaption>, <div class=\\"car-entry\\">, <div class=\\"pros-cons\\">, <div class=\\"pros\\">, <div class=\\"cons\\">, <div class=\\"toc\\">, <div class=\\"verdict-box\\">, <span class=\\"price-tag\\">. För inline-bilder använd https://source.unsplash.com/1200x800/?SÖKORD direkt som src.",
+  "tag":          "string – etikett enligt agentens tillåtna taggar",
+  "author":       "string – namn från agentens författarlista",
+  "image_query":  "string – 2-4 engelska sökord för coverbild",
+  "price_label":  "string eller null – ENDAST för erbjudanden-agenten: t.ex. 'Från 179 000 kr'",
+  "score":        "number eller null – ENDAST för testagenten (1.0–5.0)"
 }
 """.strip()
 
@@ -183,33 +186,40 @@ def build_user_message(agent_name: str, agent_prompt: str, topic: Topic) -> str:
 
 
 def call_claude(client: anthropic.Anthropic, style_guide: str, user_message: str) -> dict:
-    """Call Claude with cached system prompt (style guide)."""
-    resp = client.messages.create(
-        model=MODEL,
-        max_tokens=MAX_TOKENS,
-        system=[
-            {
-                "type": "text",
-                "text": (
-                    "Du är en erfaren svensk motorjournalist på BilNytt.se. "
-                    "Din text ska INTE gå att känna igen som AI-genererad. "
-                    "Följ anti-AI-reglerna i stilguiden strikt: undvik AI-klyschor, "
-                    "variera meningslängd, ha egen åsikt, använd konkreta detaljer och "
-                    "svensk kulturell kontext. Skriv som en riktig människa med egen röst. "
-                    "Returnera ALLTID giltig JSON enligt schemat som ges i användarmeddelandet."
-                ),
-            },
-            {
-                "type": "text",
-                "text": f"# Stilguide\n\n{style_guide}",
-                "cache_control": {"type": "ephemeral"},
-            },
-        ],
-        messages=[{"role": "user", "content": user_message}],
-    )
-    text = "".join(
-        block.text for block in resp.content if getattr(block, "type", None) == "text"
-    ).strip()
+    """Call Claude with streaming to avoid idle timeout on long articles."""
+    print(f"  API: model={MODEL}, max_tokens={MAX_TOKENS} (streaming)")
+    system_msgs = [
+        {
+            "type": "text",
+            "text": (
+                "Du är en erfaren svensk motorjournalist på BilNytt.se. "
+                "Din text ska INTE gå att känna igen som AI-genererad. "
+                "Följ anti-AI-reglerna i stilguiden strikt: undvik AI-klyschor, "
+                "variera meningslängd, ha egen åsikt, använd konkreta detaljer och "
+                "svensk kulturell kontext. Skriv som en riktig människa med egen röst. "
+                "Returnera ALLTID giltig JSON enligt schemat som ges i användarmeddelandet."
+            ),
+        },
+        {
+            "type": "text",
+            "text": f"# Stilguide\n\n{style_guide}",
+            "cache_control": {"type": "ephemeral"},
+        },
+    ]
+    try:
+        with client.messages.stream(
+            model=MODEL,
+            max_tokens=MAX_TOKENS,
+            system=system_msgs,
+            messages=[{"role": "user", "content": user_message}],
+        ) as stream:
+            text = stream.get_final_text().strip()
+    except anthropic.APIError as e:
+        print(f"  ! API-fel: {e.status_code} {e.message}", file=sys.stderr)
+        raise
+    except Exception as e:
+        print(f"  ! Oväntat fel vid API-anrop: {type(e).__name__}: {e}", file=sys.stderr)
+        raise
     # Strip common ```json wrappers if model slips up
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.S)
@@ -305,6 +315,8 @@ def generate_one(
     }
     if agent_name == "tester" and payload.get("score"):
         entry["score"] = str(payload["score"])
+    if agent_name == "erbjudanden" and payload.get("price_label"):
+        entry["priceLabel"] = payload["price_label"]
 
     index.setdefault("articles", []).insert(0, entry)
     print(f"  ✓ skrev {slug}.html")
@@ -373,7 +385,10 @@ def main() -> int:
         print("FEL: ANTHROPIC_API_KEY saknas.", file=sys.stderr)
         return 1
 
-    client = anthropic.Anthropic()
+    client = anthropic.Anthropic(
+        timeout=API_TIMEOUT,
+        max_retries=3,
+    )
     style_guide = load_text(STYLE_GUIDE)
     sources_cfg = yaml.safe_load(load_text(SOURCES_YML)) or {}
     index = load_articles_index()
