@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-04-18T13:33:47+00:00",
+  "note": "Starter payload — GitHub Actions cron refreshes this hourly from Google News RSS. When the first scheduled run completes, these placeholders are replaced with real Swedish fuel-industry headlines.",
+  "items": [
+    {
+      "id": "starter-01",
+      "cat": "pris",
+      "source": "Tankkollen",
+      "title": "Nyhetsflödet uppdateras automatiskt varje timme",
+      "excerpt": "Ett schemalagt GitHub Actions-jobb hämtar aktuella svenska drivmedelsnyheter från Google News RSS var 60:e minut och skriver resultatet till data/news.json. Sidan läser filen vid varje sidladdning.",
+      "url": "https://github.com/zenbookbird-byte/test",
+      "published": "2026-04-18T13:33:47+00:00",
+      "hoursAgo": 0,
+      "impact": "\u00b10,00",
+      "impactDir": "flat"
+    }
+  ]
+}

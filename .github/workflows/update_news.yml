@@ -1,0 +1,68 @@
+name: Update Tankkollen News Feed
+
+on:
+  schedule:
+    # Every hour at :25 past the hour, staggered from fuel-price
+    # update (:05) and tile refresh jobs so they don't contend
+    # for the gh-pages concurrency group.
+    - cron: '25 * * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - 'claude/redesign-professional-website-o8Aco'
+    paths:
+      - 'tankkollen/scraper/fetch_news.py'
+      - '.github/workflows/update_news.yml'
+
+concurrency:
+  group: news-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch fresh news feed
+        working-directory: tankkollen
+        run: python3 scraper/fetch_news.py
+
+      - name: Commit and push (only if changed)
+        run: |
+          set -e
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add tankkollen/data/news.json
+
+          if git diff --staged --quiet; then
+            echo "No changes in news.json — skipping commit"
+            exit 0
+          fi
+
+          # Keep commit-count low: amend if last commit was also a
+          # news refresh made by this same workflow within the last
+          # 24 hours; otherwise create a fresh commit.
+          last_msg=$(git log -1 --pretty=%s)
+          last_author=$(git log -1 --pretty=%an)
+          if [ "$last_author" = "github-actions[bot]" ] && \
+             printf '%s' "$last_msg" | grep -q '^chore: refresh news feed'; then
+            git commit --amend --no-edit
+            git push --force-with-lease
+          else
+            git commit -m "chore: refresh news feed $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+          fi

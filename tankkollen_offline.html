@@ -13495,6 +13495,11 @@ window.STATIONS_DATA = [
   ];
 
   const NEWS_STATE = { category: "all" };
+  // Live feed loaded from data/news.json if present. Falls back to
+  // the hardcoded NEWS_ITEMS above when the fetch hasn't completed
+  // yet, or fails (e.g. when opened from file://).
+  let LIVE_NEWS = null;
+  let LIVE_NEWS_GENERATED_AT = null;
 
   function formatNewsTime(hoursAgo) {
     if (hoursAgo < 1) return "nyss";
@@ -13507,7 +13512,11 @@ window.STATIONS_DATA = [
   function renderNews() {
     const grid = document.getElementById("dkNewsGrid");
     if (!grid) return;
-    let items = NEWS_ITEMS;
+    // Prefer the live feed (data/news.json, refreshed hourly by the
+    // update-news workflow) when it has something to show. Fall back
+    // to the static NEWS_ITEMS baked into this bundle.
+    let items =
+      LIVE_NEWS && LIVE_NEWS.length > 0 ? LIVE_NEWS : NEWS_ITEMS;
     if (NEWS_STATE.category !== "all") {
       items = items.filter((n) => n.cat === NEWS_STATE.category);
     }
@@ -13542,6 +13551,7 @@ window.STATIONS_DATA = [
 
   function initNews() {
     renderNews();
+    loadLiveNews();
     document.querySelectorAll("[data-news-cat]").forEach((btn) => {
       btn.addEventListener("click", () => {
         document
@@ -13552,6 +13562,35 @@ window.STATIONS_DATA = [
         renderNews();
       });
     });
+    // Re-check the feed every 10 minutes so a visitor with the tab
+    // left open picks up fresh headlines without a manual reload.
+    setInterval(loadLiveNews, 10 * 60 * 1000);
+  }
+
+  function loadLiveNews() {
+    // Cache-bust with the current 10-minute bucket so browsers and
+    // Fastly don't serve a stale feed.
+    const bucket = Math.floor(Date.now() / (10 * 60 * 1000));
+    fetch("data/news.json?t=" + bucket, { cache: "no-cache" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((payload) => {
+        if (!payload || !Array.isArray(payload.items)) return;
+        // Recompute hoursAgo on the client so it stays accurate even
+        // if the JSON file is older than the cron interval.
+        const now = Date.now();
+        LIVE_NEWS = payload.items.map((n) => {
+          const pub = n.published ? Date.parse(n.published) : NaN;
+          const hoursAgo = isFinite(pub)
+            ? Math.max(0, Math.floor((now - pub) / (60 * 60 * 1000)))
+            : n.hoursAgo || 0;
+          return Object.assign({}, n, { hoursAgo });
+        });
+        LIVE_NEWS_GENERATED_AT = payload.generated_at || null;
+        renderNews();
+      })
+      .catch(() => {
+        /* offline / file:// — keep static fallback */
+      });
   }
 
   /* -------------------- Live scrolling ticker -------------------- */
