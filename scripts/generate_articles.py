@@ -36,6 +36,11 @@ import feedparser
 import yaml
 from slugify import slugify
 
+try:
+    import httpx
+except ImportError:
+    httpx = None
+
 # ── Paths ───────────────────────────────────────────────────────────
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CARNEWS = REPO_ROOT / "carnews"
@@ -188,38 +193,36 @@ def build_user_message(agent_name: str, agent_prompt: str, topic: Topic) -> str:
 def call_claude(client: anthropic.Anthropic, style_guide: str, user_message: str) -> dict:
     """Call Claude with streaming to avoid idle timeout on long articles."""
     print(f"  API: model={MODEL}, max_tokens={MAX_TOKENS} (streaming)")
-    system_msgs = [
-        {
-            "type": "text",
-            "text": (
-                "Du är en erfaren svensk motorjournalist på BilNytt.se. "
-                "Din text ska INTE gå att känna igen som AI-genererad. "
-                "Följ anti-AI-reglerna i stilguiden strikt: undvik AI-klyschor, "
-                "variera meningslängd, ha egen åsikt, använd konkreta detaljer och "
-                "svensk kulturell kontext. Skriv som en riktig människa med egen röst. "
-                "Returnera ALLTID giltig JSON enligt schemat som ges i användarmeddelandet."
-            ),
-        },
-        {
-            "type": "text",
-            "text": f"# Stilguide\n\n{style_guide}",
-            "cache_control": {"type": "ephemeral"},
-        },
-    ]
-    try:
-        with client.messages.stream(
-            model=MODEL,
-            max_tokens=MAX_TOKENS,
-            system=system_msgs,
-            messages=[{"role": "user", "content": user_message}],
-        ) as stream:
-            text = stream.get_final_text().strip()
-    except anthropic.APIError as e:
-        print(f"  ! API-fel: {e.status_code} {e.message}", file=sys.stderr)
-        raise
-    except Exception as e:
-        print(f"  ! Oväntat fel vid API-anrop: {type(e).__name__}: {e}", file=sys.stderr)
-        raise
+    system_text = (
+        "Du är en erfaren svensk motorjournalist på BilNytt.se. "
+        "Din text ska INTE gå att känna igen som AI-genererad. "
+        "Följ anti-AI-reglerna i stilguiden strikt: undvik AI-klyschor, "
+        "variera meningslängd, ha egen åsikt, använd konkreta detaljer och "
+        "svensk kulturell kontext. Skriv som en riktig människa med egen röst. "
+        "Returnera ALLTID giltig JSON enligt schemat som ges i användarmeddelandet.\n\n"
+        f"# Stilguide\n\n{style_guide}"
+    )
+    text = ""
+    for attempt in range(3):
+        try:
+            with client.messages.stream(
+                model=MODEL,
+                max_tokens=MAX_TOKENS,
+                system=system_text,
+                messages=[{"role": "user", "content": user_message}],
+            ) as stream:
+                text = stream.get_final_text().strip()
+            break
+        except anthropic.APIStatusError as e:
+            print(f"  ! API-fel (försök {attempt+1}/3): {e.status_code} {e.message}", file=sys.stderr)
+            if attempt == 2:
+                raise
+            time.sleep(5 * (attempt + 1))
+        except Exception as e:
+            print(f"  ! Fel (försök {attempt+1}/3): {type(e).__name__}: {e}", file=sys.stderr)
+            if attempt == 2:
+                raise
+            time.sleep(5 * (attempt + 1))
     # Strip common ```json wrappers if model slips up
     if text.startswith("```"):
         text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.S)
@@ -385,10 +388,12 @@ def main() -> int:
         print("FEL: ANTHROPIC_API_KEY saknas.", file=sys.stderr)
         return 1
 
-    client = anthropic.Anthropic(
-        timeout=API_TIMEOUT,
-        max_retries=3,
+    _timeout = (
+        httpx.Timeout(API_TIMEOUT, connect=30.0, read=API_TIMEOUT, write=30.0)
+        if httpx
+        else API_TIMEOUT
     )
+    client = anthropic.Anthropic(timeout=_timeout)
     style_guide = load_text(STYLE_GUIDE)
     sources_cfg = yaml.safe_load(load_text(SOURCES_YML)) or {}
     index = load_articles_index()
