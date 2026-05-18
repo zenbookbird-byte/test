@@ -58,12 +58,16 @@ def _config_from_args(args):
     return cfg
 
 
-def run_analysis(video_path, cfg, out_dir, title, quiet=False):
-    """Analyse one video and write its report. Returns the AnalysisResult."""
+def run_analysis(video_path, cfg, out_dir, title, source=None, quiet=False):
+    """Analyse one video and write its report. Returns the AnalysisResult.
+
+    `source` is the label recorded in the report. For remote clips it is an
+    anonymised id, so reports never contain a URL or a person's name.
+    """
     reader = VideoReader(video_path, cfg.work_width, cfg.frame_stride, cfg.max_frames)
     signals = extract_signals(reader, cfg, progress=_progress(quiet))
     result = analyze(signals, cfg)
-    render(result, out_dir, title=title, source=str(video_path))
+    render(result, out_dir, title=title, source=source or str(video_path))
     return result
 
 
@@ -89,15 +93,44 @@ def _print_summary(result, out_dir):
     print(f"  report written to: {out_dir}")
 
 
+_RIGHTS_NOTICE = (
+    "Analysing a URL requires --i-have-rights, confirming you own this\n"
+    "footage or have the consent of the players recorded. This tool is a\n"
+    "screening aid for review, not an accusation tool: do not use it to\n"
+    "investigate non-consenting third parties."
+)
+
+
 def cmd_analyze(args):
     cfg = _config_from_args(args)
-    video = Path(args.video)
-    if not video.exists():
-        print(f"error: video not found: {video}", file=sys.stderr)
-        return 2
+    src = str(args.video)
+    print(BANNER)
+
+    if src.startswith(("http://", "https://")):
+        from gianalyzer.fetch import FetchError, clip_id, fetch_video
+        if not args.i_have_rights:
+            print("error: " + _RIGHTS_NOTICE, file=sys.stderr)
+            return 2
+        cid = clip_id(src)
+        # The report is keyed by an opaque id - never the URL or a name.
+        source_label = f"submitted-clip-{cid}"
+        print(f"Fetching remote clip (id {cid})...")
+        try:
+            video = fetch_video(src, max_height=args.max_height)
+        except FetchError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+    else:
+        video = Path(src)
+        if not video.exists():
+            print(f"error: video not found: {video}", file=sys.stderr)
+            return 2
+        source_label = video.name
+
     out_dir = Path(args.output)
-    print(f"{BANNER}\nAnalysing: {video}")
-    result = run_analysis(video, cfg, out_dir, title=video.name, quiet=args.quiet)
+    print(f"Analysing: {source_label}")
+    result = run_analysis(video, cfg, out_dir, title=source_label,
+                          source=source_label, quiet=args.quiet)
     _print_summary(result, out_dir)
     return 0
 
@@ -155,10 +188,15 @@ def build_parser():
     p.add_argument("--version", action="version", version=BANNER)
     sub = p.add_subparsers(dest="command", required=True)
 
-    a = sub.add_parser("analyze", help="analyse a gameplay video file")
-    a.add_argument("video", help="path to the video file")
+    a = sub.add_parser("analyze", help="analyse a gameplay video file or URL")
+    a.add_argument("video", help="path to a video file, or a video URL")
     a.add_argument("-o", "--output", default="output/analysis",
                    help="output directory for the report")
+    a.add_argument("--i-have-rights", action="store_true",
+                   help="attest you own the footage at the given URL, or "
+                        "have the consent of the players recorded")
+    a.add_argument("--max-height", type=int, default=720,
+                   help="max video height to download for URL inputs")
     a.add_argument("--fov", type=float, help="horizontal field of view (deg)")
     a.add_argument("--work-width", type=int, help="analysis downscale width")
     a.add_argument("--stride", type=int, help="process every Nth frame")

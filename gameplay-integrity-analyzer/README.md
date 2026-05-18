@@ -65,9 +65,23 @@ Analyse a video file:
 python -m gianalyzer analyze path/to/clip.mp4 -o output/analysis
 ```
 
+Analyse a video URL (requires `yt-dlp`). URL input is gated behind an explicit
+rights attestation, and the report records only an anonymised clip id — never
+the URL, channel, or uploader name:
+
+```sh
+python -m gianalyzer analyze "https://..." --i-have-rights -o output/analysis
+```
+
+Use `--i-have-rights` only for footage you own or footage of players who have
+consented. This tool is a screening aid; it is not for investigating
+non-consenting third parties, and downloading may be restricted by the source
+platform's terms of service.
+
 Useful options: `--fov` (horizontal field of view in degrees, game-dependent),
 `--fire-roi X0 Y0 X1 Y1` (muzzle-flash region as frame fractions),
-`--fire-threshold`, `--snap-threshold`, `--stride`, `--work-width`.
+`--fire-threshold`, `--snap-threshold`, `--stride`, `--work-width`,
+`--max-height` (download quality cap for URL inputs).
 
 Run the built-in demo — it synthesises a "clean" clip and a "macro" clip, then
 analyses both so you can see the tool discriminate without supplying footage:
@@ -115,5 +129,6 @@ gianalyzer/
   metrics.py   anomaly metrics and scoring
   report.py    figure / HTML / JSON / text rendering
   synth.py     synthetic clip generator (demo + tests)
+  fetch.py     URL ingestion (consent-gated, identity-stripped)
   cli.py       command-line interface
 ```
